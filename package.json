@@ -1,0 +1,40 @@
+{
+  "name": "pw-repl",
+  "version": "0.1.0",
+  "description": "Text REPL for driving an existing Chromium through Playwright over CDP",
+  "keywords": [
+    "playwright",
+    "repl",
+    "cdp",
+    "chromium",
+    "browser",
+    "devtools",
+    "agents"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arcanemachine/playwright-repl.git"
+  },
+  "bin": {
+    "pw-repl": "bin/pw-repl.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "scripts": {
+    "start": "node bin/pw-repl.js run",
+    "test": "node --test 'test/*.test.js'",
+    "prepublishOnly": "npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}

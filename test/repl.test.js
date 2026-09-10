@@ -1,0 +1,352 @@
+const { describe, it, before, after } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const { SKIP, waitFor, startChrome, startSite, startRepl } = require('./harness');
+
+describe('REPL against a real browser', { skip: SKIP }, () => {
+  let chrome, site, repl;
+
+  before(async () => {
+    chrome = await startChrome();
+    site = await startSite();
+    repl = await startRepl(chrome.cdpUrl);
+    const opened = await repl.run(`tab new ${site.url}/`);
+    assert.equal(opened.status, 'ok', opened.output);
+  });
+
+  after(async () => {
+    await repl?.stop();
+    site?.stop();
+    await chrome?.stop();
+  });
+
+  const ok = async command => {
+    const result = await repl.run(command);
+    assert.equal(result.status, 'ok', `${command}\n${result.output}`);
+    return result.output;
+  };
+  const fetchStatus = 'eval fetch("/api/data").then(r => r.status, e => String(e))';
+
+  it('reads and drives the page', async () => {
+    assert.equal(await ok('title'), 'Fixture');
+    await ok('fill #name => Ada');
+    await ok('click #go');
+    assert.equal(await ok('text #out'), 'Hello Ada');
+    assert.match(await ok('links'), /"href": "http:\/\/127\.0\.0\.1:\d+\/other"/);
+  });
+
+  it('outlines the page and clicks by snapshot label', async () => {
+    await ok('fill #name => Lin');
+    const snap = await ok('snapshot');
+    assert.match(snap, /heading "Fixture"/);
+    const ref = /button "Go" \[ref=((?:f\d+)?e\d+)\]/.exec(snap)[1];
+    await ok(`click aria-ref=${ref}`);
+    assert.equal(await ok('text #out'), 'Hello Lin');
+    assert.match(await ok('snapshot #go'), /button "Go"/);
+  });
+
+  it('watches what happens in a tab, with the requests each step caused', async () => {
+    assert.match(await ok('watch'), /Not watching/);
+    await ok('watch on');
+    await ok('fill #name => secret-value');
+    await ok('fill #pw => hunter2');
+    await ok('click #load');
+    let trail = '';
+    await waitFor(async () => /#\d+ GET 200 \S+\/api\/data/.test(trail = await ok('watch')), 'the click and its request');
+    assert.match(trail, /fill textbox "Name"/);
+    assert.match(trail, /click button "Load"\n +#\d+ GET 200 \S+\/api\/data/);
+    assert.doesNotMatch(trail, /secret-value|hunter2|Password/);
+    await ok(`goto ${site.url}/`);
+    await waitFor(async () => /navigate http/.test(await ok('watch')), 'the navigation');
+    await ok('click #go');
+    await waitFor(async () => /click button "Go"/.test(await ok('watch')), 'a click after navigating');
+    await ok('click #pw');
+    await ok('click #typed');
+    await ok('eval window.__pwReplWatch({ action: "navigate", target: "forged-navigation" })');
+    await ok('eval window.__pwReplWatch({ action: "click", target: "forged-click", t: 0 })');
+    await waitFor(async () => /forged-click/.test(trail = await ok('watch 50')), 'the page-sent click');
+    assert.doesNotMatch(trail, /Password|my private draft|forged-navigation/);
+    assert.match(trail, /click p\n/, 'an editable area is named by role only');
+    assert.doesNotMatch(trail, /00:00:00\.000/, 'the page cannot set the time');
+    await ok('watch off');
+    await ok('click #load');
+    await new Promise(r => setTimeout(r, 300));
+    assert.equal((await ok('watch 50')).match(/click button "Load"/g).length, 1);
+    assert.match(await ok('watch'), /\[watch is off\]/);
+  });
+
+  it('waits for text, and for a response even if it already arrived', async () => {
+    await ok('fill #name => Wu');
+    await ok('click #go');
+    assert.match(await ok('wait text "Hello Wu" 5'), /Visible: Hello Wu/);
+    await ok('click #load');
+    await new Promise(r => setTimeout(r, 300));
+    assert.match(await ok('wait request /api/data 5'), /#\d+ GET 200 \S+\/api\/data/);
+    await ok('click #load');
+    assert.match(await ok('wait request **/api/* 5'), /\/api\/data/, 'globs work too');
+    const late = await repl.run('wait request /never 1');
+    assert.equal(late.status, 'error');
+    assert.equal(await ok('title'), 'Fixture', 'a wait that times out does not disconnect');
+  });
+
+  it('selects and closes tabs by a part of their URL', async () => {
+    await ok(`tab new ${site.url}/?tab-test=one`);
+    await ok('tab 1');
+    assert.match(await ok('tab tab-test=one'), /tab-test=one/);
+    const ambiguous = await repl.run(`tab ${site.url}`);
+    assert.equal(ambiguous.status, 'error');
+    assert.match(ambiguous.output, /tabs match/);
+    await ok('tab 1');
+    assert.match(await ok('tab close tab-test=one'), /Closed \S+tab-test=one/);
+    assert.doesNotMatch(await ok('tabs'), /tab-test=one/);
+    assert.match(await ok('url'), /127\.0\.0\.1:\d+\/$/, 'closing another tab keeps the selection');
+  });
+
+  it('greps the snapshot by role, name or flag, with where each hit sits', async () => {
+    assert.match(await ok('snapshot --grep alert'), /region "Results" › alert \[ref=(?:f\d+)?e\d+\]: Could not load results\./);
+    assert.match(await ok('snapshot --grep disabled'), /region "Results" › button "Refresh Results" \[disabled\] \[ref=(?:f\d+)?e\d+\]/);
+    assert.match(await ok('snapshot --grep "refresh results"'), /Refresh Results/, 'any case, quotes allowed');
+    assert.match(await ok('snapshot --grep "button \\"Refresh Results\\""'), /button "Refresh Results"/, 'escaped quotes, as typed in a shell');
+    assert.match(await ok('snapshot --grep nothing-like-this'), /No snapshot lines match/);
+    const ref = /button "Go" \[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot --grep "button \"Go\""'))[1];
+    assert.match(await ok(`snapshot ${ref}`), /^- button "Go"/);
+  });
+
+  it('after closing its own tab, goes back only to a tab it opened', async () => {
+    await ok(`tab new ${site.url}/?first`);
+    await ok(`tab new ${site.url}/?second`);
+    await ok('tab close');
+    assert.match(await ok('url'), /\?first$/, 'back to the tab it opened before');
+    await ok('tab 0');
+    await ok(`tab new ${site.url}/?third`);
+    assert.match(await ok('tab close'), /no tab is selected now/, 'tab [0] was not opened by this REPL');
+    const refused = await repl.run('title');
+    assert.equal(refused.status, 'error');
+    assert.match(refused.output, /No tab is selected/);
+    assert.match(await ok('tab'), /No tab is selected/);
+    await ok('tab close first');
+    await ok('tab 1');
+    assert.match(await ok('url'), /127\.0\.0\.1:\d+\/$/);
+  });
+
+  it('caps long output unless --all is given', async () => {
+    assert.match(await ok('eval "x".repeat(13000)'), /\[truncated; use --all/);
+    assert.doesNotMatch(await ok('eval --all "x".repeat(13000)'), /truncated/);
+  });
+
+  it('fakes a response in the browser and proves it', async () => {
+    await ok('route **/api/data 503 {"detail":"down"}');
+    const faked = await ok(fetchStatus);
+    assert.match(faked, /Faked: #\d+ GET .*\/api\/data -> 503/);
+    assert.match(faked, /^503$/m);
+    assert.match(await ok('routes'), /\*\*\/api\/data -> 503/);
+    await ok('unroute --all');
+    assert.equal(await ok(fetchStatus), '200');
+  });
+
+  it('redraws the prompt after a fake that fires between commands', async () => {
+    await ok('route **/api/data 503 {}');
+    await ok('eval setTimeout(() => fetch("/api/data"), 200); "scheduled"');
+    const start = repl.stdout.length;
+    await waitFor(() => /Faked: #\d+ GET \S+\/api\/data -> 503\npw\[serve\]> /.test(repl.stdout.slice(start)), 'the late Faked line and a fresh prompt');
+    await ok('unroute --all');
+  });
+
+  it('replaces, removes one, and keeps routes per tab', async () => {
+    await ok('route **/api/data 503 {}');
+    assert.match(await ok('route **/api/data 504 {}'), /Replaced/);
+    await ok('route **/api/other 500 {}');
+    assert.match(await ok(fetchStatus), /^504$/m);
+    await ok('unroute **/api/data');
+    assert.doesNotMatch(await ok('routes'), /api\/data/);
+    assert.equal(await ok(fetchStatus), '200');
+    await ok(`tab new ${site.url}/`);
+    assert.match(await ok('routes'), /No routes/);
+    await ok('tab close');
+    await ok('tab 1');
+    assert.match(await ok('routes'), /api\/other/);
+    await ok('unroute --all');
+  });
+
+  it('refuses statuses a response cannot have', async () => {
+    assert.match((await repl.run('route **/x 101 {}')).output, /200 to 599/);
+  });
+
+  it('rejects a route body that is not JSON', async () => {
+    const result = await repl.run('route **/api/data 500 {nope');
+    assert.equal(result.status, 'error');
+    assert.match(result.output, /not valid JSON/);
+  });
+
+  it('shows a fake as faked in recent as soon as it is answered', async () => {
+    await ok('route **/api/instant 418 {}');
+    assert.match(await ok('eval fetch("/api/instant").then(r => r.status)'), /^418$/m);
+    assert.match(await ok('recent 5 /api/instant'), /GET 418 faked \d+ms/);
+    await ok('unroute --all');
+  });
+
+  it('keeps recent requests, marks fakes, and hides static files by default', async () => {
+    await ok('route **/api/data 500 {}');
+    await ok(fetchStatus);
+    await ok('unroute --all');
+    // The browser reports completion shortly after fetch() resolves.
+    let recent = '';
+    await waitFor(async () => /GET 500 faked \d+ms .*\/api\/data/.test(recent = await ok('recent 50')), 'the faked request to settle');
+    assert.doesNotMatch(recent, /style\.css/);
+    assert.match(await ok('recent --all 50'), /style\.css/);
+    assert.match(await ok('recent 50 nothing-matches-this'), /No recent requests matching/);
+  });
+
+  it('shows the body of a recent request, real or faked', async () => {
+    await ok(fetchStatus);
+    await ok('route **/api/data 418 {"fake":1}');
+    await ok(fetchStatus);
+    await ok('unroute --all');
+    let recent = '';
+    await waitFor(async () => /GET 418 faked/.test(recent = await ok('recent 50 /api/data')), 'the requests to settle');
+    // The latest one: bodies from before an earlier navigation may be gone.
+    const real = [...recent.matchAll(/#(\d+) \S+ GET 200 \d+ms \S+\/api\/data/g)].pop()[1];
+    const faked = /#(\d+) \S+ GET 418 faked/.exec(recent)[1];
+    assert.match(await ok(`body ${real}`), /"real": true/);
+    assert.match(await ok(`body #${faked}`), /"fake": 1/);
+    const missing = await repl.run('body 99999');
+    assert.equal(missing.status, 'error');
+    assert.match(missing.output, /No request #99999/);
+  });
+
+  it('keeps console messages and uncaught errors without a capture', async () => {
+    await ok('click #noisy');
+    let logs = '';
+    await waitFor(async () => /\[pageerror\].*boom-uncaught/.test(logs = await ok('logs 50')), 'the page error');
+    assert.match(logs, /\[log\] hello-log/);
+    assert.match(logs, /\[error\] bad-thing/);
+    await ok('eval console.log("y".repeat(10000))');
+    await waitFor(async () => /y{4000}…/.test(await ok('logs --all 5')), 'the long message');
+    assert.doesNotMatch(await ok('logs --all 5'), /y{4001}/, 'long messages are clipped when stored');
+    const errors = await ok('logs 50 error');
+    assert.doesNotMatch(errors, /hello-log/);
+    assert.match(errors, /bad-thing/);
+  });
+
+  it('cuts and restores the network', async () => {
+    await ok('offline on');
+    assert.match(await ok(fetchStatus), /Failed to fetch/);
+    await ok('offline off');
+    assert.equal(await ok(fetchStatus), '200');
+  });
+
+  it('cuts the network per tab', async () => {
+    await ok('offline on');
+    await ok(`tab new ${site.url}/`);
+    assert.equal(await ok(fetchStatus), '200', 'a new tab is not offline');
+    await ok('offline on');
+    assert.match(await ok(fetchStatus), /Failed to fetch/, 'offline applies to the selected tab');
+    await ok('offline off');
+    assert.equal(await ok(fetchStatus), '200');
+    await ok('tab close');
+    await ok('tab 1');
+    assert.match(await ok(fetchStatus), /Failed to fetch/, 'the first tab is still offline');
+    await ok('offline off');
+    assert.equal(await ok(fetchStatus), '200');
+  });
+
+  it('reports a read-only timeout as an error and carries on', async () => {
+    const result = await repl.run('text #not-on-the-page');
+    assert.equal(result.status, 'error');
+    assert.match(result.output, /Timeout/);
+    assert.doesNotMatch(result.output, /disconnecting/);
+    assert.equal(await ok('title'), 'Fixture');
+  });
+
+  it('reports unknown commands as errors', async () => {
+    const result = await repl.run('nosuch');
+    assert.equal(result.status, 'error');
+    assert.match(result.output, /Unknown command: nosuch/);
+  });
+
+  it('prints completion markers for prompt commands', async () => {
+    const id = `t${Date.now()}`;
+    repl.type(`@${id} title`);
+    await waitFor(() => repl.stdout.includes(`[[pw-done:${id}:ok]]`), 'the completion marker');
+    repl.type(`@${id}x nosuch`);
+    await waitFor(() => repl.stdout.includes(`[[pw-done:${id}x:error]]`), 'the error marker');
+  });
+
+  it('shows the server is on in the prompt', () => {
+    assert.match(repl.stdout, /pw\[serve\]> /);
+  });
+
+  it('echoes server commands to the pane', async () => {
+    await ok('url');
+    assert.match(repl.stdout, /\[server\] url/);
+  });
+
+  describe('server safety', () => {
+    it('creates an owner-only socket', () => {
+      assert.equal(fs.statSync(repl.socket).mode & 0o777, 0o600);
+    });
+
+    it('refuses requests from web pages', async () => {
+      const result = await repl.request('{"command":"title"}', { 'Content-Type': 'application/json', Origin: 'https://example.com' });
+      assert.equal(result.code, 403);
+    });
+
+    it('refuses bodies that are not JSON', async () => {
+      assert.equal((await repl.request('{"command":"title"}', { 'Content-Type': 'text/plain' })).code, 415);
+      assert.equal((await repl.request('nope')).code, 400);
+      assert.equal((await repl.run('title\nurl')).code, 400);
+    });
+
+    it('keeps quit at the prompt', async () => {
+      const result = await repl.run('quit');
+      assert.equal(result.status, 'error');
+      assert.equal(repl.exited, false);
+    });
+  });
+});
+
+describe('a command with an unknown outcome', { skip: SKIP }, () => {
+  let chrome, site, repl;
+
+  before(async () => {
+    chrome = await startChrome();
+    site = await startSite();
+    repl = await startRepl(chrome.cdpUrl);
+    await repl.run(`tab new ${site.url}/`);
+  });
+
+  after(async () => {
+    await repl?.stop();
+    site?.stop();
+    await chrome?.stop();
+  });
+
+  it('disconnects the REPL and removes the socket when a changing command times out', async () => {
+    const result = await repl.run('click #not-on-the-page');
+    assert.equal(result.status, 'error');
+    assert.match(result.output, /the REPL is disconnecting/);
+    await waitFor(() => repl.exited, 'the REPL to exit');
+    assert.equal(fs.existsSync(repl.socket), false);
+  });
+});
+
+describe('closing the terminal of a serving REPL', { skip: SKIP }, () => {
+  let chrome, repl;
+
+  before(async () => {
+    chrome = await startChrome();
+    repl = await startRepl(chrome.cdpUrl);
+  });
+
+  after(async () => {
+    await repl?.stop();
+    await chrome?.stop();
+  });
+
+  it('removes the socket on SIGHUP', async () => {
+    assert.ok(fs.existsSync(repl.socket));
+    repl.proc.kill('SIGHUP');
+    await waitFor(() => repl.exited, 'the REPL to exit');
+    assert.equal(fs.existsSync(repl.socket), false);
+  });
+});
