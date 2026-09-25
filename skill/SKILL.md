@@ -33,8 +33,14 @@ one; each takes an optional start URL, which opens in a new tab.
 (`pw-repl serve --background /tmp/mine.sock`); `send`, `attach`, `stop` and `where` then need
 `-e /tmp/mine.sock`, or `PW_SOCKET=/tmp/mine.sock`. The log of a background REPL is next to its socket
 (`/tmp/mine.log`); `tail -f` on it follows along without a terminal to attach from. `serve <port>`
-listens on TCP 127.0.0.1 instead of a socket, with no access control. A REPL in a
-terminal stops at its prompt (`quit`, or Ctrl-C); `send quit` is refused.
+listens on TCP 127.0.0.1 instead of a socket, with no access control.
+
+Several REPLs can run at once, each on its own socket, e.g. one per agent. Each has its own selected tab,
+command queue and modes, so they do not wait on or select for each other. They share the browser,
+though: each sees every tab, `modes` lists only its own REPL's modes, and two REPLs acting on the same
+tab can undo each other's routes or network setting.
+
+A REPL in a terminal stops at its prompt (`quit`, or Ctrl-C); `send quit` is refused.
 
 ## Send commands
 
