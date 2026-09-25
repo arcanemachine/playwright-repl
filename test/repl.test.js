@@ -76,7 +76,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('watch 50'), /\[watch is off\]/);
     const bare = await ok('watch');
     assert.match(bare, /^Not watching the selected tab; \d+ steps recorded before watch off:\n/);
-    assert.match(bare, /click button "Load"[\s\S]*\n +watch on \[--changes\] +record again$/);
+    assert.match(bare, /click button "Load"[\s\S]*\n +watch on \[--changes\] \[--live\] +record again$/);
   });
 
   it('records typing once it pauses, and Enter and Escape, without the values', async () => {
@@ -184,6 +184,24 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(fresh, /Hello Quinn/);
     assert.doesNotMatch(await ok('watch new'), /Hello Quinn/);
     await ok('watch off');
+  });
+
+  it('prints each step as it happens with watch on --live', async () => {
+    await ok('reload');
+    assert.match(await ok('watch on'), /watch on --live also prints each step/);
+    assert.match(await ok('watch on --live'), /Each step prints here once it settles/);
+    const start = repl.stdout.length;
+    await ok('click #load');
+    await waitFor(() => /\[watch\] \S+ click button "Load"\n {8}\s+#\d+ GET 200 \S+\/api\/data/.test(repl.stdout.slice(start)), 'the step with its request', 6000);
+    await ok('click #go');
+    await ok('click #load');
+    await waitFor(() => /\[watch\] \S+ click button "Go"[\s\S]*\[watch\] \S+ click button "Load"/.test(repl.stdout.slice(start)), 'a step ended by the next one, then that one', 6000);
+    assert.match(await ok('watch'), /^Watching the selected tab since \S+ \(live\): /);
+    assert.match(await ok('watch off'), /; \d+ steps recorded \(watch shows them\)$/);
+    const after = repl.stdout.length;
+    await ok('click #go');
+    await new Promise(r => setTimeout(r, 1500));
+    assert.doesNotMatch(repl.stdout.slice(after), /\[watch\]/, 'nothing prints once watch is off');
   });
 
   it('waits for text, and for a response even if it already arrived', async () => {

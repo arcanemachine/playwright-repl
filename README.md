@@ -58,6 +58,7 @@ Commands act on the selected tab (`tab` lists the tabs, with `*` on the selected
 | see what the page requested          | `requests`, then `body <#>` for what one got back               |
 | see console messages and errors      | `console`                                                       |
 | show an agent what I do              | `watch on`, click around in the browser, then `watch`           |
+| see each step as I click             | `watch on --live`                                               |
 | record requests and console together | `capture on`, then `capture off`                                |
 | break the backend on purpose         | `route <glob> <status> <json>` (fake a response), `network off` |
 | clean up                             | `modes off`                                                     |
