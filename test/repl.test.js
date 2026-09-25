@@ -443,9 +443,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await new Promise(r => setTimeout(r, 300));
     assert.match(await ok('capture'), /Capturing requests and console on \S+ since [\s\S]*capture off/);
     const captured = await ok('capture off');
-    assert.match(captured, /"tag": "request",\s+"text": "GET \S+\/api\/data"/);
-    assert.match(captured, /"tag": "console:log",\s+"text": "hello-log"/);
-    assert.match(captured, /"tag": "pageerror",\s+"text": "[^"]*boom-uncaught/);
+    assert.match(captured, /^\+\d+\.\d{3}s #\d+ GET 200 \S+\/api\/data$/m);
+    assert.match(captured, /^\+\d+\.\d{3}s \[log\] hello-log$/m);
+    assert.match(captured, /^\+\d+\.\d{3}s \[pageerror\] Error: boom-uncaught/m);
     assert.match(await ok('capture'), /Not capturing\. The last capture, of requests and console[\s\S]*hello-log/);
     assert.match(await ok('capture off'), /Not capturing/);
   });
