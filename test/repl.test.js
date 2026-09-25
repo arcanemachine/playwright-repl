@@ -400,6 +400,29 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(fetchStatus), '200');
   });
 
+  it('lists the modes on in every tab, and turns them all off', async () => {
+    assert.match(await ok('modes'), /^No modes are on in any tab\.\n +watch on /);
+    assert.match(await ok('modes off'), /No modes were on/);
+    await ok('watch on');
+    await ok('network off');
+    await ok(`tab new ${site.url}/?modes`);
+    await ok('route **/api/a 500 {}');
+    await ok('route **/api/b 500 {}');
+    await ok('capture on');
+    const listing = await ok('modes');
+    assert.match(listing, /^  \[1\] \S+\/ +\(watch network:off\)$/m);
+    assert.match(listing, /^\* \[\d\] \S+\?modes +\(routes:2 capture\)$/m);
+    assert.match(listing, /\n +modes off +turn them all off$/);
+    const off = await ok('modes off');
+    assert.match(off, /\S+\/: watch off, network on$/m);
+    assert.match(off, /\?modes: 2 routes removed, capture off \(capture shows it\)$/m);
+    assert.match(await ok('modes'), /No modes are on/);
+    assert.equal(await ok(fetchStatus), '200');
+    await ok('tab close');
+    await ok('tab 1');
+    assert.equal(await ok(fetchStatus), '200', 'the other tab is back online');
+  });
+
   it('reports a read-only timeout as an error and carries on', async () => {
     const result = await repl.run('text #not-on-the-page');
     assert.equal(result.status, 'error');

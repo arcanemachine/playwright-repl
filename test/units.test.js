@@ -86,6 +86,7 @@ describe('tab completion', () => {
     assert.deepEqual(complete('watch on --c'), [['--changes'], '--c']);
     assert.deepEqual(complete('capture o'), [['on', 'off'], 'o']);
     assert.deepEqual(complete('route o'), [['off'], 'o']);
+    assert.deepEqual(complete('modes o'), [['off'], 'o']);
     assert.deepEqual(complete('route off --a'), [['--all'], '--a']);
     assert.deepEqual(complete('capture on r'), [['requests'], 'r']);
   });

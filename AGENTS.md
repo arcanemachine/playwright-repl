@@ -78,7 +78,9 @@ the command reference; this file does not repeat it.
   open or close; `tab <url-part>` and `tab close <url-part>` pick a tab by its URL and refuse if it is
   ambiguous.
 - Dialogs are never answered automatically. The person at the browser handles them.
-- Before leaving: `route off --all`, `network on`, `watch off`, and close the tabs you opened.
+- Before leaving: turn off the modes you turned on (`modes` lists what is on in every tab), and close
+  the tabs you opened. `modes off` turns off everything, including modes the user turned on, so use it
+  only when they are all yours.
 - The tmux session may be attached by the user. Never kill it.
 
 ## Environment
