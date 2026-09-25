@@ -34,7 +34,7 @@ describe('pw-repl send help', () => {
     const result = pwRepl(['skill']);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout, fs.readFileSync(path.join(__dirname, '..', 'skill', 'SKILL.md'), 'utf8'));
-    assert.match(result.stdout, /^---\nname: playwright-repl\ndescription: .+\n---\n/);
+    assert.match(result.stdout, /^---\nname: pw-repl\ndescription: .+\n---\n/);
     assert.match(result.stdout, /\n## Custom rules\n\nNo custom rules have been added yet\.\n$/, 'ends with a place for your own rules');
     assert.equal(result.stderr, '', 'the save hint is for a terminal only');
     assert.match(pwRepl(['skill', 'extra']).stderr, /Usage:/);

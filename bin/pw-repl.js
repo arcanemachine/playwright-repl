@@ -84,7 +84,7 @@ function help(topic) {
 // Printed as is, to be saved as a skill; the hint goes to the terminal only.
 function skill() {
   process.stdout.write(require('fs').readFileSync(require('path').join(__dirname, '..', 'skill', 'SKILL.md'), 'utf8'));
-  if (process.stdout.isTTY) console.error('\nSave it as playwright-repl/SKILL.md in the folder your agent reads skills from:\npw-repl skill > <skills folder>/playwright-repl/SKILL.md');
+  if (process.stdout.isTTY) console.error('\nSave it as pw-repl/SKILL.md in the folder your agent reads skills from:\npw-repl skill > <skills folder>/pw-repl/SKILL.md');
 }
 
 async function main() {

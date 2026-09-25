@@ -111,12 +111,12 @@ read-only). It is off unless started with `pw-repl serve`.
 ### A skill for agents
 
 `pw-repl skill` prints an agent skill (`SKILL.md`) that teaches an agent to use the REPL: how to start
-it, send commands, and share the browser with a person. Save it as `playwright-repl/SKILL.md` in the
-folder your agent reads skills from:
+it, send commands, and share the browser with a person. Save it as `pw-repl/SKILL.md` in the folder
+your agent reads skills from:
 
 ```bash
-mkdir -p <skills folder>/playwright-repl
-pw-repl skill > <skills folder>/playwright-repl/SKILL.md
+mkdir -p <skills folder>/pw-repl
+pw-repl skill > <skills folder>/pw-repl/SKILL.md
 ```
 
 The same text is in `skill/SKILL.md`. Working on the REPL itself: see `AGENTS.md`.

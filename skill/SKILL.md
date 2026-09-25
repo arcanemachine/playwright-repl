@@ -1,12 +1,12 @@
 ---
-name: playwright-repl
-description: Inspect and drive a Chromium browser, possibly one a person is using, through the playwright-repl REPL - tabs, page snapshots, clicks and typing, requests and their bodies, console messages, fake responses, cutting the network, and recording what the person does. Use when asked to look at, debug or test something in a browser that runs with remote debugging.
+name: pw-repl
+description: Inspect and drive a Chromium browser, possibly one a person is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, requests and their bodies, console messages, fake responses, cutting the network, and recording what the person does. Use when asked to look at, debug or test something in a browser that runs with remote debugging.
 ---
 
-# playwright-repl
+# pw-repl
 
-A REPL that drives a running Chromium over CDP. The browser may be a shared session: a person can
-have their own tabs open in it and be using it while you work.
+pw-repl (playwright-repl) is a REPL that drives a running Chromium over CDP. The browser may be a
+shared session: a person can have their own tabs open in it and be using it while you work.
 
 `pw-repl` below is the command the `pw-repl` npm package installs. Without a global install,
 `npx pw-repl` works the same; from a clone, `<clone>/bin/pw-repl.js`.
