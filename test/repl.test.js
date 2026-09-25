@@ -28,7 +28,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   const fetchStatus = 'eval fetch("/api/data").then(r => r.status, e => String(e))';
 
   it('reads and drives the page', async () => {
-    assert.equal(await ok('title'), 'Fixture');
+    assert.match(await ok('info'), /Title: Fixture$/m);
     await ok('fill #name => Ada');
     await ok('click #go');
     assert.equal(await ok('text #out'), 'Hello Ada');
@@ -197,7 +197,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('wait request **/api/* 5'), /\/api\/data/, 'globs work too');
     const late = await repl.run('wait request /never 1');
     assert.equal(late.status, 'error');
-    assert.equal(await ok('title'), 'Fixture', 'a wait that times out does not disconnect');
+    assert.match(await ok('info'), /Title: Fixture$/m, 'a wait that times out does not disconnect');
   });
 
   it('selects and closes tabs by a part of their URL', async () => {
@@ -213,7 +213,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.doesNotMatch(listing, /tab-test=one/);
     assert.match(listing, /^\* \[1\] http:\/\/127\.0\.0\.1:\d+\/\n +"Fixture"$/m, 'the selected tab is marked');
     assert.match(listing, /\n +tab new \[url\] +open a tab/);
-    assert.match(await ok('url'), /127\.0\.0\.1:\d+\/$/, 'closing another tab keeps the selection');
+    assert.match(await ok('info'), /URL: +\S+127\.0\.0\.1:\d+\/$/m, 'closing another tab keeps the selection');
   });
 
   it('greps the snapshot by role, name or flag, with where each hit sits', async () => {
@@ -230,17 +230,17 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok(`tab new ${site.url}/?first`);
     await ok(`tab new ${site.url}/?second`);
     await ok('tab close');
-    assert.match(await ok('url'), /\?first$/, 'back to the tab it opened before');
+    assert.match(await ok('info'), /URL: +\S+\?first$/m, 'back to the tab it opened before');
     await ok('tab 0');
     await ok(`tab new ${site.url}/?third`);
     assert.match(await ok('tab close'), /no tab is selected now/, 'tab [0] was not opened by this REPL');
-    const refused = await repl.run('title');
+    const refused = await repl.run('info');
     assert.equal(refused.status, 'error');
     assert.match(refused.output, /No tab is selected/);
     assert.match(await ok('tab'), /No tab is selected/);
     await ok('tab close first');
     await ok('tab 1');
-    assert.match(await ok('url'), /127\.0\.0\.1:\d+\/$/);
+    assert.match(await ok('info'), /URL: +\S+127\.0\.0\.1:\d+\/$/m);
   });
 
   it('caps long output unless --all is given', async () => {
@@ -400,7 +400,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(result.status, 'error');
     assert.match(result.output, /Timeout/);
     assert.doesNotMatch(result.output, /disconnecting/);
-    assert.equal(await ok('title'), 'Fixture');
+    assert.match(await ok('info'), /Title: Fixture$/m);
   });
 
   it('reports unknown commands as errors', async () => {
@@ -411,7 +411,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
 
   it('prints completion markers for prompt commands', async () => {
     const id = `t${Date.now()}`;
-    repl.type(`@${id} title`);
+    repl.type(`@${id} info`);
     await waitFor(() => repl.stdout.includes(`[[pw-done:${id}:ok]]`), 'the completion marker');
     repl.type(`@${id}x nosuch`);
     await waitFor(() => repl.stdout.includes(`[[pw-done:${id}x:error]]`), 'the error marker');
@@ -422,8 +422,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('echoes server commands to the pane', async () => {
-    await ok('url');
-    assert.match(repl.stdout, /\[server\] url/);
+    await ok('info');
+    assert.match(repl.stdout, /\[server\] info/);
   });
 
   describe('server safety', () => {
@@ -432,14 +432,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     });
 
     it('refuses requests from web pages', async () => {
-      const result = await repl.request('{"command":"title"}', { 'Content-Type': 'application/json', Origin: 'https://example.com' });
+      const result = await repl.request('{"command":"info"}', { 'Content-Type': 'application/json', Origin: 'https://example.com' });
       assert.equal(result.code, 403);
     });
 
     it('refuses bodies that are not JSON', async () => {
-      assert.equal((await repl.request('{"command":"title"}', { 'Content-Type': 'text/plain' })).code, 415);
+      assert.equal((await repl.request('{"command":"info"}', { 'Content-Type': 'text/plain' })).code, 415);
       assert.equal((await repl.request('nope')).code, 400);
-      assert.equal((await repl.run('title\nurl')).code, 400);
+      assert.equal((await repl.run('info\ninfo')).code, 400);
     });
 
     it('keeps quit at the prompt', async () => {
@@ -499,7 +499,7 @@ describe('watch on --changes on a page too busy to snapshot', { skip: SKIP }, ()
     assert.equal(result.status, 'ok', result.output);
     assert.match(result.output, /Could not snapshot the page yet/);
     assert.equal(repl.exited, false);
-    assert.equal((await repl.run('title')).status, 'ok');
+    assert.equal((await repl.run('info')).status, 'ok');
   });
 });
 

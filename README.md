@@ -63,7 +63,7 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 ## From scripts and agents
 
 ```bash
-pw-repl send title
+pw-repl send info
 pw-repl help            # works without a running REPL
 pw-repl where           # which REPL send would reach
 ```
@@ -73,7 +73,7 @@ pw-repl where           # which REPL send would reach
 
 ```bash
 curl --unix-socket /tmp/playwright-repl.sock -H 'Content-Type: application/json' \
-  -d '{"command": "title"}' http://localhost/run
+  -d '{"command": "info"}' http://localhost/run
 ```
 
 It returns `{"status": "ok" | "error", "output": "..."}`, plus `"unconfirmed": true` when the command may or

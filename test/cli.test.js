@@ -67,7 +67,7 @@ describe('pw-repl send with a socket that no longer answers', () => {
   });
 
   it('fails instead of falling back to tmux', () => {
-    const result = run(['title']);
+    const result = run(['info']);
     assert.equal(result.status, 64);
     assert.match(result.stderr, /not falling back to tmux/);
     assert.doesNotMatch(result.stderr, /no tmux session/);
@@ -122,11 +122,11 @@ describe('pw-repl send typing into a tmux pane', { skip: HAS_TMUX ? false : 'tmu
   after(() => sessions.forEach(session => spawnSync('tmux', ['kill-session', '-t', session])));
 
   const refuses = session => {
-    const result = pwRepl(['send', '-s', session, 'title'], { env, encoding: 'utf8' });
+    const result = pwRepl(['send', '-s', session, 'info'], { env, encoding: 'utf8' });
     assert.equal(result.status, 64);
     assert.match(result.stderr, /not at a bare pw> or pw\[serve\]> prompt/);
     const pane = spawnSync('tmux', ['capture-pane', '-t', session, '-p'], { encoding: 'utf8' }).stdout;
-    assert.doesNotMatch(pane, /title/, 'nothing was typed into the pane');
+    assert.doesNotMatch(pane, /info/, 'nothing was typed into the pane');
   };
 
   it('refuses when the REPL is printing something else', async () => {
