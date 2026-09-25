@@ -31,6 +31,7 @@ send exit status: 0 ok, 1 command error, 2 completion not confirmed, 64 usage or
 The browser must be running with --remote-debugging-port (default http://localhost:9222; set $PW_CDP_URL).`;
 
 const REPL_HELP = `The REPL's own commands: help at the pw> prompt, or pw-repl send help here (no REPL needed).
+
 pw-repl help <topic | command | --all> shows one part of it.`;
 
 function usage() {
