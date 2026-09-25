@@ -409,8 +409,8 @@ describe('quitting at the prompt while a sent command runs', { skip: SKIP }, () 
     await chrome?.stop();
   });
 
-  // Sends through pw-repl send, as an agent would, and types quit once the command is running.
-  const sendThenQuit = async command => {
+  // Sends through pw-repl send, as an agent would, and stops the REPL once the command is running.
+  const sendThenQuit = async (command, stop = () => repl.type('quit')) => {
     repl = await startRepl(chrome.cdpUrl);
     await repl.run(`tab new ${site.url}/`);
     const sender = spawn(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, '-t', '30', command]);
@@ -420,7 +420,7 @@ describe('quitting at the prompt while a sent command runs', { skip: SKIP }, () 
     sender.stderr.on('data', d => { stderr += d; });
     await waitFor(() => repl.stdout.includes(`[server] ${command}`), 'the command to start');
     await new Promise(r => setTimeout(r, 300));
-    repl.type('quit');
+    stop();
     const code = await new Promise(resolve => sender.on('exit', resolve));
     await waitFor(() => repl.exited, 'the REPL to exit');
     return { code, stdout, stderr };
@@ -432,6 +432,12 @@ describe('quitting at the prompt while a sent command runs', { skip: SKIP }, () 
     assert.match(result.stdout, /quit before this command finished; its outcome is unknown/);
     assert.match(result.stderr, /completion not confirmed/);
     assert.doesNotMatch(result.stdout, /Disconnecting/, "the quit's own output is not the sender's");
+  });
+
+  it('answers it the same way when the REPL is stopped by a signal', async () => {
+    const result = await sendThenQuit('click #not-on-the-page', () => repl.proc.kill('SIGTERM'));
+    assert.equal(result.code, 2, result.stderr);
+    assert.match(result.stdout, /its outcome is unknown/);
   });
 
   it('answers a read-only command that the browser would never end as interrupted', async () => {
