@@ -1,7 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const help = require('../lib/help');
-const { commands, complete, compactSnapshot, grepSnapshot, clock } = require('../lib/commands');
+const { commands, complete, compactSnapshot, grepSnapshot, summarizeChanges, clock } = require('../lib/commands');
 const { parseEndpoint, looksLikeEndpoint, DEFAULT_SOCKET } = require('../lib/client');
 
 describe('help', () => {
@@ -81,6 +81,7 @@ describe('tab completion', () => {
     assert.deepEqual(complete('help net'), [['network'], 'net']);
     assert.deepEqual(complete('tab n'), [['new'], 'n']);
     assert.deepEqual(complete('offline o'), [['on', 'off'], 'o']);
+    assert.deepEqual(complete('watch n'), [['new'], 'n']);
   });
 
   it('offers nothing where arguments are free-form', () => {
@@ -121,6 +122,51 @@ describe('snapshot grep', () => {
     assert.deepEqual(grepSnapshot(text, 'DISABLED'), ['main › region "Results" › button "Refresh Results" [disabled] [ref=e4]']);
     assert.deepEqual(grepSnapshot(text, 'other'), ['button "Other" [ref=e5]']);
     assert.deepEqual(grepSnapshot(text, 'nope'), []);
+  });
+});
+
+describe('snapshot changes', () => {
+  const before = [
+    '- banner [ref=e1]:',
+    '  - combobox "Search for resorts" [ref=e2]',
+    '  - textbox "Check In" [ref=e3]: 2026-10-09',
+    '- dialog "Privacy" [ref=e4]:',
+    '  - text: We process your personal information',
+    '  - button "Accept All Cookies" [ref=e5]',
+    '  - link "More" [ref=e6]:',
+    '    - /url: https://example.com/privacy',
+  ].join('\n');
+  const after = [
+    '- banner [ref=e1]:',
+    '  - combobox "Search for resorts" [expanded] [active] [ref=e2]: cancun',
+    '  - listbox [ref=e7]:',
+    '    - option "Cancún Quintana Roo, Mexico" [ref=e8]:',
+    '      - generic: Cancún',
+    '    - option "Canungra Queensland, Australia" [ref=e9]',
+    '    - option "Cancun International (CUN)" [ref=e10]',
+    '    - option "Paradisus Cancún" [ref=e11]',
+    '  - textbox "Check In" [ref=e3]: 2026-10-12',
+  ].join('\n');
+
+  it('shows changed, added and removed elements once each, with what is inside', () => {
+    assert.deepEqual(summarizeChanges(before, after), [
+      '~ combobox "Search for resorts" [expanded]',
+      '+ listbox (4 named inside): option "Cancún Quintana Roo, Mexico", option "Canungra Queensland, Aust…',
+      '- dialog "Privacy": We process your personal information, button "Accept All Cookies", link "More"',
+    ]);
+  });
+
+  it('leaves out field values, focus, refs and link URLs', () => {
+    const text = summarizeChanges(before, after).join('\n');
+    assert.doesNotMatch(text, /cancun\b|2026|active|ref=|\/url/);
+    assert.deepEqual(summarizeChanges(before, before.replace(/\[ref=e\d+\]/g, '[ref=f1e9]')), []);
+  });
+
+  it('caps the lines per step', () => {
+    const many = Array.from({ length: 9 }, (_, i) => `- button "B${i}"`).join('\n');
+    const lines = summarizeChanges('', many);
+    assert.equal(lines.length, 6);
+    assert.equal(lines[5], '… 4 more changes');
   });
 });
 

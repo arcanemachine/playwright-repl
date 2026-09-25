@@ -53,7 +53,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('click #load');
     let trail = '';
     await waitFor(async () => /#\d+ GET 200 \S+\/api\/data/.test(trail = await ok('watch')), 'the click and its request');
-    assert.match(trail, /fill textbox "Name"/);
+    assert.match(trail, /type textbox "Name"/);
     assert.match(trail, /click button "Load"\n +#\d+ GET 200 \S+\/api\/data/);
     assert.doesNotMatch(trail, /secret-value|hunter2|Password/);
     await ok(`goto ${site.url}/`);
@@ -73,6 +73,68 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await new Promise(r => setTimeout(r, 300));
     assert.equal((await ok('watch 50')).match(/click button "Load"/g).length, 1);
     assert.match(await ok('watch'), /\[watch is off\]/);
+  });
+
+  it('records typing once it pauses, and Enter and Escape, without the values', async () => {
+    await ok('watch on');
+    await ok('watch new');
+    await ok('type #name => abc');
+    await new Promise(r => setTimeout(r, 900));
+    await ok('type #name => def');
+    await ok('press #name => Enter');
+    await ok('press Escape');
+    await ok('type #pw => hunter2');
+    await ok('press #pw => Enter');
+    await ok('press #go => Enter');
+    let trail = '';
+    await waitFor(async () => /press/.test(trail = (trail + '\n' + await ok('watch new'))) && /Escape/.test(trail), 'the key presses');
+    await new Promise(r => setTimeout(r, 900));
+    trail += '\n' + await ok('watch new');
+    assert.equal(trail.match(/type textbox "Name"/g).length, 2, trail);
+    assert.match(trail, /type textbox "Name"\n\S+ press textbox "Name" Enter/, 'typing is recorded before the Enter that ends it');
+    assert.match(trail, /press \S+.* Escape/);
+    assert.doesNotMatch(trail, /abc|def|hunter2|Password|fill textbox "Name"/);
+    assert.doesNotMatch(trail, /press button/, 'Enter on a button is left to the click it causes');
+    await ok('watch off');
+  });
+
+  it('shows only new steps with watch new, and requests that came after a step was read', async () => {
+    await ok('watch on');
+    await ok('watch new');
+    assert.equal(await ok('watch new'), 'No new steps');
+    await ok('route **/api/slow 200 {"slow":true}');
+    await ok('eval document.querySelector("#load").onclick = () => setTimeout(() => fetch("/api/slow"), 400)');
+    await ok('click #load');
+    let first = '';
+    await waitFor(async () => /click button "Load"/.test(first = await ok('watch new')), 'the click');
+    assert.doesNotMatch(first, /api\/slow/);
+    let late = '';
+    await waitFor(async () => /api\/slow/.test(late = await ok('watch new')), 'the late request');
+    assert.match(late, /click button "Load" \(continued\)\n +#\d+ GET 200 faked \S+\/api\/slow/);
+    assert.equal(await ok('watch new'), 'No new steps');
+    await ok('unroute **/api/slow');
+    await ok('reload');
+    await ok('watch off');
+  });
+
+  it('adds what each step changed on screen with watch on --changes, without typed values', async () => {
+    await ok('reload');
+    await ok('watch on --changes');
+    await ok('watch new');
+    await ok('type #name => zzz-typed');
+    await new Promise(r => setTimeout(r, 2000));
+    const typed = await ok('watch new');
+    assert.match(typed, /type textbox "Name"/);
+    assert.doesNotMatch(typed, /zzz-typed/);
+    await ok('click #go');
+    let trail = '';
+    await waitFor(async () => /Hello/.test(trail += '\n' + await ok('watch new')), 'the change the click made', 6000);
+    assert.match(trail, /click button "Go"(?: \(continued\))?\n +[+~] .*Hello zzz-typed/);
+    await ok('watch on');
+    await ok('click #go');
+    await new Promise(r => setTimeout(r, 1500));
+    assert.doesNotMatch(await ok('watch new'), /^ +[+~-] /m, 'plain watch on shows no changes');
+    await ok('watch off');
   });
 
   it('waits for text, and for a response even if it already arrived', async () => {
