@@ -16,6 +16,12 @@ describe('help', () => {
     assert.deepEqual(Object.keys(help.COMMANDS).filter(n => !names.includes(n)), [], 'help for commands that do not exist');
   });
 
+  it('starts with common tasks, and names only commands that exist', () => {
+    const tasks = /Common tasks:\n([\s\S]*?)\n\n/.exec(help.render())[1];
+    const named = tasks.split('\n').flatMap(line => line.slice(36).split(/, (?:then )?|, click around, then /)).map(part => part.split(' ')[0]);
+    for (const name of named) assert.ok(Object.hasOwn(help.COMMANDS, name), name);
+  });
+
   it('names every topic in the overview', () => {
     for (const topic of Object.keys(help.TOPICS)) assert.match(help.render(), new RegExp(`(\\n  |   )${topic} `));
   });

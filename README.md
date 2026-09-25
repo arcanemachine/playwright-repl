@@ -38,7 +38,7 @@ start it with `pw-repl serve` instead, which needs no tmux.
 ### 3. Try it
 
 ```text
-pw> help                          # topics; help <topic>, help <command>, help --all
+pw> help                          # common tasks and topics; help <topic>, help <command>, help --all
 pw> tab new https://example.com   # open your own tab to work in
 pw> snapshot                      # the page by role and name, with [ref=eN] labels
 pw> click aria-ref=e3             # click by label (or any Playwright selector)
@@ -46,7 +46,33 @@ pw> requests                      # requests the tab made
 pw> tab close
 ```
 
-Commands act on the selected tab (`tab` shows which). `help` covers every command.
+Commands act on the selected tab (`tab` lists the tabs, with `*` on the selected one).
+
+## Common tasks
+
+| I want to…                           | Commands                                                        |
+| ------------------------------------ | --------------------------------------------------------------- |
+| see where I am                       | `tab`, `info`                                                   |
+| see what is on the page              | `snapshot`, `screenshot`                                        |
+| do something on it                   | `click`, `fill`, `press`                                        |
+| see what the page requested          | `requests`, then `body <#>` for what one got back               |
+| see console messages and errors      | `console`                                                       |
+| show an agent what I do              | `watch on`, click around in the browser, then `watch`           |
+| record requests and console together | `capture on`, then `capture off`                                |
+| break the backend on purpose         | `route <glob> <status> <json>` (fake a response), `network off` |
+| clean up                             | `modes off`                                                     |
+
+Everything else is in `help <topic>`; `help <command>` has usage and caveats.
+
+### Modes
+
+`watch`, `capture`, `route` and `network off` stay on until you turn them off: `watch on|off`,
+`capture on|off`, `route ...|route off`, `network off|on`. While any are on in the selected tab, the prompt
+shows them: `(watch network:off routes:2) pw>`. `modes` lists them for every tab, and `modes off` turns them
+all off.
+
+`tab`, `watch`, `capture`, `route`, `network` and `modes` on their own show their state and what you can
+run next.
 
 ## Options
 
