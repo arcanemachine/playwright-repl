@@ -98,7 +98,8 @@ help is the command reference; this file does not repeat it.
   opened goes back to the tab before it, if the REPL opened that one too; otherwise no tab is selected.
   Tab numbers change when tabs open or close; `tab <url-part>` and `tab close <url-part>` pick a tab by
   its URL and refuse if it is ambiguous.
-- Dialogs are never answered automatically; they wait for someone at the browser.
+- Dialogs are never answered on their own. While one is open, its page and the commands that read it
+  wait; `dialog` shows it, and `dialog accept` or `dialog dismiss` answers it.
 - Modes and tabs stay on or open until they are turned off or closed, whoever started them. `modes`
   lists what is on in every tab (the prompt shows the selected tab's, e.g. `(watch routes:1) pw>`);
   `modes off` turns off every mode in every tab.
@@ -107,8 +108,7 @@ help is the command reference; this file does not repeat it.
 ## Environment
 
 - Chromium must be running with `--remote-debugging-port=9222`. A headless one works too
-  (`--headless=new`); with nobody to answer its dialogs, a page that opens one waits, and the command
-  that opened it times out.
+  (`--headless=new`); nobody answers its dialogs but `dialog`.
 - `PW_CDP_URL` — CDP endpoint (default `http://localhost:9222`).
 - `PW_SCREENSHOT_DIR` — where screenshots go (default `/tmp`). They are all named `screenshot-*.png`,
   so `rm /tmp/screenshot-*.png` cleans up.

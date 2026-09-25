@@ -27,9 +27,9 @@ profile. Check it is up with `curl http://localhost:9222/json/version`.
 chrome --headless=new --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-headless
 ```
 
-With nobody at the browser, a dialog (`alert`, `confirm`) is never answered: the REPL leaves dialogs to a
-person, so the page waits and the command that opened it times out. Pages start at about 800x600;
-`viewport 1280x800` sets another size.
+With nobody at the browser, `dialog accept` or `dialog dismiss` answers a dialog (`alert`, `confirm`);
+the REPL never answers one on its own. Pages start at about 800x600; `viewport 1280x800` sets another
+size.
 
 ### 2. Install and start the REPL
 

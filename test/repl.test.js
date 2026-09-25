@@ -559,6 +559,21 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('tab 1');
   });
 
+  it('answers a dialog with dialog, ahead of the commands waiting on it', async () => {
+    assert.equal(await ok('dialog'), 'No dialog is open.');
+    const click = repl.run('click #alerter');
+    await waitFor(() => /Dialog \[confirm\]: sure\?/.test(repl.stdout), 'the dialog');
+    const waiting = repl.run('text #out');
+    assert.match(await ok('dialog'), /^\[\d+\] \S+: confirm "sure\?"\n\n +dialog accept \[text\]/);
+    assert.match(await ok('dialog accept'), /^Accepted: \[\d+\] \S+: confirm "sure\?"$/);
+    assert.equal((await click).status, 'ok');
+    const read = await waiting;
+    assert.equal(read.status, 'ok');
+    assert.equal(read.output, 'answered true', 'the command queued behind the dialog ran once it was answered');
+    assert.equal(await ok('dialog'), 'No dialog is open.');
+    assert.equal((await repl.run('dialog dismiss')).status, 'error');
+  });
+
   it('reports a read-only timeout as an error and carries on', async () => {
     const result = await repl.run('text #not-on-the-page');
     assert.equal(result.status, 'error');
