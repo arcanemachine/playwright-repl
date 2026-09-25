@@ -96,3 +96,7 @@ the command reference; this file does not repeat it.
   so `rm /tmp/screenshot-*.png` cleans up.
 - `PW_ENDPOINT` / `PW_TMUX_SESSION` — defaults for `send -e` / `-s`. `PW_SOCKET` — the socket `send`
   looks for when neither is given (default `/tmp/playwright-repl.sock`).
+
+## Custom rules
+
+No custom rules have been added yet.

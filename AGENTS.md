@@ -20,4 +20,5 @@ If you hit a limitation or write a workaround, consider adding the capability to
   none. Add a test with each new command or behaviour.
 - For anything the tests can't reach, exercise the change in a running REPL. Use your own tmux session
   and a new tab, not the user's.
-- `skill/SKILL.md` is how agents learn to use the REPL: keep it in step with a change to how it is used.
+- `skill/SKILL.md` is how agents learn to use the REPL: keep it in step with a change to how it is
+  used, and leave its Custom rules section empty.
