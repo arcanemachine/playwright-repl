@@ -116,6 +116,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
 
   it('records typing once it pauses, and Enter and Escape, without the values', async () => {
     await ok('watch on');
+    assert.match(await ok('watch'), /: nothing has happened yet\n/, 'watch on after watch off starts a new recording');
+    assert.equal(await ok('watch new'), 'Watching; nothing has happened yet');
     await ok('watch new');
     await ok('type #name abc');
     await new Promise(r => setTimeout(r, 900));
@@ -139,8 +141,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
 
   it('shows only new steps with watch new, and requests that came after a step was read', async () => {
     await ok('watch on');
-    await ok('watch new');
-    assert.equal(await ok('watch new'), 'No new steps');
+    assert.equal(await ok('watch new'), 'Watching; nothing has happened yet');
     await ok('route **/api/slow 200 {"slow":true}');
     await ok('eval document.querySelector("#load").onclick = () => setTimeout(() => fetch("/api/slow"), 400)');
     await ok('click #load');
