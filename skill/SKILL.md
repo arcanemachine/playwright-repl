@@ -39,8 +39,9 @@ pw-repl send tab
 pw-repl send -t 90 'screenshot -d 60'   # wait longer than the 20s default
 ```
 
-Always send commands with `pw-repl send`; don't type into the pane yourself. Unquoted words are one
-command. It works however the REPL was started:
+Always send commands with `pw-repl send`; don't type into the pane yourself. The words after `send`
+are the command, and a word quoted in your shell stays one word:
+`pw-repl send fill "text=Your name" Ada`. It works however the REPL was started:
 
 - `run` (in tmux): `send` types the command into the tmux pane and reads the result back off the screen.
   It types only when the pane's last line is a bare prompt, so nothing lands in a shell or in the middle

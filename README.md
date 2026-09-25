@@ -42,7 +42,7 @@ a terminal; see [In the background](#in-the-background)).
 pw> help                          # common tasks and topics; help <topic>, help <command>, help --all
 pw> tab new https://example.com   # open your own tab to work in
 pw> snapshot                      # the page by role and name, with [ref=eN] labels
-pw> click aria-ref=e3             # click by label (or any Playwright selector)
+pw> click e3                      # click by snapshot ref (or any Playwright selector)
 pw> requests                      # requests the tab made
 pw> tab close
 ```

@@ -67,7 +67,10 @@ function parseSendArgs(args, allowCommand) {
   }
   const words = args.slice(i);
   if (!allowCommand && words.length) usage();
-  options.command = words.join(' ').trim();
+  // A word the shell kept whole (fill "text=Your name" Ada) is quoted again, so
+  // it stays one word; a command given as a single word is sent as it is.
+  const quoted = words.length > 1 ? words.map(w => (/[\s"']/.test(w) ? JSON.stringify(w) : w)) : words;
+  options.command = quoted.join(' ').trim();
   return options;
 }
 

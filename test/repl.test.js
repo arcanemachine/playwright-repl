@@ -29,17 +29,43 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
 
   it('reads and drives the page', async () => {
     assert.match(await ok('info'), /Title: Fixture$/m);
-    await ok('fill #name => Ada');
+    await ok('fill #name Ada');
     await ok('click #go');
     assert.equal(await ok('text #out'), 'Hello Ada');
     assert.match(await ok('links'), /"href": "http:\/\/127\.0\.0\.1:\d+\/other"/);
   });
 
+  it('takes the selector as the first word, quoted if it has spaces, and the value as the rest', async () => {
+    const value = 'eval document.querySelector("#name").value';
+    await ok('fill #name Ada Lovelace');
+    assert.equal(await ok(value), 'Ada Lovelace');
+    await ok('fill "label:has-text(\'Name\') input" "Grace Hopper"');
+    assert.equal(await ok(value), 'Grace Hopper');
+    await ok('fill #name ""');
+    assert.equal(await ok(value), '');
+    const missing = await repl.run('fill #name');
+    assert.equal(missing.status, 'error');
+    assert.match(missing.output, /Usage: fill <selector> <value>, e\.g\. fill #name Ada Lovelace/);
+    await ok('press #name Enter');
+    const { spawnSync } = require('child_process');
+    const path = require('path');
+    const sent = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'fill', "label:has-text('Name') input", 'Katherine Johnson'], { encoding: 'utf8' });
+    assert.equal(sent.status, 0, sent.stderr);
+    assert.equal(await ok(value), 'Katherine Johnson', 'send keeps a word with spaces whole');
+  });
+
+  it('says a snapshot ref that no longer matches may be stale', async () => {
+    const result = await repl.run('click e99999');
+    assert.equal(result.status, 'error');
+    assert.match(result.output, /e99999 is a snapshot ref; if the page changed since that snapshot, take a new one\./);
+  });
+
   it('outlines the page and clicks by snapshot label', async () => {
-    await ok('fill #name => Lin');
+    await ok('fill #name Lin');
     const snap = await ok('snapshot');
     assert.match(snap, /heading "Fixture"/);
     const ref = /button "Go" \[ref=((?:f\d+)?e\d+)\]/.exec(snap)[1];
+    await ok(`click ${ref}`);
     await ok(`click aria-ref=${ref}`);
     assert.equal(await ok('text #out'), 'Hello Lin');
     assert.match(await ok('snapshot #go'), /button "Go"/);
@@ -49,8 +75,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('watch'), /^Not watching the selected tab\.\n\n +watch on +record/);
     await ok('watch on');
     assert.match(await ok('watch'), /^Watching the selected tab since \S+: nothing has happened yet\n[\s\S]*watch off/);
-    await ok('fill #name => secret-value');
-    await ok('fill #pw => hunter2');
+    await ok('fill #name secret-value');
+    await ok('fill #pw hunter2');
     await ok('click #load');
     let trail = '';
     await waitFor(async () => /#\d+ GET 200 \S+\/api\/data/.test(trail = await ok('watch')), 'the click and its request');
@@ -82,14 +108,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   it('records typing once it pauses, and Enter and Escape, without the values', async () => {
     await ok('watch on');
     await ok('watch new');
-    await ok('type #name => abc');
+    await ok('type #name abc');
     await new Promise(r => setTimeout(r, 900));
-    await ok('type #name => def');
-    await ok('press #name => Enter');
+    await ok('type #name def');
+    await ok('press #name Enter');
     await ok('press Escape');
-    await ok('type #pw => hunter2');
-    await ok('press #pw => Enter');
-    await ok('press #go => Enter');
+    await ok('type #pw hunter2');
+    await ok('press #pw Enter');
+    await ok('press #go Enter');
     let trail = '';
     await waitFor(async () => /press/.test(trail = (trail + '\n' + await ok('watch new'))) && /Escape/.test(trail), 'the key presses');
     await new Promise(r => setTimeout(r, 900));
@@ -125,7 +151,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('reload');
     await ok('watch on --changes');
     await ok('watch new');
-    await ok('type #name => zzz-typed');
+    await ok('type #name zzz-typed');
     await new Promise(r => setTimeout(r, 2000));
     const typed = await ok('watch new');
     assert.match(typed, /type textbox "Name"/);
@@ -160,9 +186,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('watch on --changes');
     await ok('watch new');
     await ok('click #typed');
-    await ok('type #composer => CESECRET');
+    await ok('type #composer CESECRET');
     await new Promise(r => setTimeout(r, 1500));
-    await ok('fill #name => Kim');
+    await ok('fill #name Kim');
     await ok('click #go');
     let trail = '';
     await waitFor(async () => /Hello Kim/.test(trail += '\n' + await ok('watch new')), 'the change the click made', 6000);
@@ -175,7 +201,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('reload');
     await ok('watch on --changes');
     await ok('watch new');
-    await ok('fill #name => Quinn');
+    await ok('fill #name Quinn');
     await ok('click #go');
     await waitFor(async () => /Hello Quinn/.test(await ok('watch')), 'the change', 6000);
     assert.match(await ok('watch'), /Hello Quinn/, 'shown again');
@@ -209,7 +235,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('watch off'), /^Not watching the selected tab\.$/, 'watch off when not watching says so');
     await ok('watch on --changes --live');
     const start = repl.stdout.length;
-    await ok('fill #name => Pat');
+    await ok('fill #name Pat');
     await ok('click #go');
     const answer = await ok('sleep 2500');
     assert.doesNotMatch(answer, /\[watch/, 'not part of the answer to the command running then');
@@ -229,7 +255,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('waits for text, and for a response even if it already arrived', async () => {
-    await ok('fill #name => Wu');
+    await ok('fill #name Wu');
     await ok('click #go');
     assert.match(await ok('wait text "Hello Wu" 5'), /Visible: Hello Wu/);
     await ok('click #load');
