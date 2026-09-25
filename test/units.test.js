@@ -21,9 +21,9 @@ describe('help', () => {
   });
 
   it('renders topics and commands, and nothing for unknown names', () => {
-    assert.match(help.render('network'), /route <url-glob>/);
+    assert.match(help.render('network'), /route <glob>/);
     assert.match(help.render('network'), /\nnetwork \[on\|off\] — [\s\S]*dev proxy/, 'a topic and a command of the same name');
-    assert.match(help.render('route'), /^route <url-glob> <status> <json-body> — /);
+    assert.match(help.render('route'), /^route <glob> <status> <json> \| off <glob> — /);
     assert.equal(help.render('nope'), null);
   });
 
@@ -70,7 +70,7 @@ describe('server endpoints', () => {
 
 describe('tab completion', () => {
   it('completes command names', () => {
-    assert.deepEqual(complete('rou'), [['route', 'routes'], 'rou']);
+    assert.deepEqual(complete('rou'), [['route'], 'rou']);
     assert.deepEqual(complete('snap'), [['snapshot'], 'snap']);
   });
 
@@ -85,6 +85,8 @@ describe('tab completion', () => {
     assert.deepEqual(complete('watch n'), [['new'], 'n']);
     assert.deepEqual(complete('watch on --c'), [['--changes'], '--c']);
     assert.deepEqual(complete('capture o'), [['on', 'off'], 'o']);
+    assert.deepEqual(complete('route o'), [['off'], 'o']);
+    assert.deepEqual(complete('route off --a'), [['--all'], '--a']);
     assert.deepEqual(complete('capture on r'), [['requests'], 'r']);
   });
 

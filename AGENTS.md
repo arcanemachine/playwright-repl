@@ -78,7 +78,7 @@ the command reference; this file does not repeat it.
   open or close; `tab <url-part>` and `tab close <url-part>` pick a tab by its URL and refuse if it is
   ambiguous.
 - Dialogs are never answered automatically. The person at the browser handles them.
-- Before leaving: `unroute --all`, `network on`, `watch off`, and close the tabs you opened.
+- Before leaving: `route off --all`, `network on`, `watch off`, and close the tabs you opened.
 - The tmux session may be attached by the user. Never kill it.
 
 ## Environment

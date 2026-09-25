@@ -112,7 +112,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await waitFor(async () => /api\/slow/.test(late = await ok('watch new')), 'the late request');
     assert.match(late, /click button "Load" \(continued\)\n +#\d+ GET 200 faked \S+\/api\/slow/);
     assert.equal(await ok('watch new'), 'No new steps');
-    await ok('unroute **/api/slow');
+    await ok('route off **/api/slow');
     await ok('reload');
     await ok('watch off');
   });
@@ -246,8 +246,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const faked = await ok(fetchStatus);
     assert.match(faked, /Faked: #\d+ GET .*\/api\/data -> 503/);
     assert.match(faked, /^503$/m);
-    assert.match(await ok('routes'), /\*\*\/api\/data -> 503/);
-    await ok('unroute --all');
+    assert.match(await ok('route'), /Fake responses on the selected tab \(1\):\n +\*\*\/api\/data +503 +\{"detail":"down"\}\n[\s\S]*route off/);
+    await ok('route off --all');
     assert.equal(await ok(fetchStatus), '200');
   });
 
@@ -256,7 +256,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('eval setTimeout(() => fetch("/api/data"), 200); "scheduled"');
     const start = repl.stdout.length;
     await waitFor(() => /Faked: #\d+ GET \S+\/api\/data -> 503\npw\[serve\]> /.test(repl.stdout.slice(start)), 'the late Faked line and a fresh prompt');
-    await ok('unroute --all');
+    await ok('route off --all');
   });
 
   it('replaces, removes one, and keeps routes per tab', async () => {
@@ -264,15 +264,16 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('route **/api/data 504 {}'), /Replaced/);
     await ok('route **/api/other 500 {}');
     assert.match(await ok(fetchStatus), /^504$/m);
-    await ok('unroute **/api/data');
-    assert.doesNotMatch(await ok('routes'), /api\/data/);
+    await ok('route off **/api/data');
+    assert.doesNotMatch(await ok('route'), /api\/data/);
     assert.equal(await ok(fetchStatus), '200');
     await ok(`tab new ${site.url}/`);
-    assert.match(await ok('routes'), /No routes/);
+    assert.match(await ok('route'), /No fake responses/);
     await ok('tab close');
     await ok('tab 1');
-    assert.match(await ok('routes'), /api\/other/);
-    await ok('unroute --all');
+    assert.match(await ok('route'), /api\/other/);
+    assert.equal((await repl.run('route off **/api/nothing')).status, 'error');
+    await ok('route off --all');
   });
 
   it('refuses statuses a response cannot have', async () => {
@@ -289,13 +290,13 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('route **/api/instant 418 {}');
     assert.match(await ok('eval fetch("/api/instant").then(r => r.status)'), /^418$/m);
     assert.match(await ok('recent 5 /api/instant'), /GET 418 faked \d+ms/);
-    await ok('unroute --all');
+    await ok('route off --all');
   });
 
   it('keeps recent requests, marks fakes, and hides static files by default', async () => {
     await ok('route **/api/data 500 {}');
     await ok(fetchStatus);
-    await ok('unroute --all');
+    await ok('route off --all');
     // The browser reports completion shortly after fetch() resolves.
     let recent = '';
     await waitFor(async () => /GET 500 faked \d+ms .*\/api\/data/.test(recent = await ok('recent 50')), 'the faked request to settle');
@@ -308,7 +309,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok(fetchStatus);
     await ok('route **/api/data 418 {"fake":1}');
     await ok(fetchStatus);
-    await ok('unroute --all');
+    await ok('route off --all');
     let recent = '';
     await waitFor(async () => /GET 418 faked/.test(recent = await ok('recent 50 /api/data')), 'the requests to settle');
     // The latest one: bodies from before an earlier navigation may be gone.
