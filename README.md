@@ -91,7 +91,7 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 
 ```bash
 pw-repl send info
-pw-repl help            # works without a running REPL
+pw-repl send help       # the REPL's commands; works without a running REPL
 pw-repl where           # which REPL send would reach
 ```
 

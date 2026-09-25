@@ -10,7 +10,7 @@ const USAGE = `Usage:
   pw-repl send [-e endpoint | -s session] [-t seconds] <command...>
                                               run one command in a running REPL and print its output
   pw-repl where [-e endpoint | -s session]    say which REPL send would reach
-  pw-repl help [topic | command | --all]      the REPL's command reference (no REPL needed)
+  pw-repl help [topic | command | --all]      this usage; with a topic or command, the REPL's help for it
   pw-repl skill                               print a Claude Code skill that teaches an agent to use it
 
 send uses the server when -e, $PW_ENDPOINT, or the socket ($PW_SOCKET, default /tmp/playwright-repl.sock)
@@ -20,9 +20,12 @@ send exit status: 0 ok, 1 command error, 2 completion not confirmed, 64 usage or
 
 The browser must be running with --remote-debugging-port (default http://localhost:9222; set $PW_CDP_URL).`;
 
-function usage(code = 64) {
-  (code ? console.error : console.log)(USAGE);
-  process.exit(code);
+const REPL_HELP = `The REPL's own commands: help at the pw> prompt, or pw-repl send help here (no REPL needed).
+pw-repl help <topic | command | --all> shows one part of it.`;
+
+function usage() {
+  console.error(USAGE);
+  process.exit(64);
 }
 
 // -e, -s and -t, then the command words (unquoted words are one command).
@@ -93,8 +96,11 @@ async function main() {
     case 'where':
       process.exit(await require('../lib/send').where(parseSendArgs(args, false)));
     // falls through never
-    case 'help':
-      return help(args.join(' ').trim());
+    case 'help': {
+      const topic = args.join(' ').trim();
+      if (topic) return help(topic);
+      return console.log(`${USAGE}\n\n${REPL_HELP}`);
+    }
     case 'skill':
       if (args.length) usage();
       return skill();
@@ -103,7 +109,7 @@ async function main() {
       return console.log(require('../package.json').version);
     case '-h':
     case '--help':
-      return usage(0);
+      return console.log(`${USAGE}\n\n${REPL_HELP}`);
     default:
       return usage();
   }

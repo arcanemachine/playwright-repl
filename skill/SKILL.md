@@ -70,8 +70,8 @@ blindly retry a change), `64` usage or the REPL is not reachable. `pw-repl --hel
 
 ## Learn the commands
 
-Run `pw-repl help`. It lists six topics; `help <topic>` lists their commands, `help <command>` gives
-usage and caveats, and `help --all` prints everything at once. It needs no running REPL. The help is
+Run `pw-repl send help`. It lists six topics; `help <topic>` lists their commands, `help <command>`
+gives usage and caveats, and `help --all` prints everything at once. It needs no running REPL. The help is
 the command reference; this file does not repeat it.
 
 ## Shared-browser rules

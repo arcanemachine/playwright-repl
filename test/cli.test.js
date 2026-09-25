@@ -52,6 +52,10 @@ describe('pw-repl send help', () => {
 
   it('mentions help in its own usage', () => {
     assert.match(pwRepl(['--help']).stdout, /pw-repl help \[topic/);
+    const bare = pwRepl(['help']);
+    assert.equal(bare.status, 0);
+    assert.match(bare.stdout, /^Usage:\n  pw-repl \[run\][\s\S]*\n\nThe REPL's own commands: help at the pw> prompt, or pw-repl send help/, 'help at the shell is the usage');
+    assert.equal(pwRepl(['help', 'route']).stdout.trimEnd(), require('../lib/help').render('route'), 'with a command, the REPL help');
   });
 });
 
