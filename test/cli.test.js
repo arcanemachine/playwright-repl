@@ -52,6 +52,7 @@ describe('pw-repl send help', () => {
       const result = pwRepl(args, { env, timeout: 20000 });
       assert.match(result.stdout, /Connecting to http:\/\/127\.0\.0\.1:9/, `pw-repl ${args.join(' ')} starts connecting`);
       assert.notEqual(result.status, 0, 'nothing to connect to');
+      assert.match(result.stderr, /No browser answered at http:\/\/127\.0\.0\.1:9 \(connect ECONNREFUSED[\s\S]*--remote-debugging-port=9222/, 'says how to start a browser');
     }
     assert.match(pwRepl(['http://example.com']).stderr, /Usage:/, 'a URL on its own does not connect');
     assert.match(pwRepl(['sned']).stderr, /Usage:/, 'a mistyped subcommand shows the usage');
