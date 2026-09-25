@@ -243,6 +243,11 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('info'), /URL: +\S+127\.0\.0\.1:\d+\/$/m);
   });
 
+  it('sends a CDP command', async () => {
+    assert.match(await ok('cdp Runtime.evaluate {"expression":"6*7","returnByValue":true}'), /"value": 42/);
+    assert.match((await repl.run('cdp Browser.close {}')).output, /reserved/);
+  });
+
   it('caps long output unless --all is given', async () => {
     assert.match(await ok('eval "x".repeat(13000)'), /\[truncated; use --all/);
     assert.doesNotMatch(await ok('eval --all "x".repeat(13000)'), /truncated/);
