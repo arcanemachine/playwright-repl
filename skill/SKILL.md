@@ -56,14 +56,14 @@ command. It works however the REPL was started:
 `pw-repl where` says which one a command would reach (the server, or the tmux pane running the
 REPL), or why neither is reachable, without running anything.
 
-Either way, every command you run and its output show in the pane (server commands as `[server]`
-lines), so the user sees what you do. The pane shows REPL commands only, not what the user clicked in
-the browser; for that, look at the browser itself: `tab` and `info` for where they are, `requests` for the
-requests their clicks made (`body <#>` for what one returned), `console` for console messages and page errors.
-When the user wants to show you what they do, `watch on` on their tab records each step with the
-requests it caused (`watch on --changes` adds what each step changed on the page); `watch` reads it
-back, and `watch new` only what it has not shown yet. Watching and reading are fine on the user's
-tabs; the rule below is about acting on them.
+Either way, every command you run and its output show in the pane (server commands as `[server]` lines),
+so the user sees what you do. The pane shows REPL commands only, not what the user clicked in the
+browser (unless `watch on --live` is on); for that, look at the browser itself: `tab` and `info` for
+where they are, `requests` for the requests their clicks made (`body <#>` for what one returned),
+`console` for console messages and page errors. When the user wants to show you what they do, `watch on`
+on their tab records each step with the requests it caused (`watch on --changes` adds what each step
+changed on the page); `watch` reads it back, and `watch new` only what it has not shown yet. Watching
+and reading are fine on the user's tabs; the rule below is about acting on them.
 
 Exit status: `0` ok, `1` the command failed, `2` completion not confirmed (outcome unknown: do not
 blindly retry a change), `64` usage or the REPL is not reachable. `pw-repl --help` has the options.
