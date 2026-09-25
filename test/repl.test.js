@@ -204,6 +204,30 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.doesNotMatch(repl.stdout.slice(after), /\[watch\]/, 'nothing prints once watch is off');
   });
 
+  it('prints live steps with their changes, outside any command\'s answer', async () => {
+    await ok('reload');
+    assert.match(await ok('watch off'), /^Not watching the selected tab\.$/, 'watch off when not watching says so');
+    await ok('watch on --changes --live');
+    const start = repl.stdout.length;
+    await ok('fill #name => Pat');
+    await ok('click #go');
+    const answer = await ok('sleep 2500');
+    assert.doesNotMatch(answer, /\[watch/, 'not part of the answer to the command running then');
+    await waitFor(() => /\[watch\] \S+ click button "Go"(?:\n {8}.*)*?\n {8} +[+~] .*Hello Pat/.test(repl.stdout.slice(start)), 'the step with its change', 6000);
+    await ok('watch off');
+  });
+
+  it('names the tab of a live step when it is not the selected one', async () => {
+    await ok('reload');
+    await ok('watch on --live');
+    await ok('eval setTimeout(() => document.querySelector("#go").click(), 1000); "later"');
+    await ok(`tab new ${site.url}/?elsewhere`);
+    const start = repl.stdout.length;
+    await waitFor(() => /\[watch 127\.0\.0\.1:\d+\/\] \S+ click button "Go"/.test(repl.stdout.slice(start)), 'the step, named by its tab', 6000);
+    await ok('tab close');
+    await ok('watch off');
+  });
+
   it('waits for text, and for a response even if it already arrived', async () => {
     await ok('fill #name => Wu');
     await ok('click #go');
