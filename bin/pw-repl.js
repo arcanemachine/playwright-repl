@@ -120,7 +120,8 @@ async function main() {
     case 'stop': {
       const options = parseSendArgs(args, false);
       if (options.session) usage();
-      const endpoint = options.endpoint || process.env.PW_ENDPOINT || null;
+      // The same socket send would use when there is no -e: PW_ENDPOINT, then PW_SOCKET.
+      const endpoint = options.endpoint || process.env.PW_ENDPOINT || process.env.PW_SOCKET || null;
       process.exit(await require('../lib/background')[subcommand]({ endpoint }));
     }
     // falls through never: process.exit above

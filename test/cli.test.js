@@ -99,9 +99,10 @@ describe('pw-repl send help', () => {
       assert.match(seen, /keeps running/);
       assert.match(pwRepl(['send', 'info'], { env }).stdout, /URL:/, 'still running after attach leaves');
 
-      const stopped = pwRepl(['stop', '-e', socket], { env, timeout: 20000 });
+      assert.equal(pwRepl(['stop'], { env: { ...env, PW_SOCKET: path.join(dir, 'other.sock') } }).status, 64, 'stop goes by PW_SOCKET, not the default socket');
+      const stopped = pwRepl(['stop'], { env, timeout: 20000 });
       assert.equal(stopped.status, 0, stopped.stderr);
-      assert.match(stopped.stdout, /Stopped the background REPL \(pid \d+\)/);
+      assert.match(stopped.stdout, /Stopped the background REPL \(pid \d+\) on \S+repl\.sock/);
       assert.equal(fs.existsSync(socket), false);
       assert.equal(fs.existsSync(path.join(dir, 'repl.pid')), false);
       assert.equal(pwRepl(['stop', '-e', socket], { env }).status, 64);
