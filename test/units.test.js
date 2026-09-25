@@ -22,6 +22,7 @@ describe('help', () => {
 
   it('renders topics and commands, and nothing for unknown names', () => {
     assert.match(help.render('network'), /route <url-glob>/);
+    assert.match(help.render('network'), /\nnetwork \[on\|off\] — [\s\S]*dev proxy/, 'a topic and a command of the same name');
     assert.match(help.render('route'), /^route <url-glob> <status> <json-body> — /);
     assert.equal(help.render('nope'), null);
   });
@@ -80,7 +81,7 @@ describe('tab completion', () => {
   it('completes the fixed words commands take', () => {
     assert.deepEqual(complete('help net'), [['network'], 'net']);
     assert.deepEqual(complete('tab n'), [['new'], 'n']);
-    assert.deepEqual(complete('offline o'), [['on', 'off'], 'o']);
+    assert.deepEqual(complete('network o'), [['on', 'off'], 'o']);
     assert.deepEqual(complete('watch n'), [['new'], 'n']);
     assert.deepEqual(complete('watch on --c'), [['--changes'], '--c']);
     assert.deepEqual(complete('capture o'), [['on', 'off'], 'o']);

@@ -363,24 +363,27 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('cuts and restores the network', async () => {
-    await ok('offline on');
+    assert.match(await ok('network'), /network is on\.\n +network off/);
+    await ok('network off');
+    assert.match(await ok('network'), /network is off \(offline\)\.\n +network on/);
     assert.match(await ok(fetchStatus), /Failed to fetch/);
-    await ok('offline off');
+    await ok('network on');
     assert.equal(await ok(fetchStatus), '200');
+    assert.equal((await repl.run('network offline')).status, 'error');
   });
 
   it('cuts the network per tab', async () => {
-    await ok('offline on');
+    await ok('network off');
     await ok(`tab new ${site.url}/`);
     assert.equal(await ok(fetchStatus), '200', 'a new tab is not offline');
-    await ok('offline on');
-    assert.match(await ok(fetchStatus), /Failed to fetch/, 'offline applies to the selected tab');
-    await ok('offline off');
+    await ok('network off');
+    assert.match(await ok(fetchStatus), /Failed to fetch/, 'network off applies to the selected tab');
+    await ok('network on');
     assert.equal(await ok(fetchStatus), '200');
     await ok('tab close');
     await ok('tab 1');
     assert.match(await ok(fetchStatus), /Failed to fetch/, 'the first tab is still offline');
-    await ok('offline off');
+    await ok('network on');
     assert.equal(await ok(fetchStatus), '200');
   });
 
