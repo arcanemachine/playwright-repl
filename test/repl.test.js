@@ -433,7 +433,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(listing, /\)\n\n +modes off +turn them all off$/);
     const off = await ok('modes off');
     assert.match(off, /\S+\/: watch off, network on$/m);
-    assert.match(off, /\?modes: 2 routes removed, capture off \(capture shows it\)$/m);
+    assert.match(off, /\?modes: capture off \(capture shows it\), 2 routes removed$/m);
     assert.match(await ok('modes'), /No modes are on/);
     assert.equal(await ok(fetchStatus), '200');
     await ok('tab close');
