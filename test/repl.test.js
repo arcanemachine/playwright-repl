@@ -46,8 +46,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('watches what happens in a tab, with the requests each step caused', async () => {
-    assert.match(await ok('watch'), /Not watching/);
+    assert.match(await ok('watch'), /^Not watching the selected tab\.\n +watch on +record/);
     await ok('watch on');
+    assert.match(await ok('watch'), /^Watching the selected tab since \S+: nothing has happened yet\n[\s\S]*watch off/);
     await ok('fill #name => secret-value');
     await ok('fill #pw => hunter2');
     await ok('click #load');
@@ -72,7 +73,10 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('click #load');
     await new Promise(r => setTimeout(r, 300));
     assert.equal((await ok('watch 50')).match(/click button "Load"/g).length, 1);
-    assert.match(await ok('watch'), /\[watch is off\]/);
+    assert.match(await ok('watch 50'), /\[watch is off\]/);
+    const bare = await ok('watch');
+    assert.match(bare, /^Not watching the selected tab; \d+ steps recorded before watch off:\n/);
+    assert.match(bare, /click button "Load"[\s\S]*\n +watch on \[--changes\] +record again$/);
   });
 
   it('records typing once it pauses, and Enter and Escape, without the values', async () => {
