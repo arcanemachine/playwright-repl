@@ -311,6 +311,20 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok(`goto ${site.url}/`);
   });
 
+  it('goes back and forward, and says when there is nowhere to go', async () => {
+    await ok(`goto ${site.url}/`);
+    await ok('click text=Other');
+    await waitFor(async () => /\/other$/.test(await ok('info').then(t => t.split('\n')[0])), 'the other page');
+    assert.match(await ok('back'), /^Back to: \S+\/$/);
+    assert.match(await ok('forward'), /^Forward to: \S+\/other$/);
+    await ok('tab new');
+    const nowhere = await repl.run('back');
+    assert.equal(nowhere.status, 'error');
+    assert.match(nowhere.output, /No page to go back to/);
+    await ok('tab close');
+    await ok(`goto ${site.url}/`);
+  });
+
   it('says a new tab whose page failed to load stays open and selected', async () => {
     const failed = await repl.run('tab new http://127.0.0.1:9/');
     assert.equal(failed.status, 'error');
