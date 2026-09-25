@@ -22,3 +22,18 @@ If you hit a limitation or write a workaround, consider adding the capability to
   and a new tab, not the user's.
 - `skill/SKILL.md` is how agents learn to use the REPL: keep it in step with a change to how it is
   used, and leave its Custom rules section empty.
+
+## Releasing
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`,
+`test:`, `chore:` and so on, with an optional scope (`fix(watch): ...`). Versions follow semver; before
+1.0, a change that breaks how the REPL is used is a minor bump (0.2.0 to 0.3.0), anything else a patch.
+
+1. `npm test` passes and the working tree is clean.
+2. `npm outdated` and `npm audit` show nothing that needs doing first.
+3. `npm version <patch|minor|major> -m "chore: release %s"` sets the version in `package.json` and
+   `package-lock.json`, commits it as `chore: release X.Y.Z`, and tags that commit `vX.Y.Z`.
+4. `git push --follow-tags` pushes the commits and the tag.
+5. `npm publish` publishes it; `prepublishOnly` runs the tests again first.
+
+Pushing and publishing need the maintainer's GitHub and npm credentials.
