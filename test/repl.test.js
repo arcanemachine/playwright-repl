@@ -54,6 +54,15 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(value), 'Katherine Johnson', 'send keeps a word with spaces whole');
   });
 
+  it('selects a tab by a number in its URL when it is not a tab index', async () => {
+    const port = new URL(site.url).port;
+    await ok('tab');
+    assert.match(await ok(`tab ${port}`), new RegExp(`URL: +\\S+:${port}/`));
+    const none = await repl.run('tab 99999999');
+    assert.equal(none.status, 'error');
+    assert.match(none.output, /No tab \[99999999\] in the latest listing, and no tab URL contains 99999999/);
+  });
+
   it('says a snapshot ref that no longer matches may be stale', async () => {
     const result = await repl.run('click e99999');
     assert.equal(result.status, 'error');
