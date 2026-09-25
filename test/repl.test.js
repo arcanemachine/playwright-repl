@@ -209,7 +209,10 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(ambiguous.output, /tabs match/);
     await ok('tab 1');
     assert.match(await ok('tab close tab-test=one'), /Closed \S+tab-test=one/);
-    assert.doesNotMatch(await ok('tabs'), /tab-test=one/);
+    const listing = await ok('tab');
+    assert.doesNotMatch(listing, /tab-test=one/);
+    assert.match(listing, /^\* \[1\] http:\/\/127\.0\.0\.1:\d+\/\n +"Fixture"$/m, 'the selected tab is marked');
+    assert.match(listing, /\n +tab new \[url\] +open a tab/);
     assert.match(await ok('url'), /127\.0\.0\.1:\d+\/$/, 'closing another tab keeps the selection');
   });
 
