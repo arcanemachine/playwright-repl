@@ -11,6 +11,12 @@ shared session: a person can have their own tabs open in it and be using it whil
 `pw-repl` below is the command the `pw-repl` npm package installs. Without a global install,
 `npx pw-repl` works the same; from a clone, `<clone>/bin/pw-repl.js`.
 
+## Arguments
+
+Freeform args describe what to do in the browser: a page to look at, a flow to try, a failure to
+reproduce (e.g. `pw-repl find out why the cart total shows 0 after adding an item`). They are the task;
+the sections below are how to carry it out. With no args, get a REPL running and ask what to do.
+
 ## Start it
 
 `pw-repl where` says whether a REPL is running and how `send` reaches it. There are three ways to run
