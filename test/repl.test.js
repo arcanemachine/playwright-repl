@@ -46,7 +46,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('watches what happens in a tab, with the requests each step caused', async () => {
-    assert.match(await ok('watch'), /^Not watching the selected tab\.\n +watch on +record/);
+    assert.match(await ok('watch'), /^Not watching the selected tab\.\n\n +watch on +record/);
     await ok('watch on');
     assert.match(await ok('watch'), /^Watching the selected tab since \S+: nothing has happened yet\n[\s\S]*watch off/);
     await ok('fill #name => secret-value');
@@ -76,7 +76,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('watch 50'), /\[watch is off\]/);
     const bare = await ok('watch');
     assert.match(bare, /^Not watching the selected tab; \d+ steps recorded before watch off:\n/);
-    assert.match(bare, /click button "Load"[\s\S]*\n +watch on \[--changes\] \[--live\] +record again$/);
+    assert.match(bare, /click button "Load"[\s\S]*\n\n +watch <n> [^\n]*\n +watch on \[--changes\] \[--live\] +record again$/);
   });
 
   it('records typing once it pauses, and Enter and Escape, without the values', async () => {
@@ -230,7 +230,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const listing = await ok('tab');
     assert.doesNotMatch(listing, /tab-test=one/);
     assert.match(listing, /^\* \[1\] http:\/\/127\.0\.0\.1:\d+\/\n +"Fixture"$/m, 'the selected tab is marked');
-    assert.match(listing, /\n +tab new \[url\] +open a tab/);
+    assert.match(listing, /\n\n +tab <index\|url-part> [^\n]*\n +tab new \[url\] +open a tab/);
     assert.match(await ok('info'), /URL: +\S+127\.0\.0\.1:\d+\/$/m, 'closing another tab keeps the selection');
   });
 
@@ -276,7 +276,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const faked = await ok(fetchStatus);
     assert.match(faked, /Faked: #\d+ GET .*\/api\/data -> 503/);
     assert.match(faked, /^503$/m);
-    assert.match(await ok('route'), /Fake responses on the selected tab \(1\):\n +\*\*\/api\/data +503 +\{"detail":"down"\}\n[\s\S]*route off/);
+    assert.match(await ok('route'), /Fake responses on the selected tab \(1\):\n +\*\*\/api\/data +503 +\{"detail":"down"\}\n\n +route <url-glob>[\s\S]*route off/);
     await ok('route off --all');
     assert.equal(await ok(fetchStatus), '200');
   });
@@ -394,9 +394,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('cuts and restores the network', async () => {
-    assert.match(await ok('network'), /network is on\.\n +network off/);
+    assert.match(await ok('network'), /network is on\.\n\n +network off/);
     await ok('network off');
-    assert.match(await ok('network'), /network is off \(offline\)\.\n +network on/);
+    assert.match(await ok('network'), /network is off \(offline\)\.\n\n +network on/);
     assert.match(await ok(fetchStatus), /Failed to fetch/);
     await ok('network on');
     assert.equal(await ok(fetchStatus), '200');
@@ -419,7 +419,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('lists the modes on in every tab, and turns them all off', async () => {
-    assert.match(await ok('modes'), /^No modes are on in any tab\.\n +watch on /);
+    assert.match(await ok('modes'), /^No modes are on in any tab\.\n\n +watch on /);
     assert.match(await ok('modes off'), /No modes were on/);
     await ok('watch on');
     await ok('network off');
@@ -430,7 +430,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const listing = await ok('modes');
     assert.match(listing, /^  \[1\] \S+\/ +\(watch network:off\)$/m);
     assert.match(listing, /^\* \[\d\] \S+\?modes +\(routes:2 capture\)$/m);
-    assert.match(listing, /\n +modes off +turn them all off$/);
+    assert.match(listing, /\)\n\n +modes off +turn them all off$/);
     const off = await ok('modes off');
     assert.match(off, /\S+\/: watch off, network on$/m);
     assert.match(off, /\?modes: 2 routes removed, capture off \(capture shows it\)$/m);
