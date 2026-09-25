@@ -52,6 +52,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const sent = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'fill', "label:has-text('Name') input", 'Katherine Johnson'], { encoding: 'utf8' });
     assert.equal(sent.status, 0, sent.stderr);
     assert.equal(await ok(value), 'Katherine Johnson', 'send keeps a word with spaces whole');
+    const evaluated = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'eval', 'document.querySelector("#name").value + " " + \'x y\'.length'], { encoding: 'utf8' });
+    assert.equal(evaluated.stdout.trim(), 'Katherine Johnson 3', 'eval gets its words as they are');
   });
 
   it('selects a tab by a number in its URL when it is not a tab index', async () => {

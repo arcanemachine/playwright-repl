@@ -67,9 +67,13 @@ function parseSendArgs(args, allowCommand) {
   }
   const words = args.slice(i);
   if (!allowCommand && words.length) usage();
-  // A word the shell kept whole (fill "text=Your name" Ada) is quoted again, so
-  // it stays one word; a command given as a single word is sent as it is.
-  const quoted = words.length > 1 ? words.map(w => (/[\s"']/.test(w) ? JSON.stringify(w) : w)) : words;
+  // For a command that reads a quoted selector (fill "text=Your name" Ada), a
+  // word the shell kept whole is quoted again so it stays one word. Any other
+  // command takes the rest of its line as it is (eval, route's JSON), so its
+  // words are joined as they are.
+  const { SELECTOR_FIRST } = require('../lib/syntax');
+  const requote = words.length > 1 && SELECTOR_FIRST.has(words[0]);
+  const quoted = requote ? words.map(w => (/[\s"']/.test(w) ? JSON.stringify(w) : w)) : words;
   options.command = quoted.join(' ').trim();
   return options;
 }
