@@ -329,13 +329,13 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   it('keeps console messages and uncaught errors without a capture', async () => {
     await ok('click #noisy');
     let logs = '';
-    await waitFor(async () => /\[pageerror\].*boom-uncaught/.test(logs = await ok('logs 50')), 'the page error');
+    await waitFor(async () => /\[pageerror\].*boom-uncaught/.test(logs = await ok('console 50')), 'the page error');
     assert.match(logs, /\[log\] hello-log/);
     assert.match(logs, /\[error\] bad-thing/);
     await ok('eval console.log("y".repeat(10000))');
-    await waitFor(async () => /y{4000}…/.test(await ok('logs --all 5')), 'the long message');
-    assert.doesNotMatch(await ok('logs --all 5'), /y{4001}/, 'long messages are clipped when stored');
-    const errors = await ok('logs 50 error');
+    await waitFor(async () => /y{4000}…/.test(await ok('console --all 5')), 'the long message');
+    assert.doesNotMatch(await ok('console --all 5'), /y{4001}/, 'long messages are clipped when stored');
+    const errors = await ok('console 50 error');
     assert.doesNotMatch(errors, /hello-log/);
     assert.match(errors, /bad-thing/);
   });
