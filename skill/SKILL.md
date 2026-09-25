@@ -29,7 +29,11 @@ one; each takes an optional start URL, which opens in a new tab.
   tmux send-keys -t playwright-repl Enter
   ```
 
-`serve <port>` listens on TCP 127.0.0.1 instead of the socket, with no access control. A REPL in a
+`serve` and `serve --background` take a socket path of your own instead of the default
+(`pw-repl serve --background /tmp/mine.sock`); `send`, `attach`, `stop` and `where` then need
+`-e /tmp/mine.sock`, or `PW_SOCKET=/tmp/mine.sock`. The log of a background REPL is next to its socket
+(`/tmp/mine.log`); `tail -f` on it follows along without a terminal to attach from. `serve <port>`
+listens on TCP 127.0.0.1 instead of a socket, with no access control. A REPL in a
 terminal stops at its prompt (`quit`, or Ctrl-C); `send quit` is refused.
 
 ## Send commands
@@ -40,8 +44,9 @@ pw-repl send -t 90 'screenshot -d 60'   # wait longer than the 20s default
 ```
 
 Always send commands with `pw-repl send`; don't type into the pane yourself. The words after `send`
-are the command, and a word quoted in your shell stays one word:
-`pw-repl send fill "text=Your name" Ada`. It works however the REPL was started:
+are the command. For `fill`, `type`, `select` and `press`, a word quoted in your shell stays one word
+(`pw-repl send fill "text=Your name" Ada`); other commands get the words as they are
+(`pw-repl send eval "document.title + ' x'"`). It works however the REPL was started:
 
 - `run` (in tmux): `send` types the command into the tmux pane and reads the result back off the screen.
   It types only when the pane's last line is a bare prompt, so nothing lands in a shell or in the middle
