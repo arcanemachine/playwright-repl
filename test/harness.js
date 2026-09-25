@@ -44,7 +44,8 @@ async function waitFor(check, label, ms = 10000) {
 async function startChrome() {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-repl-test-'));
   const proc = spawn(CHROME, [
-    '--headless=new', '--no-sandbox', '--no-first-run', '--remote-debugging-port=0',
+    // /dev/shm is small in containers, and heavier pages crash the tab without this.
+    '--headless=new', '--no-sandbox', '--no-first-run', '--disable-dev-shm-usage', '--remote-debugging-port=0',
     `--user-data-dir=${profile}`, 'about:blank',
   ], { stdio: 'ignore' });
   let exit = null;
