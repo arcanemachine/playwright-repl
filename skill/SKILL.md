@@ -62,7 +62,7 @@ are the command. For `fill`, `type`, `select` and `press`, a word quoted in your
 
 - `run` (in tmux): `send` types the command into the tmux pane and reads the result back off the screen.
   It types only when the pane's last line is a bare prompt, so nothing lands in a shell or in the middle
-  of what the user is typing; while a command is running, the user is typing, or the REPL is exiting, it
+  of what someone is typing; while a command is running, someone is typing, or the REPL is exiting, it
   refuses (exit 64). Wait and retry.
 - `serve`, in a terminal or in the background: `send` sends it over the socket and gets the output back
   as JSON. Same commands, more reliable results: nothing is scraped, long output isn't cut off by
@@ -72,14 +72,13 @@ are the command. For `fill`, `type`, `select` and `press`, a word quoted in your
 REPL), or why neither is reachable, without running anything.
 
 Every command you run and its output show in the REPL's pane, or in `attach` and the log for a
-background REPL (server commands as `[server]` lines), so the user sees what you do. The pane shows REPL
-commands only, not what the user clicked in the browser (unless `watch on --live` is on); for that, look
-at the browser itself: `tab` and `info` for where they are, `requests` for the requests their clicks
-made (`body <#>` for what one returned), `console` for console messages and page errors. When the user
-wants to show you what they do, `watch on` on their tab records each step with the requests it caused
-(`watch on --changes` adds what each step changed on the page); `watch` reads it back, and `watch new`
-only what it has not shown yet. Watching and reading are fine on the user's tabs; the rule below is
-about acting on them.
+background REPL (server commands as `[server]` lines), so whoever looks there sees what you do. The pane
+shows REPL commands only, not what was clicked in the browser (unless `watch on --live` is on); for
+that, look at the browser itself: `tab` and `info` for where things are, `requests` for the requests the
+clicks made (`body <#>` for what one returned), `console` for console messages and page errors. `watch
+on` records each step someone takes in a tab, with the requests it caused (`watch on --changes` adds
+what each step changed on the page); `watch` reads it back, and `watch new` only what it has not shown
+yet.
 
 Exit status: `0` ok, `1` the command failed, `2` completion not confirmed (outcome unknown: do not
 blindly retry a change), `64` usage or the REPL is not reachable. `pw-repl --help` has the options.
@@ -90,19 +89,20 @@ Run `pw-repl send help`. It lists six topics; `help <topic>` lists their command
 gives usage and caveats, and `help --all` prints everything at once. It needs no running REPL. The
 help is the command reference; this file does not repeat it.
 
-## Shared-browser rules
+## Sharing the browser
 
-- Act only on tabs you opened (`tab new`), unless the user asks you to act on theirs (e.g. a `route` in
-  their tab while they test); then say what you are doing and undo it the moment you are done. No tab
-  is selected when the REPL starts (unless it was given a start URL); `tab` lists them. Closing your
-  tab goes back only to a tab you opened; otherwise no tab is selected. Tab numbers change when tabs
-  open or close; `tab <url-part>` and `tab close <url-part>` pick a tab by its URL and refuse if it is
-  ambiguous.
-- Dialogs are never answered automatically. The person at the browser handles them.
-- Before leaving: turn off the modes you turned on (`modes` lists what is on in every tab; the prompt
-  shows the selected tab's, e.g. `(watch routes:1) pw>`), and close the tabs you opened. `modes off`
-  turns off everything, including modes the user turned on, so use it only when they are all yours.
-- The tmux session may be attached by the user. Never kill it.
+- The browser may have tabs that are not yours, and someone may be using it. Whether to read or act in
+  one of those tabs, or to open your own (`tab new <url>`), depends on the task; when that is not
+  clear, ask.
+- No tab is selected when the REPL starts (unless it was given a start URL). Closing a tab the REPL
+  opened goes back to the tab before it, if the REPL opened that one too; otherwise no tab is selected.
+  Tab numbers change when tabs open or close; `tab <url-part>` and `tab close <url-part>` pick a tab by
+  its URL and refuse if it is ambiguous.
+- Dialogs are never answered automatically; they wait for someone at the browser.
+- Modes and tabs stay on or open until they are turned off or closed, whoever started them. `modes`
+  lists what is on in every tab (the prompt shows the selected tab's, e.g. `(watch routes:1) pw>`);
+  `modes off` turns off every mode in every tab.
+- Someone may be attached to the REPL's tmux session; killing the session ends it for them too.
 
 ## Environment
 
