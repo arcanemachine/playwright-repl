@@ -290,32 +290,32 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(result.output, /not valid JSON/);
   });
 
-  it('shows a fake as faked in recent as soon as it is answered', async () => {
+  it('shows a fake as faked in requests as soon as it is answered', async () => {
     await ok('route **/api/instant 418 {}');
     assert.match(await ok('eval fetch("/api/instant").then(r => r.status)'), /^418$/m);
-    assert.match(await ok('recent 5 /api/instant'), /GET 418 faked \d+ms/);
+    assert.match(await ok('requests 5 /api/instant'), /GET 418 faked \d+ms/);
     await ok('route off --all');
   });
 
-  it('keeps recent requests, marks fakes, and hides static files by default', async () => {
+  it('keeps requests, marks fakes, and hides static files by default', async () => {
     await ok('route **/api/data 500 {}');
     await ok(fetchStatus);
     await ok('route off --all');
     // The browser reports completion shortly after fetch() resolves.
     let recent = '';
-    await waitFor(async () => /GET 500 faked \d+ms .*\/api\/data/.test(recent = await ok('recent 50')), 'the faked request to settle');
+    await waitFor(async () => /GET 500 faked \d+ms .*\/api\/data/.test(recent = await ok('requests 50')), 'the faked request to settle');
     assert.doesNotMatch(recent, /style\.css/);
-    assert.match(await ok('recent --all 50'), /style\.css/);
-    assert.match(await ok('recent 50 nothing-matches-this'), /No recent requests matching/);
+    assert.match(await ok('requests --all 50'), /style\.css/);
+    assert.match(await ok('requests 50 nothing-matches-this'), /No requests matching/);
   });
 
-  it('shows the body of a recent request, real or faked', async () => {
+  it('shows the body of a request, real or faked', async () => {
     await ok(fetchStatus);
     await ok('route **/api/data 418 {"fake":1}');
     await ok(fetchStatus);
     await ok('route off --all');
     let recent = '';
-    await waitFor(async () => /GET 418 faked/.test(recent = await ok('recent 50 /api/data')), 'the requests to settle');
+    await waitFor(async () => /GET 418 faked/.test(recent = await ok('requests 50 /api/data')), 'the requests to settle');
     // The latest one: bodies from before an earlier navigation may be gone.
     const real = [...recent.matchAll(/#(\d+) \S+ GET 200 \d+ms \S+\/api\/data/g)].pop()[1];
     const faked = /#(\d+) \S+ GET 418 faked/.exec(recent)[1];

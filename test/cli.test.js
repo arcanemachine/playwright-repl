@@ -138,7 +138,7 @@ describe('pw-repl send typing into a tmux pane', { skip: HAS_TMUX ? false : 'tmu
   });
 
   it('refuses the server prompt with something on it too', async () => {
-    refuses(await paneShowing('pw[serve]> [server] recent'));
+    refuses(await paneShowing('pw[serve]> [server] requests'));
   });
 
   it('refuses when someone is typing at the prompt', async () => {
