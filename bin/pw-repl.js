@@ -4,18 +4,28 @@
 const { looksLikeEndpoint } = require('../lib/client');
 
 const USAGE = `Usage:
-  pw-repl run [start-url]                     connect to the browser and open the prompt
-  pw-repl serve [endpoint] [start-url]        the same, plus a command server (socket, port, or 127.0.0.1:port;
-                                              default /tmp/playwright-repl.sock)
+  pw-repl run [start-url]
+      connect to the browser and open the prompt
+
+  pw-repl serve [endpoint] [start-url]
+      the same, plus a command server (socket, port, or 127.0.0.1:port; default /tmp/playwright-repl.sock)
+
   pw-repl send [-e endpoint | -s session] [-t seconds] <command...>
-                                              run one command in a running REPL and print its output
-  pw-repl where [-e endpoint | -s session]    say which REPL send would reach
-  pw-repl help [topic | command | --all]      this usage; with a topic or command, the REPL's help for it
-  pw-repl skill                               print an agent skill (SKILL.md) that teaches an agent to use it
+      run one command in a running REPL and print its output
+
+  pw-repl where [-e endpoint | -s session]
+      say which REPL send would reach
+
+  pw-repl help [topic | command | --all]
+      this usage; with a topic or command, the REPL's help for it
+
+  pw-repl skill
+      print an agent skill (SKILL.md) that teaches an agent to use the REPL
 
 send uses the server when -e, $PW_ENDPOINT, or the socket ($PW_SOCKET, default /tmp/playwright-repl.sock)
 is there, and the tmux session (-s, $PW_TMUX_SESSION, default playwright-repl) otherwise. If the socket
 exists but nothing answers, send fails rather than fall back.
+
 send exit status: 0 ok, 1 command error, 2 completion not confirmed, 64 usage or unreachable.
 
 The browser must be running with --remote-debugging-port (default http://localhost:9222; set $PW_CDP_URL).`;
