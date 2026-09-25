@@ -79,6 +79,11 @@ describe('pw-repl send help', () => {
       assert.equal(fs.statSync(path.join(dir, 'repl.log')).mode & 0o777, 0o600);
       assert.match(pwRepl(['serve', '--background', socket], { env }).stderr, /already serving on \S+ \(pid \d+\)/, 'one per socket');
       assert.match(pwRepl(['send', 'tab'], { env }).stdout, /\[0\]/, 'send reaches it');
+      const unselected = pwRepl(['send', 'info'], { env });
+      assert.equal(unselected.status, 1);
+      assert.match(unselected.stdout, /No tab is selected/, 'nothing is selected at the start');
+      assert.match(fs.readFileSync(path.join(dir, 'repl.log'), 'utf8'), /No tab is selected: tab new \[url\] opens one of your own/);
+      assert.equal(pwRepl(['send', 'tab new about:blank'], { env }).status, 0);
       assert.match(pwRepl(['where'], { env }).stdout, /--background\)\nbackground: pid \d+/);
 
       const attached = spawn(process.execPath, [BIN, 'attach', '-e', socket], { env });

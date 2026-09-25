@@ -258,6 +258,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('info'), /URL: +\S+127\.0\.0\.1:\d+\/$/m, 'closing another tab keeps the selection');
   });
 
+  it('says a new tab whose page failed to load stays open and selected', async () => {
+    const failed = await repl.run('tab new http://127.0.0.1:9/');
+    assert.equal(failed.status, 'error');
+    assert.match(failed.output, /The new tab stays open and selected; tab close closes it\./);
+    await ok('tab close');
+    assert.match(await ok('info'), /Title: Fixture$/m, 'back to the tab before');
+  });
+
   it('greps the snapshot by role, name or flag, with where each hit sits', async () => {
     assert.match(await ok('snapshot --grep alert'), /region "Results" › alert \[ref=(?:f\d+)?e\d+\]: Could not load results\./);
     assert.match(await ok('snapshot --grep disabled'), /region "Results" › button "Refresh Results" \[disabled\] \[ref=(?:f\d+)?e\d+\]/);

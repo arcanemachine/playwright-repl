@@ -79,7 +79,7 @@ run next.
 ## Options
 
 ```bash
-pw-repl run http://localhost:3000        # connect and navigate tab [0] to a URL
+pw-repl run http://localhost:3000        # connect and open a URL in a new tab
 pw-repl serve                            # also accept commands on /tmp/playwright-repl.sock (prompt: pw[serve]>)
 PW_CDP_URL=http://host:9222 pw-repl run  # a browser elsewhere
 ```

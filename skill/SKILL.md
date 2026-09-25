@@ -14,7 +14,7 @@ shared session: a person can have their own tabs open in it and be using it whil
 ## Start it
 
 `pw-repl where` says whether a REPL is running and how `send` reaches it. There are three ways to run
-one; each takes an optional start URL, which navigates tab [0].
+one; each takes an optional start URL, which opens in a new tab.
 
 - `pw-repl serve --background` runs it detached, with a command server on `/tmp/playwright-repl.sock`
   (owner-only) and its output in `/tmp/playwright-repl.log`. `pw-repl attach` shows everything it does
@@ -75,8 +75,8 @@ help is the command reference; this file does not repeat it.
 ## Shared-browser rules
 
 - Act only on tabs you opened (`tab new`), unless the user asks you to act on theirs (e.g. a `route` in
-  their tab while they test); then say what you are doing and undo it the moment you are done. The REPL
-  selects tab [0] at startup, and that tab may be the user's: run `tab` before acting. Closing your
+  their tab while they test); then say what you are doing and undo it the moment you are done. No tab
+  is selected when the REPL starts (unless it was given a start URL); `tab` lists them. Closing your
   tab goes back only to a tab you opened; otherwise no tab is selected. Tab numbers change when tabs
   open or close; `tab <url-part>` and `tab close <url-part>` pick a tab by its URL and refuse if it is
   ambiguous.
