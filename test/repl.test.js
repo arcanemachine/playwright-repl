@@ -296,6 +296,15 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('info'), /URL: +\S+127\.0\.0\.1:\d+\/$/m, 'closing another tab keeps the selection');
   });
 
+  it('assumes http:// for localhost, and shows the window size as the viewport', async () => {
+    const port = new URL(site.url).port;
+    assert.match(await ok(`goto localhost:${port}/`), /^http:\/\/localhost:\d+\/ — Fixture$/);
+    assert.match(await ok('info'), /Viewport: \d+x\d+ \(the window's size\)$/m);
+    await ok('viewport 900x700');
+    assert.equal(await ok('viewport'), '900x700 (set with viewport)');
+    await ok(`goto ${site.url}/`);
+  });
+
   it('says a new tab whose page failed to load stays open and selected', async () => {
     const failed = await repl.run('tab new http://127.0.0.1:9/');
     assert.equal(failed.status, 'error');
