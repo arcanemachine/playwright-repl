@@ -25,7 +25,7 @@ profile. Check it is up with `curl http://localhost:9222/json/version`.
 
 ```bash
 npm install -g pw-repl
-pw-repl                  # connects to localhost:9222 (same as pw-repl run)
+pw-repl run              # connects to localhost:9222; pw-repl on its own shows the usage
 ```
 
 Without installing: `npx pw-repl` (subcommands work the same way).
@@ -78,7 +78,7 @@ run next.
 ## Options
 
 ```bash
-pw-repl http://localhost:3000            # connect and navigate tab [0] to a URL
+pw-repl run http://localhost:3000        # connect and navigate tab [0] to a URL
 pw-repl serve                            # also accept commands on /tmp/playwright-repl.sock (prompt: pw[serve]>)
 PW_CDP_URL=http://host:9222 pw-repl run  # a browser elsewhere
 ```

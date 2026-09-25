@@ -4,7 +4,7 @@
 const { looksLikeEndpoint } = require('../lib/client');
 
 const USAGE = `Usage:
-  pw-repl [run] [start-url]                   connect to the browser and open the prompt (the default)
+  pw-repl run [start-url]                     connect to the browser and open the prompt
   pw-repl serve [endpoint] [start-url]        the same, plus a command server (socket, port, or 127.0.0.1:port;
                                               default /tmp/playwright-repl.sock)
   pw-repl send [-e endpoint | -s session] [-t seconds] <command...>
@@ -78,9 +78,8 @@ function skill() {
 
 async function main() {
   let [subcommand, ...args] = process.argv.slice(2);
-  // Bare pw-repl, or pw-repl <url>, is run.
-  if (subcommand === undefined) subcommand = 'run';
-  else if (subcommand.includes('://')) { args = [subcommand, ...args]; subcommand = 'run'; }
+  // Bare pw-repl explains itself rather than connect to someone's browser.
+  if (subcommand === undefined) return console.log(`${USAGE}\n\n${REPL_HELP}`);
   switch (subcommand) {
     case 'run':
     case 'serve':

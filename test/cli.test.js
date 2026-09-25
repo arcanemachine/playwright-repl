@@ -40,13 +40,18 @@ describe('pw-repl send help', () => {
     assert.match(pwRepl(['skill', 'extra']).stderr, /Usage:/);
   });
 
-  it('runs the prompt by default, with or without a start URL', () => {
+  it('shows the usage on its own, and runs the prompt only with run', () => {
     const env = { ...process.env, PW_CDP_URL: 'http://127.0.0.1:9' };
-    for (const args of [[], ['http://example.com']]) {
+    const bare = pwRepl([], { env });
+    assert.equal(bare.status, 0);
+    assert.equal(bare.stdout, pwRepl(['help']).stdout, 'the same as pw-repl help');
+    assert.doesNotMatch(bare.stdout, /Connecting/);
+    for (const args of [['run'], ['run', 'http://example.com']]) {
       const result = pwRepl(args, { env, timeout: 20000 });
       assert.match(result.stdout, /Connecting to http:\/\/127\.0\.0\.1:9/, `pw-repl ${args.join(' ')} starts connecting`);
       assert.notEqual(result.status, 0, 'nothing to connect to');
     }
+    assert.match(pwRepl(['http://example.com']).stderr, /Usage:/, 'a URL on its own does not connect');
     assert.match(pwRepl(['sned']).stderr, /Usage:/, 'a mistyped subcommand shows the usage');
   });
 
@@ -54,7 +59,7 @@ describe('pw-repl send help', () => {
     assert.match(pwRepl(['--help']).stdout, /pw-repl help \[topic/);
     const bare = pwRepl(['help']);
     assert.equal(bare.status, 0);
-    assert.match(bare.stdout, /^Usage:\n  pw-repl \[run\][\s\S]*\n\nThe REPL's own commands: help at the pw> prompt, or pw-repl send help/, 'help at the shell is the usage');
+    assert.match(bare.stdout, /^Usage:\n  pw-repl run \[start-url\][\s\S]*\n\nThe REPL's own commands: help at the pw> prompt, or pw-repl send help/, 'help at the shell is the usage');
     assert.equal(pwRepl(['help', 'route']).stdout.trimEnd(), require('../lib/help').render('route'), 'with a command, the REPL help');
   });
 });
