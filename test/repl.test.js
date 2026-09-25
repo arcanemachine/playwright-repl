@@ -137,6 +137,51 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('watch off');
   });
 
+  it('never names a step from the text of an editable area', async () => {
+    await ok('reload');
+    await ok('watch on');
+    await ok('watch new');
+    await ok('eval document.activeElement.blur()');
+    await ok('press Escape');
+    await ok('click body');
+    let trail = '';
+    await waitFor(async () => /Escape/.test(trail += '\n' + await ok('watch new')) && /click/.test(trail), 'the Escape and the click');
+    assert.match(trail, /press page Escape/);
+    assert.doesNotMatch(trail, /my private draft/);
+    await ok('watch off');
+  });
+
+  it('leaves out text typed into an editable area with --changes', async () => {
+    await ok('reload');
+    await ok('watch on --changes');
+    await ok('watch new');
+    await ok('click #typed');
+    await ok('type #composer => CESECRET');
+    await new Promise(r => setTimeout(r, 1500));
+    await ok('fill #name => Kim');
+    await ok('click #go');
+    let trail = '';
+    await waitFor(async () => /Hello Kim/.test(trail += '\n' + await ok('watch new')), 'the change the click made', 6000);
+    assert.match(trail, /type div\n/, `the typing is recorded:\n${trail}`);
+    assert.doesNotMatch(trail, /CESECRET|my private draft/);
+    await ok('watch off');
+  });
+
+  it('shows changes on every plain watch, and leaves watch new its own place', async () => {
+    await ok('reload');
+    await ok('watch on --changes');
+    await ok('watch new');
+    await ok('fill #name => Quinn');
+    await ok('click #go');
+    await waitFor(async () => /Hello Quinn/.test(await ok('watch')), 'the change', 6000);
+    assert.match(await ok('watch'), /Hello Quinn/, 'shown again');
+    const fresh = await ok('watch new');
+    assert.match(fresh, /click button "Go"/, 'plain watch did not mark it read');
+    assert.match(fresh, /Hello Quinn/);
+    assert.doesNotMatch(await ok('watch new'), /Hello Quinn/);
+    await ok('watch off');
+  });
+
   it('waits for text, and for a response even if it already arrived', async () => {
     await ok('fill #name => Wu');
     await ok('click #go');
@@ -390,6 +435,33 @@ describe('a command with an unknown outcome', { skip: SKIP }, () => {
     assert.equal(result.unconfirmed, true);
     await waitFor(() => repl.exited, 'the REPL to exit');
     assert.equal(fs.existsSync(repl.socket), false);
+  });
+});
+
+describe('watch on --changes on a page too busy to snapshot', { skip: SKIP }, () => {
+  let chrome, site, repl;
+
+  before(async () => {
+    chrome = await startChrome();
+    site = await startSite();
+    repl = await startRepl(chrome.cdpUrl);
+    await repl.run(`tab new ${site.url}/`);
+  });
+
+  after(async () => {
+    await repl?.stop();
+    site?.stop();
+    await chrome?.stop();
+  });
+
+  it('starts watching anyway instead of disconnecting', async () => {
+    // Keeps the page busy for 4s right after watch on sets up, so the first snapshot times out.
+    await repl.run('eval Object.defineProperty(window, "__pwReplWatching", { get: () => false, set() { setTimeout(() => { const t = Date.now(); while (Date.now() - t < 4000); }); } })');
+    const result = await repl.run('watch on --changes');
+    assert.equal(result.status, 'ok', result.output);
+    assert.match(result.output, /Could not snapshot the page yet/);
+    assert.equal(repl.exited, false);
+    assert.equal((await repl.run('title')).status, 'ok');
   });
 });
 

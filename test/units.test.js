@@ -1,7 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const help = require('../lib/help');
-const { commands, complete, compactSnapshot, grepSnapshot, summarizeChanges, clock } = require('../lib/commands');
+const { commands, complete, compactSnapshot, grepSnapshot, summarizeChanges, scrubEditable, clock } = require('../lib/commands');
 const { parseEndpoint, looksLikeEndpoint, DEFAULT_SOCKET } = require('../lib/client');
 
 describe('help', () => {
@@ -82,6 +82,7 @@ describe('tab completion', () => {
     assert.deepEqual(complete('tab n'), [['new'], 'n']);
     assert.deepEqual(complete('offline o'), [['on', 'off'], 'o']);
     assert.deepEqual(complete('watch n'), [['new'], 'n']);
+    assert.deepEqual(complete('watch on --c'), [['--changes'], '--c']);
   });
 
   it('offers nothing where arguments are free-form', () => {
@@ -160,6 +161,12 @@ describe('snapshot changes', () => {
     const text = summarizeChanges(before, after).join('\n');
     assert.doesNotMatch(text, /cancun\b|2026|active|ref=|\/url/);
     assert.deepEqual(summarizeChanges(before, before.replace(/\[ref=e\d+\]/g, '[ref=f1e9]')), []);
+  });
+
+  it('blanks out the text of editable areas, as text or as a name', () => {
+    const text = ['- generic "Draft" [ref=e1]: CESECRET', '- paragraph: my private draft', '- button "Go"', '  - text: CESECRET'].join('\n');
+    assert.equal(scrubEditable(text, ['CESECRET', 'my private draft']), ['- generic "Draft" [ref=e1]', '- paragraph', '- button "Go"', '  - text'].join('\n'));
+    assert.equal(scrubEditable(text, []), text);
   });
 
   it('caps the lines per step', () => {

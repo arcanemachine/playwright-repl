@@ -77,8 +77,8 @@ curl --unix-socket /tmp/playwright-repl.sock -H 'Content-Type: application/json'
 ```
 
 It returns `{"status": "ok" | "error", "output": "..."}`, plus `"unconfirmed": true` when the command may or
-may not have done what it was sent to do (it timed out, or the REPL quit while it ran). It is off unless
-started with `pw-repl serve`.
+may not have done what it was sent to do (it timed out, or the REPL quit while it ran and it was not
+read-only). It is off unless started with `pw-repl serve`.
 `pw-repl serve <port>` serves TCP on 127.0.0.1 instead; other addresses are refused.
 
 Agents: see `AGENTS.md`.
