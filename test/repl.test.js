@@ -54,6 +54,12 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(value), 'Katherine Johnson', 'send keeps a word with spaces whole');
     const evaluated = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'eval', 'document.querySelector("#name").value + " " + \'x y\'.length'], { encoding: 'utf8' });
     assert.equal(evaluated.stdout.trim(), 'Katherine Johnson 3', 'eval gets its words as they are');
+        const typed = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'type', '#name', ' Jr'], { encoding: 'utf8' });
+    assert.equal(typed.status, 0, typed.stderr);
+    assert.equal(await ok(value), 'Katherine Johnson Jr', 'type adds to the end, leading space and all');
+    const cleared = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'fill', '#name', ''], { encoding: 'utf8' });
+    assert.equal(cleared.status, 0, cleared.stdout + cleared.stderr);
+    assert.equal(await ok(value), '', 'an empty word through send clears the field');
   });
 
   it('selects a tab by a number in its URL when it is not a tab index', async () => {

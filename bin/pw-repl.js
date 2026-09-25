@@ -73,7 +73,8 @@ function parseSendArgs(args, allowCommand) {
   // words are joined as they are.
   const { SELECTOR_FIRST } = require('../lib/syntax');
   const requote = words.length > 1 && SELECTOR_FIRST.has(words[0]);
-  const quoted = requote ? words.map(w => (/[\s"']/.test(w) ? JSON.stringify(w) : w)) : words;
+  // An empty word (fill #name "") is the empty value.
+  const quoted = requote ? words.map(w => (w === '' || /[\s"']/.test(w) ? JSON.stringify(w) : w)) : words;
   options.command = quoted.join(' ').trim();
   return options;
 }
