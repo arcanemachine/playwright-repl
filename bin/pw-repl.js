@@ -11,7 +11,7 @@ const USAGE = `Usage:
                                               run one command in a running REPL and print its output
   pw-repl where [-e endpoint | -s session]    say which REPL send would reach
   pw-repl help [topic | command | --all]      this usage; with a topic or command, the REPL's help for it
-  pw-repl skill                               print a Claude Code skill that teaches an agent to use it
+  pw-repl skill                               print an agent skill (SKILL.md) that teaches an agent to use it
 
 send uses the server when -e, $PW_ENDPOINT, or the socket ($PW_SOCKET, default /tmp/playwright-repl.sock)
 is there, and the tmux session (-s, $PW_TMUX_SESSION, default playwright-repl) otherwise. If the socket
@@ -73,7 +73,7 @@ function help(topic) {
 // Printed as is, to be saved as a skill; the hint goes to the terminal only.
 function skill() {
   process.stdout.write(require('fs').readFileSync(require('path').join(__dirname, '..', 'skill', 'SKILL.md'), 'utf8'));
-  if (process.stdout.isTTY) console.error('\nSave it as a skill: pw-repl skill > ~/.claude/skills/playwright-repl/SKILL.md');
+  if (process.stdout.isTTY) console.error('\nSave it as playwright-repl/SKILL.md in the folder your agent reads skills from:\npw-repl skill > <skills folder>/playwright-repl/SKILL.md');
 }
 
 async function main() {
