@@ -14,7 +14,7 @@ If you hit a limitation or write a workaround, consider adding the capability to
   runs commands one at a time; `lib/server.js` is the opt-in server; `lib/send.js` and `lib/client.js`
   are `send` and `where`; `lib/output.js` routes all output so the server can return it.
 - Comment the *why* when it isn't obvious from the code.
-- `npm test` runs the suite (about 10s): a private headless Chromium, a local test site, and the real
+- `npm test` runs the suite (about 40s): a private headless Chromium, a local test site, and the real
   REPL with its server. Nothing is mocked, and the shared browser is never touched. It finds Chromium
   through `PW_TEST_CHROME` or Playwright's installed browsers, and skips the browser tests if there is
   none. Add a test with each new command or behaviour.

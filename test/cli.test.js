@@ -61,6 +61,7 @@ describe('pw-repl send help', () => {
     assert.equal(bare.status, 0);
     assert.match(bare.stdout, /^Usage:\n  pw-repl run \[start-url\][\s\S]*\n\nThe REPL's own commands: help at the pw> prompt, or pw-repl send help/, 'help at the shell is the usage');
     assert.equal(pwRepl(['help', 'route']).stdout.trimEnd(), require('../lib/help').render('route'), 'with a command, the REPL help');
+    assert.equal(pwRepl(['help', '-h']).stdout, bare.stdout, 'help -h is the usage too');
   });
 });
 

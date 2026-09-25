@@ -108,7 +108,7 @@ async function main() {
     // falls through never
     case 'help': {
       const topic = args.join(' ').trim();
-      if (topic) return help(topic);
+      if (topic && topic !== '-h' && topic !== '--help') return help(topic);
       return console.log(`${USAGE}\n\n${REPL_HELP}`);
     }
     case 'skill':
