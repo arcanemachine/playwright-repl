@@ -30,6 +30,15 @@ describe('pw-repl send help', () => {
     assert.match(result.stdout, /No help for nope/);
   });
 
+  it('prints the skill as it is, with nothing else on stdout', () => {
+    const result = pwRepl(['skill']);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, fs.readFileSync(path.join(__dirname, '..', 'skill', 'SKILL.md'), 'utf8'));
+    assert.match(result.stdout, /^---\nname: playwright-repl\ndescription: .+\n---\n/);
+    assert.equal(result.stderr, '', 'the save hint is for a terminal only');
+    assert.match(pwRepl(['skill', 'extra']).stderr, /Usage:/);
+  });
+
   it('runs the prompt by default, with or without a start URL', () => {
     const env = { ...process.env, PW_CDP_URL: 'http://127.0.0.1:9' };
     for (const args of [[], ['http://example.com']]) {

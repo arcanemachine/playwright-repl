@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The one command: pw-repl run | serve | send | where | help.
+// The one command: pw-repl run | serve | send | where | help | skill.
 
 const { looksLikeEndpoint } = require('../lib/client');
 
@@ -11,6 +11,7 @@ const USAGE = `Usage:
                                               run one command in a running REPL and print its output
   pw-repl where [-e endpoint | -s session]    say which REPL send would reach
   pw-repl help [topic | command | --all]      the REPL's command reference (no REPL needed)
+  pw-repl skill                               print a Claude Code skill that teaches an agent to use it
 
 send uses the server when -e, $PW_ENDPOINT, or the socket ($PW_SOCKET, default /tmp/playwright-repl.sock)
 is there, and the tmux session (-s, $PW_TMUX_SESSION, default playwright-repl) otherwise. If the socket
@@ -66,6 +67,12 @@ function help(topic) {
   console.log(text);
 }
 
+// Printed as is, to be saved as a skill; the hint goes to the terminal only.
+function skill() {
+  process.stdout.write(require('fs').readFileSync(require('path').join(__dirname, '..', 'skill', 'SKILL.md'), 'utf8'));
+  if (process.stdout.isTTY) console.error('\nSave it as a skill: pw-repl skill > ~/.claude/skills/playwright-repl/SKILL.md');
+}
+
 async function main() {
   let [subcommand, ...args] = process.argv.slice(2);
   // Bare pw-repl, or pw-repl <url>, is run.
@@ -88,6 +95,9 @@ async function main() {
     // falls through never
     case 'help':
       return help(args.join(' ').trim());
+    case 'skill':
+      if (args.length) usage();
+      return skill();
     case '-v':
     case '--version':
       return console.log(require('../package.json').version);

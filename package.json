@@ -23,6 +23,7 @@
     "bin/",
     "lib/",
     "AGENTS.md",
+    "skill/",
     "README.md",
     "LICENSE.md"
   ],

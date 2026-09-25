@@ -108,7 +108,17 @@ may not have done what it was sent to do (it timed out, or the REPL quit while i
 read-only). It is off unless started with `pw-repl serve`.
 `pw-repl serve <port>` serves TCP on 127.0.0.1 instead; other addresses are refused.
 
-Agents: see `AGENTS.md`.
+### A skill for agents
+
+`pw-repl skill` prints a Claude Code skill that teaches an agent to use the REPL: how to start it, send
+commands, and share the browser with a person. Save it where your agent reads skills:
+
+```bash
+mkdir -p ~/.claude/skills/playwright-repl
+pw-repl skill > ~/.claude/skills/playwright-repl/SKILL.md
+```
+
+The same text is in `skill/SKILL.md`. Working on the REPL itself: see `AGENTS.md`.
 
 ## Tests
 
