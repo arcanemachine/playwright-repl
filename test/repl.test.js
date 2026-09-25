@@ -267,7 +267,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('route **/api/data 503 {}');
     await ok('eval setTimeout(() => fetch("/api/data"), 200); "scheduled"');
     const start = repl.stdout.length;
-    await waitFor(() => /Faked: #\d+ GET \S+\/api\/data -> 503\npw\[serve\]> /.test(repl.stdout.slice(start)), 'the late Faked line and a fresh prompt');
+    await waitFor(() => /Faked: #\d+ GET \S+\/api\/data -> 503\n\(routes:1\) pw\[serve\]> /.test(repl.stdout.slice(start)), 'the late Faked line and a fresh prompt');
     await ok('route off --all');
   });
 
@@ -447,6 +447,25 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
 
   it('shows the server is on in the prompt', () => {
     assert.match(repl.stdout, /pw\[serve\]> /);
+  });
+
+  it('shows the modes on in the selected tab before the prompt', async () => {
+    const endsWith = async (prompt, what) => {
+      const start = repl.stdout.length;
+      await ok('info');
+      await waitFor(() => repl.stdout.slice(start).endsWith(`\n${prompt}`), what);
+    };
+    await ok('watch on');
+    await ok('network off');
+    await ok('route **/api/x 500 {}');
+    await endsWith('(watch network:off routes:1) pw[serve]> ', 'the modes before the prompt');
+    await ok(`tab new ${site.url}/`);
+    await endsWith('pw[serve]> ', 'no modes in a new tab');
+    await ok('tab close');
+    await ok('tab 1');
+    await endsWith('(watch network:off routes:1) pw[serve]> ', 'the modes again');
+    await ok('modes off');
+    await endsWith('pw[serve]> ', 'no modes once they are off');
   });
 
   it('echoes server commands to the pane', async () => {

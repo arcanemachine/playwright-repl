@@ -144,4 +144,20 @@ describe('pw-repl send typing into a tmux pane', { skip: HAS_TMUX ? false : 'tmu
   it('refuses when someone is typing at the prompt', async () => {
     refuses(await paneShowing('pw> half-typed'));
   });
+
+  it('refuses a mode list that is not before the prompt', async () => {
+    refuses(await paneShowing('pw> (watch)'));
+  });
+
+  // A stand-in REPL that answers each command with its completion marker.
+  it('types at a prompt with modes before it', async () => {
+    const session = `pw-sh-test-${process.pid}-${sessions.length}`;
+    sessions.push(session);
+    const script = `const p = "(watch routes:1) pw> "; process.stdout.write(p); require("readline").createInterface({ input: process.stdin }).on("line", l => { const id = /^@(\\S+)/.exec(l)[1]; process.stdout.write("answered\\n[[pw-done:" + id + ":ok]]\\n" + p); })`;
+    spawnSync('tmux', ['new-session', '-d', '-s', session, `${process.execPath} -e '${script}'`]);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const result = pwRepl(['send', '-s', session, '-t', '5', 'info'], { env, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /answered/);
+  });
 });
