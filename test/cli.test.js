@@ -5,6 +5,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const { SKIP, startChrome } = require('./harness');
+
 const BIN = path.join(__dirname, '..', 'bin', 'pw-repl.js');
 const pwRepl = (args, options) => spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', ...options });
 
@@ -53,6 +55,16 @@ describe('pw-repl send help', () => {
     }
     assert.match(pwRepl(['http://example.com']).stderr, /Usage:/, 'a URL on its own does not connect');
     assert.match(pwRepl(['sned']).stderr, /Usage:/, 'a mistyped subcommand shows the usage');
+  });
+
+  it('says why it stops when its input ends', { skip: SKIP }, async () => {
+    const chrome = await startChrome();
+    try {
+      const result = pwRepl(['run'], { env: { ...process.env, PW_CDP_URL: chrome.cdpUrl }, input: '', timeout: 20000 });
+      assert.match(result.stderr, /Input ended; disconnecting\./);
+    } finally {
+      await chrome.stop();
+    }
   });
 
   it('mentions help in its own usage', () => {
