@@ -400,6 +400,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.doesNotMatch(recent, /style\.css/);
     assert.match(await ok('requests --all 50'), /style\.css/);
     assert.match(await ok('requests 50 nothing-matches-this'), /No requests matching/);
+    assert.match(await ok('requests 50'), /\(\d+ hidden between these: images, fonts, stylesheets, media and extension requests; requests --all shows them\)$/);
   });
 
   it('shows the body of a request, real or faked', async () => {
