@@ -562,7 +562,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 });
 
-describe('a command with an unknown outcome', { skip: SKIP }, () => {
+describe('a command that times out', { skip: SKIP }, () => {
   let chrome, site, repl;
 
   before(async () => {
@@ -578,13 +578,21 @@ describe('a command with an unknown outcome', { skip: SKIP }, () => {
     await chrome?.stop();
   });
 
-  it('disconnects the REPL and removes the socket when a changing command times out', async () => {
+  it('reports an element that never appeared as an ordinary error, and carries on', async () => {
     const result = await repl.run('click #not-on-the-page');
     assert.equal(result.status, 'error');
-    assert.match(result.output, /the REPL is disconnecting/);
+    assert.equal(result.unconfirmed, undefined, 'nothing was clicked');
+    assert.doesNotMatch(result.output, /Outcome unknown/);
+    assert.equal((await repl.run('info')).status, 'ok');
+  });
+
+  it('reports a click that timed out after finding its element as unconfirmed, and carries on', async () => {
+    const result = await repl.run('click #under');
+    assert.equal(result.status, 'error');
     assert.equal(result.unconfirmed, true);
-    await waitFor(() => repl.exited, 'the REPL to exit');
-    assert.equal(fs.existsSync(repl.socket), false);
+    assert.match(result.output, /Outcome unknown: it timed out after it began acting on the page/);
+    assert.equal(repl.exited, false);
+    assert.equal((await repl.run('info')).status, 'ok');
   });
 });
 

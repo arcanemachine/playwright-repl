@@ -81,6 +81,7 @@ const PAGE = `<!doctype html><title>Fixture</title>
 <section aria-label="Results"><div role="alert">Could not load results.</div><button id="upd" disabled>Refresh Results</button></section>
 <button id="load" onclick="fetch('/api/data')">Load</button>
 <input id="pw" type="password" aria-label="Password">
+<span style="position: relative"><button id="under">Under</button><span style="position: absolute; inset: 0"></span></span>
 <button id="noisy" onclick="console.log('hello-log'); console.error('bad-thing'); setTimeout(() => { throw new Error('boom-uncaught'); })">Noisy</button>`;
 
 async function startSite() {
