@@ -5,7 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { SKIP, startChrome } = require('./harness');
+const { SKIP, waitFor, startChrome } = require('./harness');
 
 const BIN = path.join(__dirname, '..', 'bin', 'pw-repl.js');
 const pwRepl = (args, options) => spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', ...options });
@@ -63,6 +63,46 @@ describe('pw-repl send help', () => {
       const result = pwRepl(['run'], { env: { ...process.env, PW_CDP_URL: chrome.cdpUrl }, input: '', timeout: 20000 });
       assert.match(result.stderr, /Input ended; disconnecting\./);
     } finally {
+      await chrome.stop();
+    }
+  });
+
+  it('runs in the background, where attach uses it and stop stops it', { skip: SKIP }, async () => {
+    const chrome = await startChrome();
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-bg-test-'));
+    const socket = path.join(dir, 'repl.sock');
+    const env = { ...process.env, PW_CDP_URL: chrome.cdpUrl, PW_SOCKET: socket, PW_ENDPOINT: '' };
+    try {
+      const started = pwRepl(['serve', '--background', socket], { env, timeout: 30000 });
+      assert.equal(started.status, 0, started.stderr);
+      assert.match(started.stdout, /^Serving in the background \(pid \d+\) on \S+repl\.sock\nLog: \S+repl\.log\n/);
+      assert.equal(fs.statSync(path.join(dir, 'repl.log')).mode & 0o777, 0o600);
+      assert.match(pwRepl(['serve', '--background', socket], { env }).stderr, /already serving on \S+ \(pid \d+\)/, 'one per socket');
+      assert.match(pwRepl(['send', 'tab'], { env }).stdout, /\[0\]/, 'send reaches it');
+      assert.match(pwRepl(['where'], { env }).stdout, /--background\)\nbackground: pid \d+/);
+
+      const attached = spawn(process.execPath, [BIN, 'attach', '-e', socket], { env });
+      let seen = '';
+      attached.stdout.on('data', d => { seen += d; });
+      await waitFor(() => /pw\[attach\]> /.test(seen), 'the attach prompt');
+      attached.stdin.write('info\n');
+      await waitFor(() => /\[server\] info\n[\s\S]*URL:/.test(seen), 'the command and its output, from the log');
+      pwRepl(['send', 'tab'], { env });
+      await waitFor(() => /\[server\] tab\n/.test(seen), 'what another sender runs');
+      attached.stdin.end();
+      assert.equal(await new Promise(resolve => attached.on('exit', resolve)), 0);
+      assert.match(seen, /keeps running/);
+      assert.match(pwRepl(['send', 'info'], { env }).stdout, /URL:/, 'still running after attach leaves');
+
+      const stopped = pwRepl(['stop', '-e', socket], { env, timeout: 20000 });
+      assert.equal(stopped.status, 0, stopped.stderr);
+      assert.match(stopped.stdout, /Stopped the background REPL \(pid \d+\)/);
+      assert.equal(fs.existsSync(socket), false);
+      assert.equal(fs.existsSync(path.join(dir, 'repl.pid')), false);
+      assert.equal(pwRepl(['stop', '-e', socket], { env }).status, 64);
+    } finally {
+      pwRepl(['stop', '-e', socket], { env, timeout: 20000 });
+      fs.rmSync(dir, { recursive: true, force: true });
       await chrome.stop();
     }
   });

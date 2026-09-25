@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The one command: pw-repl run | serve | send | where | help | skill.
+// The one command: pw-repl run | serve | attach | stop | send | where | help | skill.
 
 const { looksLikeEndpoint } = require('../lib/client');
 
@@ -7,8 +7,15 @@ const USAGE = `Usage:
   pw-repl run [start-url]
       connect to the browser and open the prompt
 
-  pw-repl serve [endpoint] [start-url]
-      the same, plus a command server (socket, port, or 127.0.0.1:port; default /tmp/playwright-repl.sock)
+  pw-repl serve [--background] [endpoint] [start-url]
+      the same, plus a command server (socket, port, or 127.0.0.1:port; default /tmp/playwright-repl.sock);
+      --background runs it detached, with its output in a log next to the socket
+
+  pw-repl attach [-e endpoint]
+      see everything a background REPL does, and type commands to it; Ctrl-C leaves it running
+
+  pw-repl stop [-e endpoint]
+      stop a background REPL
 
   pw-repl send [-e endpoint | -s session] [-t seconds] <command...>
       run one command in a running REPL and print its output
@@ -63,8 +70,9 @@ function parseSendArgs(args, allowCommand) {
 }
 
 function startOptions(args, serve) {
-  const options = { serve, endpoint: null, startUrl: null };
+  const options = { serve, endpoint: null, startUrl: null, background: false, pidFile: process.env.PW_REPL_PID_FILE || null };
   const rest = [...args];
+  if (serve && rest.includes('--background')) { options.background = true; rest.splice(rest.indexOf('--background'), 1); }
   if (serve && rest[0] && looksLikeEndpoint(rest[0])) options.endpoint = rest.shift();
   if (rest.length > 1 || (rest[0] && rest[0].startsWith('-'))) usage();
   options.startUrl = rest[0] || null;
@@ -93,8 +101,19 @@ async function main() {
   if (subcommand === undefined) return console.log(`${USAGE}\n\n${REPL_HELP}`);
   switch (subcommand) {
     case 'run':
-    case 'serve':
-      return require('../lib/start').start(startOptions(args, subcommand === 'serve'));
+    case 'serve': {
+      const options = startOptions(args, subcommand === 'serve');
+      if (options.background) process.exit(await require('../lib/background').start(options));
+      return require('../lib/start').start(options);
+    }
+    case 'attach':
+    case 'stop': {
+      const options = parseSendArgs(args, false);
+      if (options.session) usage();
+      const endpoint = options.endpoint || process.env.PW_ENDPOINT || null;
+      process.exit(await require('../lib/background')[subcommand]({ endpoint }));
+    }
+    // falls through never: process.exit above
     case 'send': {
       const options = parseSendArgs(args, true);
       // help is fixed text, so it needs no browser: answer it here.

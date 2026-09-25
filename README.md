@@ -33,7 +33,8 @@ From a clone: `npm install`, then `bin/pw-repl.js run` (or `npm link` to get `pw
 
 It lists the open tabs and shows a `pw>` prompt. To send it commands from scripts or agents later
 (`pw-repl send`), run it in a tmux session named `playwright-repl` (`tmux new -s playwright-repl`), or
-start it with `pw-repl serve` instead, which needs no tmux.
+start it with `pw-repl serve` instead, which needs no tmux (`pw-repl serve --background` runs it without
+a terminal; see [In the background](#in-the-background)).
 
 ### 3. Try it
 
@@ -82,6 +83,18 @@ pw-repl run http://localhost:3000        # connect and navigate tab [0] to a URL
 pw-repl serve                            # also accept commands on /tmp/playwright-repl.sock (prompt: pw[serve]>)
 PW_CDP_URL=http://host:9222 pw-repl run  # a browser elsewhere
 ```
+
+### In the background
+
+```bash
+pw-repl serve --background   # detached, serving /tmp/playwright-repl.sock; output in /tmp/playwright-repl.log
+pw-repl attach               # see everything it does and type commands to it; Ctrl-C leaves it running
+pw-repl stop                 # stop it
+pw-repl where                # is one running, and where
+```
+
+A background process cannot be brought back to the foreground like a Ctrl-Z job; `attach` is how you
+get back to it, from any terminal.
 
 **Browser on the host, REPL in a container:** with host networking, `localhost:9222` reaches the host's
 browser directly. Otherwise set `PW_CDP_URL` to the host's address as seen from the container (for example
