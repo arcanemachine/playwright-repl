@@ -335,6 +335,33 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(errors, /bad-thing/);
   });
 
+  it('captures requests and console messages together until capture off', async () => {
+    assert.match(await ok('capture'), /Not capturing\.[\s\S]*capture on \[requests\|console\]/);
+    await ok('capture on');
+    assert.match(await ok('capture on'), /Already capturing/);
+    await ok(fetchStatus);
+    await ok('click #noisy');
+    await new Promise(r => setTimeout(r, 300));
+    assert.match(await ok('capture'), /Capturing requests and console on \S+ since [\s\S]*capture off/);
+    const captured = await ok('capture off');
+    assert.match(captured, /"tag": "request",\s+"text": "GET \S+\/api\/data"/);
+    assert.match(captured, /"tag": "console:log",\s+"text": "hello-log"/);
+    assert.match(captured, /"tag": "pageerror",\s+"text": "[^"]*boom-uncaught/);
+    assert.match(await ok('capture'), /Not capturing\. The last capture, of requests and console[\s\S]*hello-log/);
+    assert.match(await ok('capture off'), /Not capturing/);
+  });
+
+  it('captures one kind for a set time', async () => {
+    await ok('eval setTimeout(() => { fetch("/api/data"); console.log("timed-log"); }, 200); "scheduled"');
+    const captured = await ok('capture on requests 1');
+    assert.match(captured, /Capturing requests for 1s/);
+    assert.match(captured, /\/api\/data/);
+    assert.doesNotMatch(captured, /timed-log/);
+    assert.match(await ok('capture'), /Not capturing/, 'a timed capture stops by itself');
+    assert.equal((await repl.run('capture on 0')).status, 'error');
+    assert.equal((await repl.run('capture on requests console')).status, 'error');
+  });
+
   it('cuts and restores the network', async () => {
     await ok('offline on');
     assert.match(await ok(fetchStatus), /Failed to fetch/);

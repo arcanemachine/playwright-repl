@@ -83,6 +83,8 @@ describe('tab completion', () => {
     assert.deepEqual(complete('offline o'), [['on', 'off'], 'o']);
     assert.deepEqual(complete('watch n'), [['new'], 'n']);
     assert.deepEqual(complete('watch on --c'), [['--changes'], '--c']);
+    assert.deepEqual(complete('capture o'), [['on', 'off'], 'o']);
+    assert.deepEqual(complete('capture on r'), [['requests'], 'r']);
   });
 
   it('offers nothing where arguments are free-form', () => {
