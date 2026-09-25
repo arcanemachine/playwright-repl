@@ -533,7 +533,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   it('reports a read-only timeout as an error and carries on', async () => {
     const result = await repl.run('text #not-on-the-page');
     assert.equal(result.status, 'error');
-    assert.match(result.output, /Timeout/);
+    assert.match(result.output, /No element matches #not-on-the-page \(waited 5s\)/);
     assert.doesNotMatch(result.output, /disconnecting/);
     assert.match(await ok('info'), /Title: Fixture$/m);
   });
@@ -629,6 +629,7 @@ describe('a command that times out', { skip: SKIP }, () => {
     const result = await repl.run('click #not-on-the-page');
     assert.equal(result.status, 'error');
     assert.equal(result.unconfirmed, undefined, 'nothing was clicked');
+    assert.match(result.output, /^Error: No element matches #not-on-the-page \(waited 5s\)$/m);
     assert.doesNotMatch(result.output, /Outcome unknown/);
     assert.equal((await repl.run('info')).status, 'ok');
   });
