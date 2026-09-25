@@ -147,8 +147,15 @@ describe('pw-repl send with a socket that no longer answers', () => {
   it('fails instead of falling back to tmux', () => {
     const result = run(['info']);
     assert.equal(result.status, 64);
-    assert.match(result.stderr, /not falling back to tmux/);
-    assert.doesNotMatch(result.stderr, /no tmux session/);
+    assert.match(result.stderr, /cannot reach the REPL server at \S+stale\.sock \(ECONNREFUSED\)/);
+    assert.doesNotMatch(result.stderr, /tmux/);
+  });
+
+  it('does not fall back to tmux when PW_SOCKET names a socket that is gone', () => {
+    const result = pwRepl(['send', 'info'], { env: { ...process.env, PW_SOCKET: path.join(dir, 'gone.sock'), PW_TMUX_SESSION: 'pw-sh-test-no-such-session', PW_ENDPOINT: '' } });
+    assert.equal(result.status, 64);
+    assert.match(result.stderr, /no REPL is serving on \S+gone\.sock \(there is no socket\)/);
+    assert.doesNotMatch(result.stderr, /tmux/);
   });
 
   it('says so with where', () => {
