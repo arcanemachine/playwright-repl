@@ -441,6 +441,24 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(fetchStatus), '200', 'the other tab is back online');
   });
 
+  it('ends a capture when its tab closes, and reads or stops one with no tab selected', async () => {
+    await ok('tab');
+    await ok('tab 0');
+    await ok(`tab new ${site.url}/?captured`);
+    await ok('capture on');
+    const closed = await ok('tab close');
+    assert.match(closed, /The captured tab closed, which ended the capture/);
+    assert.match(closed, /no tab is selected now/);
+    assert.match(await ok('modes'), /^No modes are on in any tab\./, 'the capture is not left on');
+    assert.match(await ok('capture'), /^Not capturing\. The last capture/);
+    assert.match(await ok('capture off'), /Not capturing/);
+    const refused = await repl.run('capture on');
+    assert.equal(refused.status, 'error');
+    assert.match(refused.output, /No tab is selected/);
+    await ok('tab');
+    await ok('tab 1');
+  });
+
   it('reports a read-only timeout as an error and carries on', async () => {
     const result = await repl.run('text #not-on-the-page');
     assert.equal(result.status, 'error');
