@@ -455,12 +455,17 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(result.output, /Unknown command: nosuch/);
   });
 
-  it('prints completion markers for prompt commands', async () => {
+  it('prints completion markers for tagged prompt commands only', async () => {
     const id = `t${Date.now()}`;
     repl.type(`@${id} info`);
     await waitFor(() => repl.stdout.includes(`[[pw-done:${id}:ok]]`), 'the completion marker');
     repl.type(`@${id}x nosuch`);
     await waitFor(() => repl.stdout.includes(`[[pw-done:${id}x:error]]`), 'the error marker');
+    const start = repl.stdout.length;
+    repl.type('info');
+    await waitFor(() => /Title: Fixture/.test(repl.stdout.slice(start)), 'the untagged command');
+    await new Promise(r => setTimeout(r, 200));
+    assert.doesNotMatch(repl.stdout.slice(start), /pw-done/, 'an untagged command prints no marker');
   });
 
   it('shows the server is on in the prompt', () => {
