@@ -57,8 +57,8 @@ the browser; for that, look at the browser itself: `tabs` and `url` for where th
 requests their clicks made (`body <#>` for what one returned), `logs` for console messages and page errors.
 When the user wants to show you what they do, `watch on` on their tab records each step with the
 requests it caused (`watch on --changes` adds what each step changed on the page); `watch` reads it
-back, and `watch new` only what you have not read yet. Watching and reading are fine on the user's tabs; the rule
-below is about acting on them.
+back, and `watch new` only what you have not read yet. Watching and reading are fine on the user's
+tabs; the rule below is about acting on them.
 
 Exit status: `0` ok, `1` the command failed, `2` completion not confirmed (outcome unknown: do not
 blindly retry a change), `64` usage or the REPL is not reachable. `pw-repl --help` has the options.
