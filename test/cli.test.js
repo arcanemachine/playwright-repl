@@ -79,6 +79,29 @@ describe('pw-repl send with a socket that no longer answers', () => {
   });
 });
 
+// A REPL that goes away after taking the command: it may have run it.
+describe('pw-repl send when the connection drops after sending', () => {
+  let dir, socket, holder;
+
+  before(async () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-sh-test-'));
+    socket = path.join(dir, 'drop.sock');
+    holder = spawn(process.execPath, ['-e', `require('net').createServer(c => c.once('data', () => c.destroy())).listen(${JSON.stringify(socket)}, () => console.log('up'))`]);
+    await new Promise(resolve => holder.stdout.once('data', resolve));
+  });
+
+  after(() => { holder.kill(); fs.rmSync(dir, { recursive: true, force: true }); });
+
+  it('reports completion not confirmed, not unreachable', async () => {
+    const sender = spawn(process.execPath, [BIN, 'send', '-e', socket, 'click #x'], { encoding: 'utf8' });
+    let stderr = '';
+    sender.stderr.on('data', d => { stderr += d; });
+    const code = await new Promise(resolve => sender.on('exit', resolve));
+    assert.equal(code, 2, stderr);
+    assert.match(stderr, /completion not confirmed: the REPL closed the connection/);
+  });
+});
+
 const HAS_TMUX = spawnSync('tmux', ['-V']).status === 0;
 
 // A pane running node that is not at the REPL prompt: a busy or exiting REPL looks like this.

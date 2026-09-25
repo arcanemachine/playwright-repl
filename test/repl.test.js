@@ -387,8 +387,58 @@ describe('a command with an unknown outcome', { skip: SKIP }, () => {
     const result = await repl.run('click #not-on-the-page');
     assert.equal(result.status, 'error');
     assert.match(result.output, /the REPL is disconnecting/);
+    assert.equal(result.unconfirmed, true);
     await waitFor(() => repl.exited, 'the REPL to exit');
     assert.equal(fs.existsSync(repl.socket), false);
+  });
+});
+
+describe('quitting at the prompt while a sent command runs', { skip: SKIP }, () => {
+  const { spawn } = require('child_process');
+  const path = require('path');
+  let chrome, site, repl;
+
+  before(async () => {
+    chrome = await startChrome();
+    site = await startSite();
+  });
+
+  after(async () => {
+    await repl?.stop();
+    site?.stop();
+    await chrome?.stop();
+  });
+
+  // Sends through pw-repl send, as an agent would, and types quit once the command is running.
+  const sendThenQuit = async command => {
+    repl = await startRepl(chrome.cdpUrl);
+    await repl.run(`tab new ${site.url}/`);
+    const sender = spawn(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, '-t', '30', command]);
+    let stdout = '';
+    let stderr = '';
+    sender.stdout.on('data', d => { stdout += d; });
+    sender.stderr.on('data', d => { stderr += d; });
+    await waitFor(() => repl.stdout.includes(`[server] ${command}`), 'the command to start');
+    await new Promise(r => setTimeout(r, 300));
+    repl.type('quit');
+    const code = await new Promise(resolve => sender.on('exit', resolve));
+    await waitFor(() => repl.exited, 'the REPL to exit');
+    return { code, stdout, stderr };
+  };
+
+  it('answers a command that changes the page as not confirmed', async () => {
+    const result = await sendThenQuit('click #not-on-the-page');
+    assert.equal(result.code, 2, result.stderr);
+    assert.match(result.stdout, /quit before this command finished; its outcome is unknown/);
+    assert.match(result.stderr, /completion not confirmed/);
+    assert.doesNotMatch(result.stdout, /Disconnecting/, "the quit's own output is not the sender's");
+  });
+
+  it('answers a read-only command that the browser would never end as interrupted', async () => {
+    const result = await sendThenQuit('wait request /never 30');
+    assert.equal(result.code, 1, result.stderr);
+    assert.match(result.stdout, /The REPL quit before this command finished\.$/m);
+    assert.doesNotMatch(result.stderr, /cannot reach|not answering/);
   });
 });
 
