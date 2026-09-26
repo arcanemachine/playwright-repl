@@ -71,6 +71,17 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(none.output, /No tab \[99999999\] in the latest listing, and no tab URL contains 99999999/);
   });
 
+  it('lists the event listeners the page added to an element', async () => {
+    await ok(`goto ${site.url}/`);
+    await ok('eval document.querySelector("#load").addEventListener("click", function second() { return 2; }, { once: true }); "added"');
+    const listed = await ok('listeners #load');
+    assert.match(listed, /^click: function onclick\(event\) \{ fetch\('\/api\/data'\) \} \(line \d+\)$/m);
+    assert.match(listed, /^click \(once\): function second\(\) \{ return 2; \} \(line \d+\)$/m);
+    assert.match(await ok('listeners h1'), /No event listeners on h1/);
+    assert.equal((await repl.run('listeners #nope')).status, 'error');
+    assert.match((await repl.run('snapshot e99999')).output, /e99999 is a snapshot ref; if the page changed since that snapshot, take a new one/);
+  });
+
   it('says a snapshot ref that no longer matches may be stale', async () => {
     const result = await repl.run('click e99999');
     assert.equal(result.status, 'error');
