@@ -367,6 +367,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('reload');
     assert.match(await ok(read), /^\d+ 2\.625 true true fr-FR Asia\/Tokyo true$/);
     assert.match(await ok('info'), /Viewport: 412x839 \(emulate mobile: Pixel 7\)/);
+    const shot = /Saved: (\S+)/.exec(await ok('screenshot'))[1];
+    fs.rmSync(shot);
+    assert.match(await ok(read), /^\d+ 2\.625 /, 'a screenshot keeps the phone\'s screen');
     const shown = await ok('emulate');
     assert.match(shown, /^  mobile +Pixel 7, 412x839 at 2\.625x, touch$/m);
     assert.match(shown, /^  color scheme +dark$/m);
@@ -418,6 +421,15 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('info'), /Viewport: \d+x\d+ \(the window's size\)$/m);
     await ok('viewport 900x700');
     assert.equal(await ok('viewport'), '900x700 (set with viewport)');
+    await ok(`goto ${site.url}/`);
+  });
+
+  it('goes back to a page from the back/forward cache without waiting for loads that never come', async () => {
+    await ok(`goto ${site.url}/`);
+    await ok(`goto ${site.url}/other`);
+    const started = Date.now();
+    assert.match(await ok('back'), /^Back to: \S+\/$/);
+    assert.ok(Date.now() - started < 2000, `back took ${Date.now() - started}ms`);
     await ok(`goto ${site.url}/`);
   });
 
