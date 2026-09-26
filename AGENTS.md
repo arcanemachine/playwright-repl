@@ -37,7 +37,8 @@ Work goes in waves, and each one ends with a release that is ready to push.
    - Brief it with goals only: what to find out or do in the browser, never the commands.
    - First it reads back its plan, learned from `pw-repl skill` and help alone: the commands, where it
      found them, and what is unclear. It runs nothing yet.
-   - A wrong or unsure plan means the docs are wrong: fix them, then ask again.
+   - A wrong or unsure plan means the docs or the brief were unclear: find out which, fix that, then
+     ask again.
    - Then it carries the plan out, in a browser and on a socket of its own, and reports as it goes:
      above all, where the tool did something other than what the docs led it to expect.
 3. Triage what it reports. Fix what matters, and what is small and useful; don't put off something
