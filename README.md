@@ -156,6 +156,6 @@ The same text is in `skill/SKILL.md`. Working on the REPL itself: see `AGENTS.md
 npm test
 ```
 
-Runs against a private headless Chromium it starts itself (via `PW_TEST_CHROME`, or Playwright's installed
-browsers: `npx playwright-core install chromium`) and a local test site; the browser tests are skipped when no
-Chromium is found.
+Runs against a private headless Chromium it starts itself (`PW_TEST_CHROME`, or the one `--launch` would
+use: Playwright's, e.g. from `npx playwright-core install chromium`, then one on the `PATH`) and a local
+test site; the browser tests are skipped when no Chromium is found.
