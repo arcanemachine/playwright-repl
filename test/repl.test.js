@@ -464,6 +464,13 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('info'), /URL: +\S+127\.0\.0\.1:\d+\/$/m);
   });
 
+  it('says where a REPL would connect when none is running', () => {
+    const { spawnSync } = require('child_process');
+    const path = require('path');
+    const where = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'where', '-e', path.join(path.dirname(repl.socket), 'none.sock')], { encoding: 'utf8', env: { ...process.env, PW_CDP_URL: chrome.cdpUrl } });
+    assert.match(where.stdout, /^browser: \S+ answers \(.*; run and serve connect here without --launch\)$/m);
+  });
+
   it('sends a CDP command', async () => {
     assert.match(await ok('cdp Runtime.evaluate {"expression":"6*7","returnByValue":true}'), /"value": 42/);
     assert.match((await repl.run('cdp Browser.close {}')).output, /reserved/);
