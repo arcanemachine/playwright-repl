@@ -72,6 +72,7 @@ Commands act on the selected tab (`tab` lists the tabs, with `*` on the selected
 | see what is on the page              | `snapshot`, `screenshot`                                                              |
 | do something on it                   | `click`, `fill`, `press`                                                              |
 | wait for a page or element           | `wait load`, `wait <selector>`, `wait <selector> --gone`                              |
+| choose a file in a file input        | `upload <selector> <file>`                                                            |
 | see what the page requested          | `requests`, then `body <#>` for what one got back                                     |
 | see console messages and errors      | `console`                                                                             |
 | show an agent what I do              | `watch on`, click around in the browser, then `watch`                                 |

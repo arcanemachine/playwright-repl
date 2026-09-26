@@ -327,6 +327,32 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(stays.output, /Still visible after 1s: h1/);
   });
 
+  it('chooses files in a file input, a hidden one behind a button, and from send\'s folder', async () => {
+    const os = require('os');
+    const path = require('path');
+    const { spawnSync } = require('child_process');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-repl-upload-'));
+    try {
+      fs.writeFileSync(path.join(dir, 'a.txt'), 'hello');
+      fs.writeFileSync(path.join(dir, 'b c.png'), Buffer.alloc(3));
+      await ok('eval document.body.insertAdjacentHTML("beforeend", \'<input type="file" id="files" multiple><input type="file" id="hidden" hidden><button id="pick" onclick="document.querySelector(\\\'#hidden\\\').click()">Pick</button>\'); "added"');
+      const files = id => ok(`eval [...document.querySelector("#${id}").files].map(f => f.name + ":" + f.size + ":" + f.type).join(" ")`);
+      assert.match(await ok(`upload #files ${dir}/a.txt "${dir}/b c.png"`), /^Chose 2 files in #files: /);
+      assert.equal(await files('files'), 'a.txt:5:text/plain b c.png:3:image/png');
+      assert.match(await ok(`upload #pick ${dir}/a.txt`), /^Chose a file in #pick: /);
+      assert.equal(await files('hidden'), 'a.txt:5:text/plain', 'a button that opens the picker');
+      const sent = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'upload', '#files', 'b c.png'], { encoding: 'utf8', cwd: dir });
+      assert.equal(sent.status, 0, sent.stdout + sent.stderr);
+      assert.equal(await files('files'), 'b c.png:3:image/png', 'a relative path is from send\'s folder');
+      const missing = await repl.run(`upload #files ${dir}/nope.txt`);
+      assert.equal(missing.status, 'error');
+      assert.match(missing.output, /Cannot read \S+\/nope\.txt: no such file/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+      await ok(`goto ${site.url}/`);
+    }
+  });
+
   it('selects and closes tabs by a part of their URL', async () => {
     await ok(`tab new ${site.url}/?tab-test=one`);
     await ok('tab 1');

@@ -79,7 +79,9 @@ function parseSendArgs(args, allowCommand) {
   const { SELECTOR_FIRST } = require('../lib/syntax');
   const requote = words.length > 1 && SELECTOR_FIRST.has(words[0]);
   // An empty word (fill #name "") is the empty value.
-  const quoted = requote ? words.map(w => (w === '' || /[\s"']/.test(w) ? JSON.stringify(w) : w)) : words;
+  // upload's files are read by the REPL, whose folder may not be this one.
+  const resolved = words[0] === 'upload' ? words.map((w, n) => (n > 1 ? require('path').resolve(w) : w)) : words;
+  const quoted = requote ? resolved.map(w => (w === '' || /[\s"']/.test(w) ? JSON.stringify(w) : w)) : resolved;
   options.command = quoted.join(' ').trim();
   return options;
 }
