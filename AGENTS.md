@@ -17,13 +17,13 @@ If you hit a limitation or write a workaround, consider adding the capability to
   command line's words are read, shared with `send`; `lib/state.js` holds the session state;
   `lib/output.js` routes all output so the server can return it.
 - Comment the *why* when it isn't obvious from the code.
-- `npm test` runs the suite (about a minute): a private headless Chromium, a local test site
+- `npm test` runs the suite (under two minutes): a private headless Chromium, a local test site
   (`test/harness.js`), and the real REPL with its server. Nothing is mocked, and the shared browser is
   never touched. It finds Chromium through `PW_TEST_CHROME`, or where `--launch` looks (Playwright's
   browsers, then the `PATH`), and skips the browser tests if there is none. Add a test with each new
   command or behaviour.
-- For anything the tests can't reach, exercise the change in a running REPL. Use your own tmux session
-  and a new tab, not the user's.
+- For anything the tests can't reach, exercise the change in a running REPL of your own: on a socket of
+  your own, with `--launch` unless the change needs the user's browser, and then in a tab of your own.
 - `skill/SKILL.md` is how agents learn to use the REPL: keep it in step with a change to how it is
   used, and leave its Custom rules section empty.
 
