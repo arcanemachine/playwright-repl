@@ -305,6 +305,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('wait request **/api/* 5'), /\/api\/data/, 'globs work too');
     const late = await repl.run('wait request /never 1');
     assert.equal(late.status, 'error');
+    const never = await repl.run('wait text "never shown" 1');
+    assert.equal(never.output, 'Error: No visible text matches never shown within 1s', 'said plainly');
+    assert.equal((await repl.run('wait #never 1')).output, 'Error: No element matches #never within 1s');
     assert.match(await ok('info'), /Title: Fixture$/m, 'a wait that times out does not disconnect');
   });
 
