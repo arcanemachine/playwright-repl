@@ -774,6 +774,8 @@ describe('quitting at the prompt while a sent command runs', { skip: SKIP }, () 
 
   // Sends through pw-repl send, as an agent would, and stops the REPL once the command is running.
   const sendThenQuit = async (command, stop = () => repl.type('quit')) => {
+    // Each test starts its own REPL; the one before is stopped so its socket folder goes too.
+    await repl?.stop();
     repl = await startRepl(chrome.cdpUrl);
     await repl.run(`tab new ${site.url}/`);
     const sender = spawn(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, '-t', '30', command]);
