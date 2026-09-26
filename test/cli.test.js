@@ -114,11 +114,37 @@ describe('pw-repl send help', () => {
     }
   });
 
+  it('launches a private Chromium with --launch, passes flags after --, and stops it with the REPL', { skip: SKIP }, async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-launch-test-'));
+    const socket = path.join(dir, 'repl.sock');
+    const env = { ...process.env, PW_SOCKET: socket, PW_ENDPOINT: '', PW_CDP_URL: 'http://127.0.0.1:9' };
+    try {
+      assert.equal(pwRepl(['serve', '--background', '--launch', socket, '--', '--window-size=900,700'], { env, timeout: 40000 }).status, 0);
+      const log = fs.readFileSync(path.join(dir, 'repl.log'), 'utf8');
+      const command = /^  (\S+ .*--user-data-dir=(\S+).*--window-size=900,700 about:blank)$/m.exec(log);
+      assert.ok(command, `the command it ran:\n${log}`);
+      const url = /Another REPL reaches it with PW_CDP_URL=(\S+)/.exec(log)[1];
+      assert.equal(pwRepl(['send', 'tab new about:blank'], { env }).status, 0, 'PW_CDP_URL is not used when it launches');
+      assert.match(pwRepl(['send', 'info'], { env }).stdout, /Viewport: 900x\d+/);
+      assert.equal(pwRepl(['stop'], { env, timeout: 20000 }).status, 0);
+      assert.equal(fs.existsSync(command[2]), false, 'its profile is removed');
+      assert.equal(await fetch(`${url}/json/version`).then(() => 'answers', () => 'gone'), 'gone', 'the browser stopped with the REPL');
+    } finally {
+      pwRepl(['stop'], { env, timeout: 20000 });
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses Chromium flags without --launch', () => {
+    assert.match(pwRepl(['run', '--', '--lang=fr']).stderr, /Usage:/);
+    assert.match(pwRepl(['run', '--headed']).stderr, /Usage:/);
+  });
+
   it('mentions help in its own usage', () => {
     assert.match(pwRepl(['--help']).stdout, /pw-repl help \[topic/);
     const bare = pwRepl(['help']);
     assert.equal(bare.status, 0);
-    assert.match(bare.stdout, /^Usage:\n  pw-repl run \[start-url\][\s\S]*\n\nThe REPL's own commands: help at the pw> prompt, or pw-repl send help/, 'help at the shell is the usage');
+    assert.match(bare.stdout, /^Usage:\n  pw-repl run \[--launch \[--headed\]\] \[start-url\][\s\S]*\n\nThe REPL's own commands: help at the pw> prompt, or pw-repl send help/, 'help at the shell is the usage');
     assert.equal(pwRepl(['help', 'route']).stdout.trimEnd(), require('../lib/help').render('route'), 'with a command, the REPL help');
     assert.equal(pwRepl(['help', '-h']).stdout, bare.stdout, 'help -h is the usage too');
   });

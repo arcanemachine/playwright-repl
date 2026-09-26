@@ -27,6 +27,9 @@ one; each takes an optional start URL, which opens in a new tab.
   and takes commands; `pw-repl stop` stops it.
 - `pw-repl serve` runs the same in a terminal, where the pane shows every command. Its prompt is
   `pw[serve]>`.
+- Add `--launch` to `run` or `serve` (with or without `--background`) to have it start a Chromium of its
+  own instead of connecting to one: headless unless `--headed`, in a temporary profile, stopped with the
+  REPL. It prints the command it ran; flags after `--` are passed to that Chromium.
 - `pw-repl run` runs it in a terminal with no server; `send` then reaches it through tmux, if it runs in
   the tmux session `playwright-repl`:
 
@@ -107,8 +110,9 @@ help is the command reference; this file does not repeat it.
 
 ## Environment
 
-- Chromium must be running with `--remote-debugging-port=9222`. A headless one works too
-  (`--headless=new`); nobody answers its dialogs but `dialog`.
+- Chromium must be running with `--remote-debugging-port=9222`, unless `--launch` starts one. A headless
+  one works too (`--headless=new`); nobody answers its dialogs but `dialog`.
+- `PW_CHROME` — the Chromium `--launch` starts (default: Playwright's own, then one on the `PATH`).
 - `PW_CDP_URL` — CDP endpoint (default `http://localhost:9222`).
 - `PW_SCREENSHOT_DIR` — where screenshots go (default `/tmp`). They are all named `screenshot-*.png`,
   so `rm /tmp/screenshot-*.png` cleans up.

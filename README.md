@@ -21,6 +21,11 @@ chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.config/chrome-debug"
 Use a separate `--user-data-dir`: recent Chrome versions do not open the debugging port on the default
 profile. Check it is up with `curl http://localhost:9222/json/version`.
 
+**No browser to hand, or one you would rather not share?** Skip this step: `pw-repl run --launch` (or
+`serve --launch`) starts a private headless Chromium for the REPL and stops it with the REPL. It prints the
+command it ran, so you can start one your own way instead. If there is no Chromium at all,
+`npx playwright-core install chromium` downloads Playwright's.
+
 **Headless** works the same way:
 
 ```bash

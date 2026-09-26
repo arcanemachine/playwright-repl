@@ -8,24 +8,9 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 
+// The same search pw-repl run --launch makes, with PW_TEST_CHROME first.
 function findChrome() {
-  if (process.env.PW_TEST_CHROME) return process.env.PW_TEST_CHROME;
-  try {
-    const bundled = require('playwright-core').chromium.executablePath();
-    if (fs.existsSync(bundled)) return bundled;
-  } catch {}
-  // Any Chromium works over CDP, so a different revision than this
-  // Playwright expects is fine.
-  const dir = process.env.PLAYWRIGHT_BROWSERS_PATH || path.join(os.homedir(), '.cache', 'ms-playwright');
-  let names = [];
-  try { names = fs.readdirSync(dir).filter(n => /^chromium-\d+$/.test(n)).sort().reverse(); } catch {}
-  for (const name of names) {
-    for (const sub of ['chrome-linux64/chrome', 'chrome-linux/chrome', 'chrome-mac/Chromium.app/Contents/MacOS/Chromium']) {
-      const candidate = path.join(dir, name, sub);
-      if (fs.existsSync(candidate)) return candidate;
-    }
-  }
-  return null;
+  return process.env.PW_TEST_CHROME || require('../lib/launch').findChrome();
 }
 
 const CHROME = findChrome();

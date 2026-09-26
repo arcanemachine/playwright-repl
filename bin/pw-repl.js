@@ -4,10 +4,10 @@
 const { looksLikeEndpoint } = require('../lib/client');
 
 const USAGE = `Usage:
-  pw-repl run [start-url]
+  pw-repl run [--launch [--headed]] [start-url] [-- <chromium flags>]
       connect to the browser and open the prompt
 
-  pw-repl serve [--background] [endpoint] [start-url]
+  pw-repl serve [--background] [--launch [--headed]] [endpoint] [start-url] [-- <chromium flags>]
       the same, plus a command server (socket, port, or 127.0.0.1:port; default /tmp/playwright-repl.sock);
       --background runs it detached, with its output in a log next to the socket
 
@@ -36,6 +36,11 @@ exists but nothing answers, send fails rather than fall back.
 send exit status: 0 ok, 1 command error, 2 completion not confirmed, 64 usage or unreachable.
 
 The browser must be running with --remote-debugging-port (default http://localhost:9222; set $PW_CDP_URL).
+
+--launch is the quick start instead: it starts a Chromium of the REPL's own (headless unless --headed, in
+a temporary profile), prints the command it ran, and stops it with the REPL. Flags after -- go to that
+Chromium; PW_CHROME picks which one. To set a browser up your own way, start it yourself and use
+PW_CDP_URL.
 
 In a tmux session named playwright-repl, pw-repl send reaches pw-repl run without the server.`;
 
@@ -80,9 +85,16 @@ function parseSendArgs(args, allowCommand) {
 }
 
 function startOptions(args, serve) {
-  const options = { serve, endpoint: null, startUrl: null, background: false, pidFile: process.env.PW_REPL_PID_FILE || null };
-  const rest = [...args];
-  if (serve && rest.includes('--background')) { options.background = true; rest.splice(rest.indexOf('--background'), 1); }
+  const options = { serve, endpoint: null, startUrl: null, background: false, launch: false, headed: false, chromeArgs: [], pidFile: process.env.PW_REPL_PID_FILE || null };
+  // Whatever follows -- is for the Chromium that --launch starts.
+  const split = args.indexOf('--');
+  const rest = split === -1 ? [...args] : args.slice(0, split);
+  if (split !== -1) options.chromeArgs = args.slice(split + 1);
+  const flag = name => { const i = rest.indexOf(name); if (i === -1) return false; rest.splice(i, 1); return true; };
+  if (serve) options.background = flag('--background');
+  options.launch = flag('--launch');
+  options.headed = flag('--headed');
+  if ((options.headed || options.chromeArgs.length) && !options.launch) usage();
   if (serve && rest[0] && looksLikeEndpoint(rest[0])) options.endpoint = rest.shift();
   if (rest.length > 1 || (rest[0] && rest[0].startsWith('-'))) usage();
   options.startUrl = rest[0] || null;
