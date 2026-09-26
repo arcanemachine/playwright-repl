@@ -115,8 +115,9 @@ help is the command reference; this file does not repeat it.
   one works too (`--headless=new`); nobody answers its dialogs but `dialog`.
 - `PW_CHROME` — the Chromium `--launch` starts (default: Playwright's own, then one on the `PATH`).
 - `PW_CDP_URL` — CDP endpoint (default `http://localhost:9222`).
-- `PW_SCREENSHOT_DIR` — where screenshots go (default `/tmp`). They are all named `screenshot-*.png`,
-  so `rm /tmp/screenshot-*.png` cleans up.
+- `PW_SCREENSHOT_DIR` — where the REPL saves screenshots (default `/tmp`), read when it starts, not by
+  `send`. `screenshot` prints each file's path; other REPLs may save theirs there too. Remove only your
+  own, and keep those too if they are needed, e.g. as evidence or as something to hand over.
 - `PW_ENDPOINT` / `PW_TMUX_SESSION` — defaults for `send -e` / `-s`. `PW_SOCKET` — the socket `send`
   looks for when neither is given (default `/tmp/playwright-repl.sock`).
 
