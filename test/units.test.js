@@ -141,6 +141,11 @@ describe('snapshot grep', () => {
     assert.deepEqual(grepSnapshot(text, 'other'), ['button "Other" [ref=e5]']);
     assert.deepEqual(grepSnapshot(text, 'nope'), []);
   });
+
+  it('keeps the ref of what holds a hit that has none of its own', () => {
+    const text = ['- main [ref=e1]:', '  - paragraph [ref=e2]:', '    - text: "Total:"', '    - strong [ref=e3]: 3,105.75'].join('\n');
+    assert.deepEqual(grepSnapshot(text, 'total'), ['main › paragraph [ref=e2] › text: "Total:"']);
+  });
 });
 
 describe('snapshot changes', () => {
