@@ -43,9 +43,12 @@ Work goes in waves, and each one ends with a release that is ready to push.
      above all, where the tool did something other than what the docs led it to expect.
 3. Triage what it reports. Fix what matters, and what is small and useful; don't put off something
    useful for later. Leave trivia alone, and say why.
-4. Repeat 2 and 3 while the fixes are substantial.
-5. Cut the release (Releasing, steps 1-3) and say it is ready. The maintainer pushes and publishes it,
-   and the next wave starts from what they find.
+4. Repeat 2 and 3, with a fresh agent each time, until a pass comes back clean: no real bugs, and
+   nothing unclear in the docs or the brief that changed the plan. A pass after fixes tries the fixes,
+   and something not tried yet.
+5. Only then cut the release (Releasing, steps 1-3), and say it is ready. The maintainer pushes and
+   publishes it, and the next wave starts from what they find. A release cut too early and not pushed
+   yet is undone (its commit and tag) and cut again after the fixes.
 
 ## Releasing
 
