@@ -308,6 +308,25 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('info'), /Title: Fixture$/m, 'a wait that times out does not disconnect');
   });
 
+  it('waits for the page to load, counting a navigation that just began', async () => {
+    await ok('eval setTimeout(() => { location.href = "/slow-load"; }, 0); "leaving"');
+    assert.match(await ok('wait load 5'), /^Loaded: \S+\/slow-load — Slow$/);
+    assert.equal(await ok('eval document.readyState'), 'complete');
+    assert.match(await ok('wait load 1'), /Loaded: \S+\/slow-load/, 'a page that has loaded is done at once');
+    assert.equal((await repl.run('wait load --gone')).status, 'error');
+    await ok(`goto ${site.url}/`);
+  });
+
+  it('waits for an element or text to be gone', async () => {
+    await ok('eval (() => { const s = document.createElement("p"); s.className = "spin"; s.textContent = "Loading now"; document.body.append(s); setTimeout(() => { s.hidden = true; }, 300); setTimeout(() => s.remove(), 600); return "added"; })()');
+    assert.match(await ok('wait .spin --gone 5'), /^Gone: \.spin$/);
+    assert.match(await ok('wait text "Loading now" --gone 5'), /^Gone: Loading now$/);
+    assert.match(await ok('wait .never-there --gone'), /Gone/, 'nothing matching is gone already');
+    const stays = await repl.run('wait h1 --gone 1');
+    assert.equal(stays.status, 'error');
+    assert.match(stays.output, /Still visible after 1s: h1/);
+  });
+
   it('selects and closes tabs by a part of their URL', async () => {
     await ok(`tab new ${site.url}/?tab-test=one`);
     await ok('tab 1');
