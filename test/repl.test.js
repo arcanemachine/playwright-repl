@@ -122,6 +122,17 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(bare, /click button "Load"[\s\S]*\n\n +watch <n> [^\n]*\n +watch on \[--changes\] \[--live\] +record again$/);
   });
 
+  it('records typing before the step that follows it, and names a select by its label', async () => {
+    await ok('reload');
+    await ok('watch on');
+    await ok('fill #name Ada');
+    await ok('select #color Blue');
+    let trail = '';
+    await waitFor(async () => /select combobox/.test(trail = await ok('watch')), 'the select');
+    assert.match(trail, /type textbox "Name"\n\S+ select combobox "Color" "Blue"/);
+    await ok('watch off');
+  });
+
   it('records typing once it pauses, and Enter and Escape, without the values', async () => {
     await ok('watch on');
     assert.match(await ok('watch'), /: nothing has happened yet\n/, 'watch on after watch off starts a new recording');

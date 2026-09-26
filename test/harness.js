@@ -82,6 +82,7 @@ const PAGE = `<!doctype html><title>Fixture</title>
 <button id="load" onclick="fetch('/api/data')">Load</button>
 <input id="pw" type="password" aria-label="Password">
 <span style="position: relative"><button id="under">Under</button><span style="position: absolute; inset: 0"></span></span>
+<label>Color <select id="color"><option>Red</option><option>Blue</option></select></label>
 <button id="alerter" onclick="document.querySelector('#out').textContent = 'answered ' + confirm('sure?')">Confirm</button>
 <button id="noisy" onclick="console.log('hello-log'); console.error('bad-thing'); setTimeout(() => { throw new Error('boom-uncaught'); })">Noisy</button>`;
 
