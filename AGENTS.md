@@ -27,6 +27,25 @@ If you hit a limitation or write a workaround, consider adding the capability to
 - `skill/SKILL.md` is how agents learn to use the REPL: keep it in step with a change to how it is
   used, and leave its Custom rules section empty.
 
+## Waves
+
+Work goes in waves, and each one ends with a release that is ready to push.
+
+1. Build what was asked, with tests, and try it in a running REPL.
+2. Try it on a fresh agent that has not seen the code or the change (a guinea pig), on something real: a
+   small local page whose planted bugs need the change to find.
+   - Brief it with goals only: what to find out or do in the browser, never the commands.
+   - First it reads back its plan, learned from `pw-repl skill` and help alone: the commands, where it
+     found them, and what is unclear. It runs nothing yet.
+   - A wrong or unsure plan means the docs are wrong: fix them, then ask again.
+   - Then it carries the plan out, in a browser and on a socket of its own, and reports as it goes:
+     above all, where the tool did something other than what the docs led it to expect.
+3. Triage what it reports. Fix what matters, and what is small and useful; don't put off something
+   useful for later. Leave trivia alone, and say why.
+4. Repeat 2 and 3 while the fixes are substantial.
+5. Cut the release (Releasing, steps 1-3) and say it is ready. The maintainer pushes and publishes it,
+   and the next wave starts from what they find.
+
 ## Releasing
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`,
