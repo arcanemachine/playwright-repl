@@ -60,8 +60,9 @@ pw-repl send -t 90 'screenshot -d 60'   # wait longer than the 20s default
 
 Always send commands with `pw-repl send`; don't type into the pane yourself. The words after `send`
 are the command. For `fill`, `type`, `select`, `press` and `upload`, a word quoted in your shell stays
-one word (`pw-repl send fill "text=Your name" Ada`); other commands get the words as they are
-(`pw-repl send eval "document.title + ' x'"`). It works however the REPL was started:
+one word (`pw-repl send fill "text=Your name" Ada`); other commands get the words as they are, joined by
+spaces (`pw-repl send eval "document.title + ' x'"`). A command that takes only a selector takes the whole
+line, spaces and all: `pw-repl send click "text=Your name"`. It works however the REPL was started:
 
 - `run` (in tmux): `send` types the command into the tmux pane and reads the result back off the screen.
   It types only when the pane's last line is a bare prompt, so nothing lands in a shell or in the middle
