@@ -89,6 +89,8 @@ describe('tab completion', () => {
     assert.deepEqual(complete('tab n'), [['new'], 'n']);
     assert.deepEqual(complete('network o'), [['on', 'off'], 'o']);
     assert.deepEqual(complete('network s'), [['slow'], 's']);
+    assert.deepEqual(complete('emulate l'), [['light', 'locale'], 'l']);
+    assert.deepEqual(complete('emulate dark o'), [['off'], 'o']);
     assert.deepEqual(complete('wait l'), [['load'], 'l']);
     assert.deepEqual(complete('watch n'), [['new'], 'n']);
     assert.deepEqual(complete('watch on --c'), [['--changes'], '--c']);

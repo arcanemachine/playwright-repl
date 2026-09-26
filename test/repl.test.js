@@ -353,6 +353,43 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('emulates a phone, a color scheme, a locale and a timezone, and stops them', async () => {
+    const read = 'eval [innerWidth, devicePixelRatio, matchMedia("(pointer: coarse)").matches, matchMedia("(prefers-color-scheme: dark)").matches, navigator.language, Intl.DateTimeFormat().resolvedOptions().timeZone, navigator.userAgent.includes("Mobile")].join(" ")';
+    const before = await ok(read);
+    assert.match(await ok('emulate'), /^Nothing is emulated in the selected tab\.\n\n +emulate mobile/);
+    assert.match(await ok('emulate mobile'), /^Emulating mobile \(Pixel 7, 412x839 at 2\.625x, touch\) in the selected tab\nThe page sees its user agent/);
+    await ok('emulate dark');
+    await ok('emulate locale fr-fr');
+    await ok('emulate timezone Asia/Tokyo');
+    await ok('reload');
+    assert.match(await ok(read), /^\d+ 2\.625 true true fr-FR Asia\/Tokyo true$/);
+    assert.match(await ok('info'), /Viewport: 412x839 \(emulate mobile: Pixel 7\)/);
+    const shown = await ok('emulate');
+    assert.match(shown, /^  mobile +Pixel 7, 412x839 at 2\.625x, touch$/m);
+    assert.match(shown, /^  color scheme +dark$/m);
+    assert.match(shown, /^  locale +fr-FR$/m);
+    assert.match(shown, /^  timezone +Asia\/Tokyo$/m);
+    assert.match(await ok('modes'), /\(emulate:mobile,dark,locale,timezone\)$/m);
+    assert.match(await ok('emulate timezone Asia/Kolkata'), /^Emulating timezone Asia\/Kolkata /, 'named as given');
+    assert.match(await ok('eval Intl.DateTimeFormat().resolvedOptions().timeZone'), /^Asia\/(?:Kolkata|Calcutta)$/);
+    assert.match((await repl.run('viewport 800x600')).output, /emulate mobile off first/);
+    await ok('emulate dark off');
+    assert.match(await ok(read), / false fr-FR /, 'one stops, the others stay');
+    await ok('emulate light');
+    assert.match(await ok('eval matchMedia("(prefers-color-scheme: light)").matches'), /true/);
+    assert.match(await ok('emulate mobile iphone 13'), /iPhone 13, 390x664/, 'device names in any case');
+    for (const bad of ['emulate mobile Nokia 3310', 'emulate timezone Mars/Olympus', 'emulate locale 12345', 'emulate dark please', 'emulate sepia']) {
+      assert.equal((await repl.run(bad)).status, 'error', bad);
+    }
+    assert.match(await ok('emulate off'), /Stopped emulating in the selected tab: mobile, light, locale, timezone/);
+    await ok('reload');
+    assert.equal(await ok(read), before, 'everything is back as it was');
+    assert.match(await ok('modes'), /No modes are on/);
+    await ok('emulate dark');
+    assert.match(await ok('modes off'), /: emulate off$/m);
+    assert.match(await ok('eval matchMedia("(prefers-color-scheme: dark)").matches'), /false/);
+  });
+
   it('selects and closes tabs by a part of their URL', async () => {
     await ok(`tab new ${site.url}/?tab-test=one`);
     await ok('tab 1');

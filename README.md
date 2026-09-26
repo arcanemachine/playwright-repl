@@ -73,6 +73,7 @@ Commands act on the selected tab (`tab` lists the tabs, with `*` on the selected
 | do something on it                   | `click`, `fill`, `press`                                                              |
 | wait for a page or element           | `wait load`, `wait <selector>`, `wait <selector> --gone`                              |
 | choose a file in a file input        | `upload <selector> <file>`                                                            |
+| see it as a phone, or in dark mode   | `emulate mobile`, `emulate dark` (also `emulate locale`, `emulate timezone`)          |
 | see what the page requested          | `requests`, then `body <#>` for what one got back                                     |
 | see console messages and errors      | `console`                                                                             |
 | show an agent what I do              | `watch on`, click around in the browser, then `watch`                                 |
@@ -87,13 +88,13 @@ Everything else is in `help <topic>`; `help <command>` has usage and caveats.
 
 ### Modes
 
-`watch`, `capture`, `route` and `network off` or `slow` stay on until you turn them off: `watch on|off`,
-`capture on|off`, `route ...|route off`, `network off|slow|on`. While any are on in the selected tab, the
-prompt shows them: `(watch network:off routes:2) pw>`. `modes` lists them for every tab, and `modes off`
-turns them all off.
+`watch`, `capture`, `route`, `network off` or `slow`, and `emulate` stay on until you turn them off:
+`watch on|off`, `capture on|off`, `route ...|route off`, `network off|slow|on`, `emulate ...|emulate off`.
+While any are on in the selected tab, the prompt shows them: `(watch network:off routes:2) pw>`. `modes`
+lists them for every tab, and `modes off` turns them all off.
 
-`tab`, `watch`, `capture`, `route`, `network` and `modes` on their own show their state and what you can
-run next.
+`tab`, `watch`, `capture`, `route`, `network`, `emulate` and `modes` on their own show their state and what
+you can run next.
 
 ## Options
 

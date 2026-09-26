@@ -1,6 +1,6 @@
 ---
 name: pw-repl
-description: Inspect and drive a Chromium browser, possibly one a person is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, and recording what the person does. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
+description: Inspect and drive a Chromium browser, possibly one a person is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, and recording what the person does. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
 ---
 
 # pw-repl
@@ -47,7 +47,7 @@ listens on TCP 127.0.0.1 instead of a socket, with no access control.
 Several REPLs can run at once, each on its own socket, e.g. one per agent. Each has its own selected tab,
 command queue and modes, so they do not wait on or select for each other. They share the browser,
 though: each sees every tab, `modes` lists only its own REPL's modes, and two REPLs acting on the same
-tab can undo each other's routes or network setting.
+tab can undo each other's routes, network or emulation settings.
 
 A REPL in a terminal stops at its prompt (`quit`, or Ctrl-C); `send quit` is refused.
 
