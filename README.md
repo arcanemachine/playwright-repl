@@ -80,16 +80,17 @@ Commands act on the selected tab (`tab` lists the tabs, with `*` on the selected
 | record requests and console together | `capture on`, then `capture off`                                                      |
 | break the backend on purpose         | `route <glob> <status> <json>` (fake a response), `route <glob> abort`, `network off` |
 | change or slow an API response       | `route <glob> patch <json>`, `route <glob> delay <secs>`                              |
+| slow the whole network               | `network slow`                                                                        |
 | clean up                             | `modes off`                                                                           |
 
 Everything else is in `help <topic>`; `help <command>` has usage and caveats.
 
 ### Modes
 
-`watch`, `capture`, `route` and `network off` stay on until you turn them off: `watch on|off`,
-`capture on|off`, `route ...|route off`, `network off|on`. While any are on in the selected tab, the prompt
-shows them: `(watch network:off routes:2) pw>`. `modes` lists them for every tab, and `modes off` turns them
-all off.
+`watch`, `capture`, `route` and `network off` or `slow` stay on until you turn them off: `watch on|off`,
+`capture on|off`, `route ...|route off`, `network off|slow|on`. While any are on in the selected tab, the
+prompt shows them: `(watch network:off routes:2) pw>`. `modes` lists them for every tab, and `modes off`
+turns them all off.
 
 `tab`, `watch`, `capture`, `route`, `network` and `modes` on their own show their state and what you can
 run next.

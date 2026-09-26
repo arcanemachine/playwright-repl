@@ -589,6 +589,22 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal((await repl.run('network offline')).status, 'error');
   });
 
+  it('slows the network, and restores it', async () => {
+    const timed = 'eval (async () => { const t = performance.now(); await fetch("/api/data?" + Math.random()); return Math.round(performance.now() - t); })()';
+    assert.match(await ok('network'), /network slow \[<ms> \[<kbps>\]\] +slow it \(default 563ms latency/);
+    assert.match(await ok('network slow 700'), /network is slow \(700ms latency, 1440 kbps down, 675 kbps up\)/);
+    assert.ok(Number(await ok(timed)) >= 650, 'a request takes the latency');
+    assert.match(await ok('modes'), /\(network:slow\)$/m);
+    assert.match(await ok('network'), /is slow \(700ms latency[\s\S]*network on +restore it/);
+    await ok('network slow');
+    assert.match(await ok('network'), /is slow \(563ms latency, 1440 kbps down, 675 kbps up\)/);
+    await ok('network on');
+    assert.ok(Number(await ok(timed)) < 500, 'back to full speed');
+    for (const bad of ['network slow fast', 'network slow 99999', 'network slow 100 0', 'network slow 1 2 3']) {
+      assert.equal((await repl.run(bad)).status, 'error', bad);
+    }
+  });
+
   it('cuts the network per tab', async () => {
     await ok('network off');
     await ok(`tab new ${site.url}/`);
