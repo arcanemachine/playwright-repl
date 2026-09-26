@@ -29,7 +29,7 @@ describe('help', () => {
   it('renders topics and commands, and nothing for unknown names', () => {
     assert.match(help.render('network'), /route <glob>/);
     assert.match(help.render('network'), /\nnetwork \[on\|off\] — [\s\S]*dev proxy/, 'a topic and a command of the same name');
-    assert.match(help.render('route'), /^route <glob> <status> <json> \| off <glob>\|--all — /);
+    assert.match(help.render('route'), /^route <glob> <how> \| off <glob>\|--all — [\s\S]*route <glob> patch <json>/);
     assert.equal(help.render('nope'), null);
   });
 

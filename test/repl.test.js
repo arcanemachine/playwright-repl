@@ -386,7 +386,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const faked = await ok(fetchStatus);
     assert.match(faked, /Faked: #\d+ GET .*\/api\/data -> 503/);
     assert.match(faked, /^503$/m);
-    assert.match(await ok('route'), /Fake responses on the selected tab \(1\):\n +\*\*\/api\/data +503 +\{"detail":"down"\}\n\n +route <url-glob>[\s\S]*route off/);
+    assert.match(await ok('route'), /Routes on the selected tab \(1\):\n +\*\*\/api\/data +503 \{"detail":"down"\}\n\n +route <url-glob>[\s\S]*route off/);
     await ok('route off --all');
     assert.equal(await ok(fetchStatus), '200');
   });
@@ -408,12 +408,31 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.doesNotMatch(await ok('route'), /api\/data/);
     assert.equal(await ok(fetchStatus), '200');
     await ok(`tab new ${site.url}/`);
-    assert.match(await ok('route'), /No fake responses/);
+    assert.match(await ok('route'), /No routes on the selected tab/);
     await ok('tab close');
     await ok('tab 1');
     assert.match(await ok('route'), /api\/other/);
     assert.equal((await repl.run('route off **/api/nothing')).status, 'error');
     await ok('route off --all');
+  });
+
+  it('patches a real JSON response, delays a request, and fails one', async () => {
+    const json = 'eval fetch("/api/data").then(r => r.text())';
+    assert.match(await ok('route **/api/data patch {"real":false,"added":{"n":1}}'), /Routed: \*\*\/api\/data -> patch/);
+    const patched = await ok(json);
+    assert.match(patched, /Patched: #\d+ GET \S+\/api\/data -> 200/);
+    assert.match(patched, /^\{"real":false,"added":\{"n":1\}\}$/m);
+    assert.match(await ok('requests 3 /api/data'), /GET 200 patched/);
+    await ok('route **/api/data patch {"real":null}');
+    assert.match(await ok(json), /^\{\}$/m, 'null removes a key');
+    assert.equal((await repl.run('route **/api/data patch [1]')).status, 'error', 'a patch is an object');
+    await ok('route **/api/data delay 1');
+    assert.match(await ok('eval (async () => { const t = Date.now(); await fetch("/api/data"); return Date.now() - t >= 900; })()'), /^true$/m);
+    await ok('route **/api/data abort');
+    assert.match(await ok(fetchStatus), /Failed to fetch/);
+    assert.match(await ok('route'), /\*\*\/api\/data +abort/);
+    await ok('route off --all');
+    assert.equal(await ok(fetchStatus), '200');
   });
 
   it('refuses statuses a response cannot have', async () => {

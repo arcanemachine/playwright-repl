@@ -61,18 +61,19 @@ Commands act on the selected tab (`tab` lists the tabs, with `*` on the selected
 
 ## Common tasks
 
-| I want to…                           | Commands                                                        |
-| ------------------------------------ | --------------------------------------------------------------- |
-| see where I am                       | `tab`, `info`                                                   |
-| see what is on the page              | `snapshot`, `screenshot`                                        |
-| do something on it                   | `click`, `fill`, `press`                                        |
-| see what the page requested          | `requests`, then `body <#>` for what one got back               |
-| see console messages and errors      | `console`                                                       |
-| show an agent what I do              | `watch on`, click around in the browser, then `watch`           |
-| see each step as I click             | `watch on --live`                                               |
-| record requests and console together | `capture on`, then `capture off`                                |
-| break the backend on purpose         | `route <glob> <status> <json>` (fake a response), `network off` |
-| clean up                             | `modes off`                                                     |
+| I want to…                           | Commands                                                                              |
+| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| see where I am                       | `tab`, `info`                                                                         |
+| see what is on the page              | `snapshot`, `screenshot`                                                              |
+| do something on it                   | `click`, `fill`, `press`                                                              |
+| see what the page requested          | `requests`, then `body <#>` for what one got back                                     |
+| see console messages and errors      | `console`                                                                             |
+| show an agent what I do              | `watch on`, click around in the browser, then `watch`                                 |
+| see each step as I click             | `watch on --live`                                                                     |
+| record requests and console together | `capture on`, then `capture off`                                                      |
+| break the backend on purpose         | `route <glob> <status> <json>` (fake a response), `route <glob> abort`, `network off` |
+| change or slow an API response       | `route <glob> patch <json>`, `route <glob> delay <secs>`                              |
+| clean up                             | `modes off`                                                                           |
 
 Everything else is in `help <topic>`; `help <command>` has usage and caveats.
 
