@@ -62,6 +62,8 @@ function parseSendArgs(args, allowCommand) {
   let i = 0;
   for (; i < args.length; i++) {
     const arg = args[i];
+    // playwright-cli's --raw: the output here is only the command's already.
+    if (arg === '--raw') continue;
     if (arg === '-e' || arg === '-s' || arg === '-c' || arg === '-t') {
       const value = args[++i];
       if (value === undefined) usage();

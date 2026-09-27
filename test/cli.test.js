@@ -26,6 +26,10 @@ describe('pw-repl send help', () => {
     assert.equal(pwRepl(['send', 'help', 'quit'], { env, encoding: 'utf8' }).stdout.trimEnd(), help.render('quit'));
   });
 
+  it('ignores playwright-cli\'s --raw', () => {
+    assert.equal(pwRepl(['send', '--raw', 'help', 'quit'], { env }).stdout.trimEnd(), help.render('quit'));
+  });
+
   it('fails for an unknown topic', () => {
     const result = pwRepl(['send', 'help nope'], { env, encoding: 'utf8' });
     assert.equal(result.status, 1);
