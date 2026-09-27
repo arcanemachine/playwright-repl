@@ -216,3 +216,28 @@ describe('times', () => {
     assert.equal(withZone('UTC', () => clock(t)), '00:16:15.721+00:00');
   });
 });
+
+describe('playwright-cli names', () => {
+  const { translate } = require('../lib/cli-names');
+
+  it('rewrites them to the commands that do the same here', () => {
+    assert.deepEqual(translate('tab-list'), { text: 'tab', as: 'tab' });
+    assert.equal(translate('go-back').text, 'back');
+    assert.equal(translate('set-color-scheme dark').text, 'emulate dark');
+    assert.equal(translate('network-state-set offline').text, 'network off');
+    assert.equal(translate('resize 800 600').text, 'viewport 800x600');
+    assert.equal(translate('unroute').text, 'route off --all');
+    assert.equal(translate('route **/slots.json --status=500 --body=\'{"error":"x"}\'').text, 'route **/slots.json 500 {"error":"x"}');
+    assert.equal(translate('route **/a --status=503').text, 'route **/a 503 {}');
+  });
+
+  it('leaves this tool\'s own commands alone', () => {
+    for (const text of ['tab', 'route **/a 500 {}', 'eval 1+1', 'console error', 'upload #f a.png']) assert.equal(translate(text), null, text);
+  });
+
+  it('refuses what it cannot do the same way, with the nearest command', () => {
+    assert.match(translate('run-code async page => 1').refuse, /eval <JavaScript>/);
+    assert.match(translate('tab-close 2').refuse, /tab <index> then tab close/, 'an index here would be read as part of a URL');
+    assert.match(translate('set-color-scheme sepia').refuse, /emulate dark\|light/);
+  });
+});

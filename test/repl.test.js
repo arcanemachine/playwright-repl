@@ -121,6 +121,24 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('takes playwright-cli\'s command names, and says what they are here', async () => {
+    await ok(`goto ${site.url}/`);
+    await ok(`goto ${site.url}/other`);
+    assert.match(await ok('go-back'), /^\(playwright-cli's go-back is back here\)\nBack to: /);
+    await ok('go-forward');
+    assert.match(await ok('go-back'), /^Back to: /, 'explained once');
+    assert.equal(await ok('eval () => document.title'), 'Fixture', 'a function is called, as playwright-cli\'s eval does');
+    await ok('route **/api/data --status=503 --body={"cli":1}');
+    assert.match(await ok(fetchStatus), /^Faked: #\d+ GET \S+\/api\/data -> 503\n503$/);
+    await ok('unroute');
+    await ok('network-state-set offline');
+    assert.match(await ok(fetchStatus), /Failed to fetch/);
+    await ok('network-state-set online');
+    const refused = await repl.run('run-code async page => 1');
+    assert.equal(refused.status, 'error');
+    assert.match(refused.output, /run-code is playwright-cli's; here, eval <JavaScript>/);
+  });
+
   it('keeps a selected tab per client, and says who turned each mode on', async () => {
     const as = async (client, command) => {
       const result = await repl.runAs(client, command);
