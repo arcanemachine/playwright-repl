@@ -724,6 +724,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('snapshot --grep nothing-like-this'), /No snapshot lines match/);
     const ref = /button "Go" \[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot --grep "button \"Go\""'))[1];
     assert.match(await ok(`snapshot ${ref}`), /^- button "Go"/);
+    assert.match(await ok('snapshot --regex "Refresh R\\w+"'), /button "Refresh Results"/, 'a regular expression');
+    assert.match(await ok('snapshot --regex refresh'), /No snapshot lines match/, 'as written, case and all');
+    assert.match((await repl.run('snapshot --regex (')).output, /Not a regular expression/);
+    assert.match(await ok('find --regex R\\w+ Results'), /^\(playwright-cli's find --regex is snapshot --regex <pattern> here\)\n[\s\S]*Refresh Results/);
+    assert.match(await ok('find --regex "Refresh R\\w+"'), /Refresh Results/, 'double-quoted, its backslashes kept');
+    const { spawnSync } = require('child_process');
+    const sent = spawnSync(process.execPath, [require('path').join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'find', '--regex', 'Refresh R\\w+'], { encoding: 'utf8' });
+    assert.match(sent.stdout, /Refresh Results/, 'through send, as split words');
   });
 
   it('after closing its own tab, goes back only to a tab it opened', async () => {

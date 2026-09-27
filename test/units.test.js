@@ -253,7 +253,11 @@ describe('playwright-cli names', () => {
   });
 
   it('finds playwright-cli\'s options anywhere on the line, and a body with spaces up to the next one', () => {
-    const { takeOptions } = require('../lib/cli-names');
+    const { takeOptions: take } = require('../lib/cli-names');
+    const takeOptions = (args, options) => {
+      const { found, rest } = take(args, options);
+      return { found: found.map(({ name, value }) => ({ name, value })), rest };
+    };
     const spec = { body: 'rest', status: 'value', submit: 'flag', filter: 'value' };
     assert.deepEqual(takeOptions('**/a --body={"mock": true} --status 500', spec), {
       found: [{ name: 'body', value: '{"mock": true}' }, { name: 'status', value: '500' }], rest: '**/a',
@@ -270,6 +274,7 @@ describe('playwright-cli names', () => {
     assert.match(translate('open example.com --headed').refuse, /pw-repl serve --launch \[--headed\]/);
     assert.match(translate('route **/a --header=x:y').refuse, /route --header is not supported here/);
     assert.equal(translate('snapshot --full'), null, 'this tool\'s own options are left to it');
+    assert.equal(translate('find --regex "Total: \\d+"').text, 'snapshot --regex "Total: \\d+"', 'a regexp as typed, backslashes and all');
   });
 
   it('refuses what it cannot do the same way, with the nearest command', () => {
