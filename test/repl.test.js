@@ -392,6 +392,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok(read), /^\d+ 2\.625 true true fr-FR Asia\/Tokyo true$/);
     assert.match(await ok('info'), /Viewport: 412x839 \(emulate mobile: Pixel 7\)/);
     const shot = /Saved: (\S+)/.exec(await ok('screenshot'))[1];
+    assert.equal(require('path').dirname(shot), require('path').dirname(repl.socket), 'next to its own socket');
     fs.rmSync(shot);
     assert.match(await ok(read), /^\d+ 2\.625 /, 'a screenshot keeps the phone\'s screen');
     const shown = await ok('emulate');
