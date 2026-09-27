@@ -954,6 +954,18 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(info, /hello-log/);
     assert.doesNotMatch(info, /quiet-debug/, 'info leaves out debug');
     assert.match(await ok('console 50 careful'), /careful-warn/, 'anything else is a filter');
+    await ok('reload');
+    await ok('eval console.log("after-reload"); 0');
+    await waitFor(async () => /after-reload/.test(await ok('console 3')), 'the message after the reload');
+    assert.match(await ok('console 3'), /--- the page loaded \S+\n[\s\S]*\[log\] after-reload$/, 'a load between messages is marked');
+    await ok('eval Promise.all(Array.from({ length: 250 }, (_, i) => fetch("/api/data?" + i))).then(() => "fetched")');
+    await ok('reload');
+    await ok('eval console.log("after-many"); 0');
+    await waitFor(async () => /after-many/.test(await ok('console 50')), 'the message after many requests');
+    assert.match(await ok('console 50'), /after-reload[\s\S]*--- the page loaded \S+\n[\s\S]*after-many$/, 'still marked after more requests than the request log keeps');
+    await ok('eval history.pushState({}, "", "#cart"); console.log("after-route"); 0');
+    await waitFor(async () => /after-route/.test(await ok('console 2')), 'the message after the route change');
+    assert.doesNotMatch(await ok('console 2'), /--- the page loaded/, 'an app\'s own route change loads nothing');
   });
 
   it('captures requests and console messages together until capture off', async () => {
