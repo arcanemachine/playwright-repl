@@ -6,6 +6,36 @@ one shows in the REPL, so each sees what the other does. The REPL inspects the p
 (requests, console, and each step a person takes), fakes, patches or slows responses, and emulates phones,
 dark mode, locales and timezones.
 
+## Why use it
+
+For working on a web page together with an agent, in the browser you already use:
+
+- **Your browser, as it is.** It connects to a running Chromium, with your tabs, sign-ins and state, and
+  leaves it running when it stops; nothing is reset to a fresh profile.
+- **One session, seen by everyone.** You and any number of agents drive the same browser, each with a
+  selected tab of its own, and every command shows in the REPL, whoever sent it.
+- **What you did, for an agent to read.** `watch` records each step you take in a tab, with the requests
+  it caused, so you can reproduce a bug by hand and the agent can see exactly what happened.
+- **Breaking things on purpose.** Fake, patch, delay or fail responses, cut or slow the network, emulate a
+  phone, a locale or a timezone, all per tab, so your other tabs are left alone.
+
+## How it differs from playwright-cli
+
+[playwright-cli](https://github.com/microsoft/playwright-cli) is Microsoft's command line for agents. It
+gives each agent a browser session of its own; pw-repl shares one browser between a person and agents.
+Its command names and most of their options work here too (`help playwright-cli` lists them), and where
+pw-repl differs, it is because someone else may be using the browser:
+
+- `open` and `close` open a tab and turn off your modes; they never start, close or wipe a browser.
+- Routes, network and emulation apply to one tab, not the whole browser.
+- File pickers are not caught, since they may be the person's: `upload` names the input instead.
+- There is no snapshot after every command, since a person reads the REPL too; `snapshot` shows one.
+- Instead of `-s=<session>`, an agent is a client of its own (`send -c <name>`).
+- `watch` records what a person does as steps with their requests, not as generated code.
+
+For a browser of its own per agent, isolated sessions, traces, video, PDFs or generated test code,
+playwright-cli is the better fit.
+
 ## Getting started
 
 ### Prerequisites
