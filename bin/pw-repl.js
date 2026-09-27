@@ -81,7 +81,8 @@ function parseSendArgs(args, allowCommand) {
   // command takes the rest of its line as it is (eval, route's JSON), so its
   // words are joined as they are.
   const { SELECTOR_FIRST } = require('../lib/syntax');
-  const requote = words.length > 1 && SELECTOR_FIRST.has(words[0]);
+  // So does playwright-cli's storage key (localstorage-set "my key" v).
+  const requote = words.length > 1 && (SELECTOR_FIRST.has(words[0]) || /^(?:local|session)storage-/.test(words[0]));
   // An empty word (fill #name "") is the empty value.
   // upload's files are read by the REPL, whose folder may not be this one.
   // So are the files upload reads and screenshot --filename writes.

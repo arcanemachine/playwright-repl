@@ -199,6 +199,34 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(refused.output, /run-code is playwright-cli's; here, eval <JavaScript>/);
   });
 
+  it('reads and writes storage, traces and records with playwright-cli\'s names', async () => {
+    // A tab of its own: the recording must not leave steps in the tab later tests watch.
+    await ok(`tab new ${site.url}/?cli-storage`);
+    try {
+      assert.equal(await ok('localstorage-set "cli key" a value'), '(playwright-cli\'s localstorage-set is eval localStorage.setItem("<key>", "<value>") here)\nSet cli key');
+      assert.equal(await ok('localstorage-get "cli key"'), '(playwright-cli\'s localstorage-get is eval localStorage.getItem("<key>") here)\na value');
+      assert.equal(await ok('localstorage-delete "cli key"'), '(playwright-cli\'s localstorage-delete is eval localStorage.removeItem("<key>") here)\nDeleted cli key');
+      const { spawnSync } = require('child_process');
+      const bin = require('path').join(__dirname, '..', 'bin', 'pw-repl.js');
+      const sent = spawnSync(process.execPath, [bin, 'send', '-e', repl.socket, 'localstorage-set', 'my key', 'v'], { encoding: 'utf8' });
+      assert.match(sent.stdout, /Set my key$/m, 'through send, a key with a space stays one');
+      assert.equal(await ok('eval localStorage.getItem("my key")'), 'v');
+      await ok('localstorage-delete "my key"');
+      await ok('sessionstorage-set s 1');
+      assert.match(await ok('sessionstorage-list'), /"s"/);
+      await ok('sessionstorage-clear');
+      assert.match(await ok('tracing-start'), /Capturing requests and console/);
+      assert.match(await ok('tracing-stop'), /capture off, which prints what it recorded/);
+      assert.match(await ok('recording-start'), /Watching the selected tab/);
+      await ok('click #go');
+      await waitFor(async () => /click button "Go"/.test(await ok('watch')), 'the click');
+      const stopped = await ok('recording-stop');
+      assert.match(stopped, /Stopped watching the selected tab[\s\S]*click button "Go"/, 'stopped, then the steps shown');
+    } finally {
+      await ok('tab close cli-storage');
+    }
+  });
+
   it('opens a tab with playwright-cli\'s open, emulating a phone before the page loads', async () => {
     const as = (client, command) => repl.runAs(client, command);
     try {

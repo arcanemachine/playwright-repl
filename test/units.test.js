@@ -277,6 +277,13 @@ describe('playwright-cli names', () => {
     assert.equal(translate('find --regex "Total: \\d+"').text, 'snapshot --regex "Total: \\d+"', 'a regexp as typed, backslashes and all');
   });
 
+  it('reads and writes storage with eval, as playwright-cli\'s storage commands do', () => {
+    assert.equal(translate('localstorage-get "my key"').text, 'eval localStorage.getItem("my key")');
+    assert.equal(translate('sessionstorage-set k a b').text, 'eval sessionStorage.setItem("k", "a b"), "Set " + "k"');
+    assert.match(translate('localstorage-get my key').refuse, /localstorage-get my key is not understood here; .*; quote a key with spaces: localstorage-get "my key"$/);
+    assert.deepEqual(translate('recording-stop').steps, ['watch off', 'watch']);
+  });
+
   it('refuses what it cannot do the same way, with the nearest command', () => {
     assert.match(translate('run-code async page => 1').refuse, /eval <JavaScript>/);
     assert.match(translate('tab-close 2').refuse, /tab <index> then tab close/, 'an index here would be read as part of a URL');
