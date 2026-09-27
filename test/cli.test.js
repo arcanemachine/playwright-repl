@@ -30,6 +30,12 @@ describe('pw-repl send help', () => {
     assert.equal(pwRepl(['send', '--raw', 'help', 'quit'], { env }).stdout.trimEnd(), help.render('quit'));
   });
 
+  it('says what playwright-cli\'s -s=<session> is here', () => {
+    const session = pwRepl(['send', '-s=work', 'tab'], { env });
+    assert.equal(session.status, 64);
+    assert.match(session.stderr, /-s=work is playwright-cli's session, a browser of its own[\s\S]*-c <name> \(or PW_CLIENT\)/);
+  });
+
   it('fails for an unknown topic', () => {
     const result = pwRepl(['send', 'help nope'], { env, encoding: 'utf8' });
     assert.equal(result.status, 1);

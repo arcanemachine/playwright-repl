@@ -64,6 +64,13 @@ function parseSendArgs(args, allowCommand) {
     const arg = args[i];
     // playwright-cli's --raw: the output here is only the command's already.
     if (arg === '--raw') continue;
+    // playwright-cli's -s=<session> names a browser of its own; the nearest here is a client.
+    if (/^(?:-s|--session)=/.test(arg)) {
+      console.error(`pw-repl: ${arg} is playwright-cli's session, a browser of its own. Here -s <name> is a tmux session;`);
+      console.error('the nearest to a session is a client: -c <name> (or PW_CLIENT), with a selected tab of its own, in a');
+      console.error('browser it shares, cookies, storage and modes and all.');
+      process.exit(64);
+    }
     if (arg === '-e' || arg === '-s' || arg === '-c' || arg === '-t') {
       const value = args[++i];
       if (value === undefined) usage();
