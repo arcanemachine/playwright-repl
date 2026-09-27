@@ -45,7 +45,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(value), '');
     const missing = await repl.run('fill #name');
     assert.equal(missing.status, 'error');
-    assert.match(missing.output, /Usage: fill <selector> <value>, e\.g\. fill #name Ada Lovelace/);
+    assert.match(missing.output, /Usage: fill <selector> <value> \[--submit\], e\.g\. fill #name Ada Lovelace/);
     await ok('press #name Enter');
     const { spawnSync } = require('child_process');
     const path = require('path');
@@ -60,6 +60,24 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const cleared = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'fill', '#name', ''], { encoding: 'utf8' });
     assert.equal(cleared.status, 0, cleared.stdout + cleared.stderr);
     assert.equal(await ok(value), '', 'an empty word through send clears the field');
+  });
+
+  it('submits with --submit, and types into the focused element', async () => {
+    const value = 'eval document.querySelector("#name").value';
+    await ok('eval window.entered = 0; document.querySelector("#name").addEventListener("keydown", e => { if (e.key === "Enter") window.entered += 1; }); 0');
+    assert.equal(await ok('fill #name "a  b" --submit'), 'Filled and submitted: #name');
+    assert.equal(await ok(value), 'a  b', 'the value without --submit or its quotes');
+    assert.equal(await ok('eval window.entered'), '1');
+    await ok('click #name');
+    assert.equal(await ok('type " c" --submit'), 'Typed into the focused input#name, and submitted');
+    assert.equal(await ok(value), 'a  b c');
+    assert.equal(await ok('eval window.entered'), '2');
+    assert.match((await repl.run('fill #name hi --submit more')).output, /--submit goes at the end of the line/);
+    await ok('eval document.querySelector("#go").focus(); 0');
+    assert.match((await repl.run('type x')).output, /The focused element, button#go, takes no text: type <selector> <text>/);
+    await ok('eval document.activeElement.blur(); 0');
+    assert.match((await repl.run('type x')).output, /Nothing on the page has focus: type <selector> <text>/);
+    await ok('fill #name ""');
   });
 
   it('selects a tab by a number in its URL when it is not a tab index', async () => {
