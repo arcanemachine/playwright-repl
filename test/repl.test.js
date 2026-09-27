@@ -121,6 +121,36 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('watches the next tab someone opens, from its first page', async () => {
+    const { chromium } = require('playwright-core');
+    const person = await chromium.connectOverCDP(chrome.cdpUrl);
+    try {
+      assert.match(await ok('watch on --next-tab ?wanted'), /^Waiting to watch the next tab that opens with a URL containing \?wanted: /);
+      assert.match(await ok('modes'), /^Waiting to watch the next tab that opens with a URL containing \?wanted \(watch off stops waiting\)/);
+      const other = await person.contexts()[0].newPage();
+      await other.goto(`${site.url}/?not-this-one`);
+      const wanted = await person.contexts()[0].newPage();
+      await wanted.goto(`${site.url}/?wanted`);
+      await waitFor(async () => /\?wanted$/m.test(await ok('info').then(t => t.split('\n')[0])), 'the wanted tab to be selected');
+      await wanted.click('#go');
+      let trail = '';
+      await waitFor(async () => /click button "Go"/.test(trail = await ok('watch')), 'the click in the new tab');
+      assert.match(trail, /^\S+ navigate \S+\/\?wanted$/m, 'from its first page');
+      assert.doesNotMatch(trail, /about:blank|not-this-one/);
+      assert.doesNotMatch(await ok('modes'), /Waiting to watch/, 'it waits for one tab only');
+      await ok('tab not-this-one');
+      assert.match(await ok('watch'), /^Not watching the selected tab\./, 'a tab that is not it is left alone');
+      await ok('tab ?wanted');
+      await ok('watch off');
+      await ok('watch on --next-tab');
+      assert.match(await ok('watch off'), /^Stopped waiting to watch a new tab/);
+    } finally {
+      await person.close();
+      for (const part of ['not-this-one', '?wanted']) await repl.run(`tab close ${part}`);
+      await ok('tab 1');
+    }
+  });
+
   it('watches what happens in a tab, with the requests each step caused', async () => {
     assert.match(await ok('watch'), /^Not watching the selected tab\.\n\n +watch on +record/);
     await ok('watch on');
