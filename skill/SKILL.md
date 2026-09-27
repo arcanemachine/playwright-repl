@@ -1,6 +1,7 @@
 ---
 name: pw-repl
 description: Inspect and drive a Chromium browser, possibly one a person is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, and recording what the person does. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
+allowed-tools: Bash(pw-repl:*) Bash(npx pw-repl:*)
 ---
 
 # pw-repl
@@ -105,6 +106,27 @@ Run `pw-repl send help`. It lists six topics; `help <topic>` lists their command
 gives usage and caveats, and `help --all` prints everything at once. It needs no running REPL. The
 help is the command reference; this file does not repeat it. If you know playwright-cli, its command
 names work too (`help playwright-cli` lists them).
+
+### Coming from playwright-cli
+
+Its command names and most of their options work, and each says the first time what it is here. What
+differs comes from the browser being shared. With `<name>` a client name of your own, e.g. from your
+task (`cart-bug`), since two agents with one name are one client:
+
+```bash
+pw-repl send -c <name> open http://localhost:3000   # a tab of your own in the shared browser
+pw-repl send -c <name> snapshot                     # no snapshot after each command; ask for one
+pw-repl send -c <name> click e5
+pw-repl send -c <name> close                        # your modes off; tab close <url-part> closes your tab
+```
+
+- There is no browser of your own to open or close: `open` opens a tab in the one the REPL uses, and
+  `close` turns off the modes you turned on and leaves every tab open.
+- Instead of `-s=<session>`, send as a client: `-c <name>`, with a selected tab of its own, in a browser
+  whose cookies and storage are shared.
+- `upload <selector> <file>` names the file input or the button that opens it; do not click a file
+  input first, since the file picker is not caught.
+- Routes, network and emulation apply to one tab, not to the whole browser.
 
 ## Sharing the browser
 
