@@ -139,7 +139,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(refused.output, /run-code is playwright-cli's; here, eval <JavaScript>/);
   });
 
-  it('selects a tab by index only with playwright-cli\'s tab-select', async () => {
+  it('selects a tab by index only with playwright-cli\'s tab-select, and closes nothing with close', async () => {
     const as = (client, command) => repl.runAs(client, command);
     try {
       assert.equal((await as('cli-a', `tab new ${site.url}/?cli-a`)).status, 'ok');
@@ -152,7 +152,20 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       const missing = await as('cli-b', `tab-select ${port}`);
       assert.equal(missing.status, 'error');
       assert.match(missing.output, /No tab \[\d+\] in your last listing; tab-list lists them again/, 'never a tab whose URL contains the number');
+      await as('cli-a', 'emulate dark');
+      await as('cli-b', `tab-select ${other}`);
+      await as('cli-b', 'network off');
+      const closed = await as('cli-a', 'close');
+      assert.equal(closed.status, 'ok', closed.output);
+      assert.match(closed.output, /: emulate off$/m);
+      assert.match(closed.output, /Tabs you opened are still open: \S+\?cli-a; tab close <url-part> closes one\./);
+      assert.match(await ok('tab'), /\?cli-a/, 'its tab stays open');
+      assert.match(await ok('modes'), /network:off/, 'another client\'s modes stay on');
+      const unnamed = await repl.run('close');
+      assert.equal(unnamed.status, 'error');
+      assert.match(unnamed.output, /needs a client name: pw-repl send -c <name> close/);
     } finally {
+      await as('cli-b', 'modes off --mine');
       await repl.run('tab close cli-a');
     }
   });
