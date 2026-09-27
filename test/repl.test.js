@@ -329,7 +329,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(late.status, 'error');
     const never = await repl.run('wait text "never shown" 1');
     assert.equal(never.output, 'Error: No visible text matches never shown within 1s', 'said plainly');
-    assert.equal((await repl.run('wait #never 1')).output, 'Error: No element matches #never within 1s');
+    assert.equal((await repl.run('wait #never 1')).output, 'Error: No visible element matches #never within 1s');
+    await ok('eval document.body.insertAdjacentHTML("beforeend", \'<p id="later" hidden>Later</p>\'); setTimeout(() => { document.querySelector("#later").hidden = false; }, 400); "added"');
+    assert.equal(await ok('wait #later 5'), 'Visible: #later', 'a hidden element is waited for until it shows');
     assert.match(await ok('info'), /Title: Fixture$/m, 'a wait that times out does not disconnect');
   });
 
