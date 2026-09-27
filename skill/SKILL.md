@@ -44,10 +44,21 @@ one; each takes an optional start URL, which opens in a new tab.
 (`/tmp/mine.log`); `tail -f` on it follows along without a terminal to attach from. `serve <port>`
 listens on TCP 127.0.0.1 instead of a socket, with no access control.
 
-Several REPLs can run at once, each on its own socket, e.g. one per agent. Each has its own selected tab,
-command queue and modes, so they do not wait on or select for each other. They share the browser,
-though: each sees every tab, `modes` lists only its own REPL's modes, and two REPLs acting on the same
-tab can undo each other's routes, network or emulation settings.
+### One REPL, many clients
+
+One REPL serves everyone using its browser: the person at its prompt and any number of agents. When
+`pw-repl where` finds one running for the browser you need, use it rather than start another, as a
+client of your own: `PW_CLIENT=<name>` (or `send -c <name>`), with a name that says who you are.
+
+- A client has its own selected tab, so clients do not move each other's. Its commands show in the pane
+  as `[server:<name>]` lines.
+- `modes` and `tab` say which client turned each mode on and opened each tab. `modes off --mine` turns
+  off only what you turned on; `tab close <url-part>` closes a tab you opened.
+- Commands run one at a time, from every client: a long one (`capture on 60`, `sleep`) holds the rest.
+
+A REPL of your own, on a socket of its own, is for a browser of your own (`--launch`), or when you are
+asked for one. Several REPLs on one browser each see every tab but list only their own modes, and can
+undo each other's routes, network or emulation settings.
 
 A REPL in a terminal stops at its prompt (`quit`, or Ctrl-C); `send quit` is refused.
 

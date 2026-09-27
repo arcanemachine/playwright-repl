@@ -144,6 +144,10 @@ may not have done what it was sent to do (it timed out, or the REPL quit while i
 read-only). It is off unless started with `pw-repl serve`.
 `pw-repl serve <port>` serves TCP on 127.0.0.1 instead; other addresses are refused.
 
+Several agents can share one REPL: `pw-repl send -c <name>` (or `PW_CLIENT=<name>`) sends as a client with a
+selected tab of its own, shown in the pane as `[server:<name>]`. `modes` says which client turned each mode on,
+and `modes off --mine` turns off only the sender's own.
+
 ### A skill for agents
 
 `pw-repl skill` prints an agent skill (`SKILL.md`) that teaches an agent to use the REPL: how to start
