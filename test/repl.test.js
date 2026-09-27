@@ -558,7 +558,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     fs.rmSync(shot);
     assert.match(await ok(read), /^\d+ 2\.625 /, 'a screenshot keeps the phone\'s screen');
     const ref = /heading "Fixture" \[level=1\] \[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot'))?.[1];
-    const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-shot-'));
+    // A space in the sender's folder, which send keeps in one word.
+    const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw shot-'));
     try {
       const { spawnSync } = require('child_process');
       const bin = require('path').join(__dirname, '..', 'bin', 'pw-repl.js');
@@ -567,7 +568,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       const saved = require('path').join(dir, 'h1.jpg');
       assert.equal(sent.stdout.trim(), `Saved: ${saved}`, 'relative to the sender\'s folder');
       assert.equal(fs.readFileSync(saved).subarray(0, 2).toString('hex'), 'ffd8', 'a JPEG');
-      assert.match((await repl.run(`screenshot --filename=${saved}`)).output, /already exists/);
+      assert.match((await repl.run(`screenshot --filename="${saved}"`)).output, /already exists/);
       const spaced = require('path').join(dir, 'a b');
       fs.mkdirSync(spaced);
       assert.match(await ok(`screenshot --full-page --filename="${require('path').join(spaced, 'page.png')}"`), /a b\/page\.png$/, 'a quoted path with a space');

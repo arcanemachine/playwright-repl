@@ -248,6 +248,8 @@ describe('playwright-cli names', () => {
     assert.deepEqual(takeOptions('e5 "a  b" --submit', spec), { found: [{ name: 'submit', value: undefined }], rest: 'e5 "a  b"' });
     assert.deepEqual(takeOptions('--filter=/api/ 3', spec), { found: [{ name: 'filter', value: '/api/' }], rest: '3' });
     assert.deepEqual(takeOptions('e5 --submitted', spec), { found: [], rest: 'e5 --submitted' }, 'only its own options');
+    assert.deepEqual(takeOptions('--filter="a b" x.com', spec), { found: [{ name: 'filter', value: 'a b' }], rest: 'x.com' }, 'a quoted part holds spaces');
+    assert.equal(translate('route **/a --content-type="text/html; charset=utf-8" --body=<p>hi</p>').text, 'route **/a 200 --content-type="text/html; charset=utf-8" <p>hi</p>');
   });
 
   it('refuses playwright-cli\'s options that are not taken here, rather than read them as words', () => {

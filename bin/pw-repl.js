@@ -91,6 +91,12 @@ function parseSendArgs(args, allowCommand) {
     resolved = words.map((w, n) => (w.startsWith('--filename=') && w.length > 11 ? `--filename=${resolve(w.slice(11))}` : words[n - 1] === '--filename' ? resolve(w) : w));
   }
   const quoted = requote ? resolved.map(w => (w === '' || /[\s"']/.test(w) ? JSON.stringify(w) : w)) : resolved;
+  // An option's value the shell kept whole stays whole too: --device='iPhone 15'.
+  // Single quotes escape nothing, so a backslash (a regexp's \d) reaches it as typed.
+  for (const [n, w] of quoted.entries()) {
+    const option = /^(--[A-Za-z][\w-]*=)([\s\S]*\s[\s\S]*)$/.exec(w);
+    if (n && option && !requote) quoted[n] = `${option[1]}${option[2].includes("'") ? JSON.stringify(option[2]) : `'${option[2]}'`}`;
+  }
   options.command = quoted.join(' ').trim();
   return options;
 }
