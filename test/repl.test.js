@@ -857,6 +857,16 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.doesNotMatch(recent, /style\.css/);
     assert.match(await ok('requests --all 50'), /style\.css/);
     assert.match(await ok('requests 50 nothing-matches-this'), /No requests matching/);
+    assert.match(await ok('requests 50 --regex /api/d.ta$'), /\/api\/data$/);
+    assert.match(await ok('requests 50 --regex ^nothing'), /No requests matching \/\^nothing\//);
+    assert.match(await ok('requests --filter=d.ta$'), /^\(playwright-cli's requests --filter is requests --regex <pattern> here\)\n#\d+ /);
+    assert.match(await ok('requests --static'), /style\.css/, 'playwright-cli\'s --static is --all');
+    assert.match(await ok('requests 50 --regex "/api/d\\w+$"'), /\/api\/data$/, 'double-quoted, its backslashes kept');
+    assert.match(await ok('requests --filter "/api/d\\w+$"'), /\/api\/data$/);
+    const { spawnSync } = require('child_process');
+    const bin = require('path').join(__dirname, '..', 'bin', 'pw-repl.js');
+    const sent = spawnSync(process.execPath, [bin, 'send', '-e', repl.socket, 'requests', '--filter=/api/d\\w+ ?$'], { encoding: 'utf8' });
+    assert.match(sent.stdout, /\/api\/data$/m, 'through send, a value with a space and a backslash');
     assert.match(await ok('requests 50'), /\(\d+ hidden between these: images, fonts, stylesheets, media and extension requests; requests --all shows them\)$/);
   });
 
