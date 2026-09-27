@@ -14,7 +14,8 @@ If you hit a limitation or write a workaround, consider adding the capability to
   runs commands one at a time (`quit` and `dialog` skip its queue); `lib/server.js` is the command
   server; `lib/send.js` and `lib/client.js` are `send` and `where`; `lib/background.js` is
   `serve --background`, `attach` and `stop`; `lib/launch.js` is `--launch`; `lib/syntax.js` is how a
-  command line's words are read, shared with `send`; `lib/state.js` holds the session state;
+  command line's words are read, shared with `send`; `lib/cli-names.js` maps playwright-cli's command
+  names to these; `lib/state.js` holds the session state, with each client's selected tab;
   `lib/output.js` routes all output so the server can return it.
 - Comment the *why* when it isn't obvious from the code.
 - `npm test` runs the suite (under two minutes): a private headless Chromium, a local test site
