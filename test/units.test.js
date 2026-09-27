@@ -217,6 +217,19 @@ describe('times', () => {
   });
 });
 
+describe('key names', () => {
+  const { keyName } = require('../lib/syntax');
+
+  it('takes them in any case, as playwright-cli does, in the case Playwright needs', () => {
+    assert.equal(keyName('arrowleft'), 'ArrowLeft');
+    assert.equal(keyName('control+shift+keya'), 'Control+Shift+KeyA');
+    assert.equal(keyName('Control++'), 'Control++');
+    assert.equal(keyName('a'), 'a');
+    assert.equal(keyName('A'), 'A', 'a single character keeps its case');
+    assert.equal(keyName('f5'), 'F5');
+  });
+});
+
 describe('playwright-cli names', () => {
   const { translate } = require('../lib/cli-names');
 

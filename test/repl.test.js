@@ -62,6 +62,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(value), '', 'an empty word through send clears the field');
   });
 
+  it('takes key names in any case, as playwright-cli does', async () => {
+    await ok('fill #name ab');
+    await ok('press #name arrowleft');
+    await ok('press #name shift+arrowleft');
+    assert.equal(await ok('eval [document.querySelector("#name").selectionStart, document.querySelector("#name").selectionEnd].join()'), '0,1');
+    await ok('fill #name ""');
+  });
+
   it('submits with --submit, and types into the focused element', async () => {
     const value = 'eval document.querySelector("#name").value';
     await ok('eval window.entered = 0; document.querySelector("#name").addEventListener("keydown", e => { if (e.key === "Enter") window.entered += 1; }); 0');
