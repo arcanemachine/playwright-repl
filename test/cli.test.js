@@ -40,6 +40,7 @@ describe('pw-repl send help', () => {
     const result = pwRepl(['send', 'help nope'], { env, encoding: 'utf8' });
     assert.equal(result.status, 1);
     assert.match(result.stdout, /No help for nope/);
+    assert.match(pwRepl(['send', 'help where'], { env, encoding: 'utf8' }).stdout, /where is run at the shell \(pw-repl where\), not in the REPL; pw-repl --help/);
   });
 
   it('prints the skill as it is, with nothing else on stdout', () => {

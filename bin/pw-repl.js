@@ -132,7 +132,7 @@ function help(topic) {
   const helpText = require('../lib/help');
   const text = helpText.render(topic);
   if (text === null) {
-    console.log(`Error: No help for ${topic}. Topics: ${Object.keys(helpText.TOPICS).join(', ')}`);
+    console.log(`Error: ${helpText.notFound(topic)}`);
     process.exit(1);
   }
   console.log(text);
