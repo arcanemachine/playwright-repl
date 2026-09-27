@@ -42,7 +42,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('fill "label:has-text(\'Name\') input" "Grace Hopper"');
     assert.equal(await ok(value), 'Grace Hopper');
     await ok('fill #name ""');
-    assert.equal(await ok(value), '');
+    assert.equal(await ok(value), '""');
     const missing = await repl.run('fill #name');
     assert.equal(missing.status, 'error');
     assert.match(missing.output, /Usage: fill <selector> <value> \[--submit\], e\.g\. fill #name Ada Lovelace/);
@@ -59,7 +59,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(value), 'Katherine Johnson Jr', 'type adds to the end, leading space and all');
     const cleared = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'fill', '#name', ''], { encoding: 'utf8' });
     assert.equal(cleared.status, 0, cleared.stdout + cleared.stderr);
-    assert.equal(await ok(value), '', 'an empty word through send clears the field');
+    assert.equal(await ok(value), '""', 'an empty word through send clears the field');
   });
 
   it('takes key names in any case, as playwright-cli does', async () => {
@@ -90,6 +90,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(`eval "el => el.textContent" ${ref}`), 'Go');
     assert.equal(await ok(`eval (el) => el.id ${ref}`), 'go');
     assert.equal(await ok('eval 1 + 1'), '2', 'an expression is evaluated as before');
+    assert.equal(await ok('eval ""'), '""', 'an empty string is shown as one');
     assert.equal(await ok('eval (await fetch("/api/data")).status'), '200', 'await at the top level');
     assert.equal(await ok('eval const r = await fetch("/api/data"); await r.json()'), '{\n  "real": true\n}', 'statements with await give the last one\'s value');
     assert.match((await repl.run('eval await Promise.reject(new Error("nope")); 1')).output, /Error: nope/);
@@ -270,7 +271,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       const closed = await as('cli-a', 'close');
       assert.equal(closed.status, 'ok', closed.output);
       assert.match(closed.output, /: emulate off$/m);
-      assert.match(closed.output, /Tabs you opened are still open: \S+\?cli-a; tab close <url-part> closes one\./);
+      assert.match(closed.output, /Tabs you opened are still open: \S+\?cli-a; tab close <url-part> closes one, or select it and tab close\./);
       assert.match(await ok('tab'), /\?cli-a/, 'its tab stays open');
       assert.match(await ok('modes'), /network:off/, 'another client\'s modes stay on');
       const unnamed = await repl.run('close');
@@ -965,7 +966,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('console 50'), /after-reload[\s\S]*--- the page loaded \S+\n[\s\S]*after-many$/, 'still marked after more requests than the request log keeps');
     await ok('eval history.pushState({}, "", "#cart"); console.log("after-route"); 0');
     await waitFor(async () => /after-route/.test(await ok('console 2')), 'the message after the route change');
-    assert.doesNotMatch(await ok('console 2'), /--- the page loaded/, 'an app\'s own route change loads nothing');
+    assert.doesNotMatch(await ok('console 2'), /after-many[\s\S]*--- the page loaded[\s\S]*after-route/, 'an app\'s own route change loads nothing');
+    assert.match(await ok('console 1'), /^\S+ --- the page loaded \S+\n\S+ \[log\] after-route$/, 'from the load the first message came from');
+    await ok('eval history.replaceState({}, "", location.pathname); 0');
   });
 
   it('captures requests and console messages together until capture off', async () => {
