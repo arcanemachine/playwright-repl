@@ -17,6 +17,10 @@ If you hit a limitation or write a workaround, consider adding the capability to
   command line's words are read, shared with `send`; `lib/cli-names.js` maps playwright-cli's command
   names to these; `lib/state.js` holds the session state, with each client's selected tab;
   `lib/output.js` routes all output so the server can return it.
+- Match playwright-cli (Microsoft's CLI for agents) where it is reasonable: agents are likelier to be
+  trained on it. A new command, option or output that does what one of its does takes its name and form,
+  or accepts them too (`lib/cli-names.js`, `help playwright-cli`). Differ where sharing a browser with a
+  person needs it, and say why in the help.
 - Comment the *why* when it isn't obvious from the code.
 - `npm test` runs the suite (under two minutes): a private headless Chromium, a local test site
   (`test/harness.js`), and the real REPL with its server. Nothing is mocked, and the shared browser is
