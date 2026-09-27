@@ -97,6 +97,17 @@ what each step changed on the page); `watch` reads it back, and `watch new` only
 yet. For a tab they have not opened yet, `watch on --next-tab [url-part]` waits for it and watches it
 from its first page.
 
+When watching someone:
+
+- Read `body <#>` for any request that matters as soon as it shows up: the browser drops a body once
+  its tab navigates.
+- `watch` leaves out images and other static files, failed ones too; `console error` and
+  `requests --all` show what failed.
+- Without a url-part, `--next-tab` takes the first tab anyone opens; check `tab` and `info` once it
+  fires, since another tab opening later does not show in `watch`.
+- A watch belongs to the tab: when another client watches it too, read it with `watch <n>`, since
+  `watch new`'s place is shared and each one's would hide steps from the other.
+
 Exit status: `0` ok, `1` the command failed, `2` completion not confirmed (outcome unknown: do not
 blindly retry a change), `64` usage or the REPL is not reachable. `pw-repl --help` has the options.
 
