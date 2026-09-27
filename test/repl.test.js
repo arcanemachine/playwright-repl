@@ -162,6 +162,24 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(refused.output, /run-code is playwright-cli's; here, eval <JavaScript>/);
   });
 
+  it('opens a tab with playwright-cli\'s open, emulating a phone before the page loads', async () => {
+    const as = (client, command) => repl.runAs(client, command);
+    try {
+      const opened = await as('cli-open', `open ${site.url}/?cli-open --device="iPhone 13"`);
+      assert.equal(opened.status, 'ok', opened.output);
+      assert.match(opened.output, /Emulating mobile \(iPhone 13,/);
+      assert.doesNotMatch(opened.output, /reload to see/, 'the page loads after, so nothing needs reloading');
+      assert.equal((await as('cli-open', 'eval navigator.userAgent.includes("iPhone")')).output, 'true', 'the page loaded as the phone');
+      const bad = await as('cli-open', 'open --device=nokia-3310');
+      assert.equal(bad.status, 'error');
+      assert.match(bad.output, /No device "nokia-3310"[\s\S]*The new tab stays open and selected; tab close closes it\./);
+      assert.match((await as('cli-open', 'open')).output, /New tab created and selected/);
+    } finally {
+      await as('cli-open', 'close');
+      for (let i = 0; i < 3; i++) await as('cli-open', 'tab close');
+    }
+  });
+
   it('selects a tab by index only with playwright-cli\'s tab-select, and closes nothing with close', async () => {
     const as = (client, command) => repl.runAs(client, command);
     try {
