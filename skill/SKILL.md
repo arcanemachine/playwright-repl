@@ -99,9 +99,9 @@ from its first page.
 
 When watching someone:
 
-- `watch` keeps the bodies of the requests it shows (text, up to 100 KB each), so `body <#>` still has
-  them after the tab navigates. Read any other body that matters as soon as it shows up in `requests`:
-  the browser drops it once the tab navigates.
+- A watched tab keeps response bodies of up to 100 KB, so `body <#>` still has them after the tab
+  navigates. Read a bigger one that matters as soon as it shows up in `requests`: the browser drops it
+  once the tab navigates.
 - `watch` leaves out images and other static files, failed ones too; `console error` and
   `requests --all` show what failed.
 - Without a url-part, `--next-tab` takes the first tab anyone opens; check `tab` and `info` once it

@@ -446,6 +446,12 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const watched = await lastApiCall();
     await ok(`goto ${site.url}/other`);
     assert.match(await ok(`body ${watched}`), /GET 200 \S+\/api\/data \(application\/json, 13 bytes\)\n\{\n  "real": true\n\}/);
+    // A page that navigates as soon as a request answers, as after a login: it is never reported finished.
+    await ok('back');
+    await ok('eval fetch("/api/data").then(r => r.json()).then(() => { location.href = "/other?after-fetch"; }); 0');
+    await waitFor(async () => /after-fetch/.test(await ok('info')), 'the navigation');
+    const left = (await ok('requests /api/data')).trim().split('\n').pop().match(/#\d+/)[0];
+    assert.match(await ok(`body ${left}`), /GET 200 \S+\/api\/data \(application\/json, 13 bytes\)\n\{\n  "real": true\n\}/);
     await ok('watch off');
     await ok('tab close');
   });
