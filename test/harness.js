@@ -110,6 +110,7 @@ async function startRepl(cdpUrl) {
     req.end(body);
   });
   repl.run = command => repl.request(JSON.stringify({ command }));
+  repl.runAs = (client, command) => repl.request(JSON.stringify({ command, client }));
   repl.type = line => proc.stdin.write(`${line}\n`);
   repl.stop = async () => {
     if (!repl.exited) {

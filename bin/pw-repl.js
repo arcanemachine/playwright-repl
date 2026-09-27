@@ -17,7 +17,7 @@ const USAGE = `Usage:
   pw-repl stop [-e endpoint]
       stop a background REPL
 
-  pw-repl send [-e endpoint | -s session] [-t seconds] <command...>
+  pw-repl send [-e endpoint | -s session] [-c client] [-t seconds] <command...>
       run one command in a running REPL and print its output
 
   pw-repl where [-e endpoint | -s session]
@@ -32,6 +32,9 @@ const USAGE = `Usage:
 send uses the server when -e, $PW_ENDPOINT, or the socket ($PW_SOCKET, default /tmp/playwright-repl.sock)
 is there, and the tmux session (-s, $PW_TMUX_SESSION, default playwright-repl) otherwise. If the socket
 exists but nothing answers, send fails rather than fall back.
+
+send -c <client> (or $PW_CLIENT) sends as a client of the REPL's with a selected tab of its own, so
+several agents can share one REPL; pw-repl help session has the rest.
 
 send exit status: 0 ok, 1 command error, 2 completion not confirmed, 64 usage or unreachable.
 
@@ -53,17 +56,18 @@ function usage() {
   process.exit(64);
 }
 
-// -e, -s and -t, then the command words (unquoted words are one command).
+// -e, -s, -c and -t, then the command words (unquoted words are one command).
 function parseSendArgs(args, allowCommand) {
-  const options = { endpoint: null, session: null, timeout: 20, command: '' };
+  const options = { endpoint: null, session: null, client: null, timeout: 20, command: '' };
   let i = 0;
   for (; i < args.length; i++) {
     const arg = args[i];
-    if (arg === '-e' || arg === '-s' || arg === '-t') {
+    if (arg === '-e' || arg === '-s' || arg === '-c' || arg === '-t') {
       const value = args[++i];
       if (value === undefined) usage();
       if (arg === '-e') options.endpoint = value;
       if (arg === '-s') options.session = value;
+      if (arg === '-c') options.client = value;
       if (arg === '-t') {
         if (!/^\d+$/.test(value) || Number(value) < 1) usage();
         options.timeout = Number(value);

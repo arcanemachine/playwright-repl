@@ -121,6 +121,51 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('keeps a selected tab per client, and says who turned each mode on', async () => {
+    const as = async (client, command) => {
+      const result = await repl.runAs(client, command);
+      assert.equal(result.status, 'ok', `${client}: ${command}\n${result.output}`);
+      return result.output;
+    };
+    const start = repl.stdout.length;
+    const before = (await ok('info')).split('\n')[0];
+    try {
+      await as('agent-a', `tab new ${site.url}/?client-a`);
+      await as('agent-b', `tab new ${site.url}/?client-b`);
+      assert.match(await as('agent-a', 'info'), /\?client-a$/m, 'a keeps its tab while b opens one');
+      assert.match(await as('agent-b', 'info'), /\?client-b$/m);
+      assert.equal((await ok('info')).split('\n')[0], before, 'the unnamed senders and the prompt keep theirs');
+      await as('agent-a', 'network off');
+      await as('agent-b', 'route **/nothing 500 {}');
+      await as('agent-b', 'tab client-a');
+      await as('agent-b', 'emulate dark');
+      const modes = await ok('modes');
+      assert.match(modes, /\?client-a +\(network:off emulate:dark\)\n +on by agent-a: network:off; agent-b: emulate$/m);
+      assert.match(modes, /\?client-b +\(routes:1\)\n +on by agent-b: route \*\*\/nothing$/m);
+      assert.match(await ok('tab'), /\?client-a  \(opened by agent-a\)$/m);
+      assert.match(repl.stdout.slice(start), /\[server:agent-a\] tab new /, 'the pane says who sent it');
+      assert.match(await as('agent-a', 'modes off --mine'), /client-a: network on$/m);
+      const left = await ok('modes');
+      assert.match(left, /emulate:dark/, 'b\'s modes stay on');
+      assert.doesNotMatch(left, /network:off/);
+      assert.match(await as('agent-a', 'modes off --mine'), /None of your modes were on/);
+      await as('agent-b', 'modes off --mine');
+      assert.match(await ok('modes'), /No modes are on/);
+      assert.equal((await repl.runAs('bad name', 'info')).code, 400, 'a client name has no spaces');
+      const { spawnSync } = require('child_process');
+      const bin = require('path').join(__dirname, '..', 'bin', 'pw-repl.js');
+      const sent = spawnSync(process.execPath, [bin, 'send', '-e', repl.socket, '-c', 'agent-c', 'tab'], { encoding: 'utf8', env: { ...process.env, PW_CLIENT: '' } });
+      assert.equal(sent.status, 0, sent.stderr);
+      await waitFor(() => /\[server:agent-c\] tab/.test(repl.stdout.slice(start)), 'send -c to name the client');
+      const byEnv = spawnSync(process.execPath, [bin, 'send', '-e', repl.socket, 'tab'], { encoding: 'utf8', env: { ...process.env, PW_CLIENT: 'agent-d' } });
+      assert.equal(byEnv.status, 0, byEnv.stderr);
+      await waitFor(() => /\[server:agent-d\] tab/.test(repl.stdout.slice(start)), 'PW_CLIENT to name the client');
+      assert.equal(spawnSync(process.execPath, [bin, 'send', '-e', repl.socket, '-c', 'no/slash', 'info'], { encoding: 'utf8' }).status, 64);
+    } finally {
+      for (const part of ['client-a', 'client-b']) await repl.run(`tab close ${part}`);
+    }
+  });
+
   it('watches the next tab someone opens, from its first page', async () => {
     const { chromium } = require('playwright-core');
     const person = await chromium.connectOverCDP(chrome.cdpUrl);
