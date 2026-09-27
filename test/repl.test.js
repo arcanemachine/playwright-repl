@@ -70,6 +70,21 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('fill #name ""');
   });
 
+  it('clicks with a button and modifiers', async () => {
+    await ok('eval window.clicks = []; for (const t of ["click", "contextmenu", "auxclick", "dblclick"]) document.querySelector("#go").addEventListener(t, e => clicks.push(`${t}:${e.button}:${e.shiftKey}`)); 0');
+    const ref = /button "Go" \[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot'))[1];
+    assert.equal(await ok(`click ${ref} right`), `Clicked: ${ref} right`);
+    await ok(`click "#go" middle`);
+    await ok(`click ${ref} --modifiers="shift"`);
+    await ok(`dblclick ${ref}`);
+    assert.equal(await ok('eval clicks.join(" ")'), 'contextmenu:2:false auxclick:2:false auxclick:1:false click:0:true click:0:false click:0:false dblclick:0:false');
+    assert.match((await repl.run(`click ${ref} --modifiers=Hyper`)).output, /Not a modifier: Hyper/);
+    await ok('eval document.querySelector("#out").insertAdjacentHTML("afterend", \'<button id="hold" onclick="window.held = event.shiftKey">Hold --modifiers Shift</button>\'); 0');
+    await ok('click "text=Hold --modifiers Shift"');
+    assert.equal(await ok('eval window.held'), 'false', 'kept whole in quotes: its text, no Shift');
+    await ok('eval document.querySelector("#hold").remove(); 0');
+  });
+
   it('submits with --submit, and types into the focused element', async () => {
     const value = 'eval document.querySelector("#name").value';
     await ok('eval window.entered = 0; document.querySelector("#name").addEventListener("keydown", e => { if (e.key === "Enter") window.entered += 1; }); 0');
