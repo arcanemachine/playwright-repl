@@ -34,7 +34,7 @@ describe('help', () => {
   });
 
   it('fits a normal-width pane', () => {
-    const views = [help.render(), help.render('--all'), ...Object.keys(help.TOPICS).map(help.render), ...Object.keys(help.COMMANDS).map(help.render)];
+    const views = [help.render(), help.render('--all'), help.render('playwright-cli'), ...Object.keys(help.TOPICS).map(help.render), ...Object.keys(help.COMMANDS).map(help.render)];
     for (const line of views.join('\n').split('\n')) assert.ok(line.length <= 110, `${line.length} chars: ${line}`);
   });
 
