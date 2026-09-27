@@ -182,6 +182,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('go-back'), /^\(playwright-cli's go-back is back here\)\nBack to: /);
     await ok('go-forward');
     assert.match(await ok('go-back'), /^Back to: /, 'explained once');
+    assert.match((await repl.runAs('cli-note', 'go-forward')).output, /^\(playwright-cli's go-forward is forward here\)/, 'and once to each client');
+    await repl.runAs('cli-note', 'go-back');
     assert.equal(await ok('eval () => document.title'), 'Fixture', 'a function is called, as playwright-cli\'s eval does');
     await ok('route **/api/data --status=503 --body={"cli":1}');
     assert.match(await ok(fetchStatus), /^Faked: #\d+ GET \S+\/api\/data -> 503\n503$/);
