@@ -75,6 +75,7 @@ async function startSite() {
   const server = http.createServer((req, res) => {
     req.url = new URL(req.url, 'http://fixture').pathname;
     if (req.url === '/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(PAGE); }
+    if (req.url === '/frame') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><title>Frame</title><iframe srcdoc="<button>inner</button>"></iframe>'); }
     if (req.url === '/other') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><title>Other</title><h1>Other</h1>'); }
     // Loads for a moment, for wait load.
     if (req.url === '/slow-load') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><title>Slow</title><img src="/slow-image">'); }

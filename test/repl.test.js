@@ -85,6 +85,20 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('eval document.querySelector("#hold").remove(); 0');
   });
 
+  it('calls a function on an element with eval <function> <ref>', async () => {
+    const ref = /button "Go"[^\n]*\[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot --grep Go'))[1];
+    assert.equal(await ok(`eval "el => el.textContent" ${ref}`), 'Go');
+    assert.equal(await ok(`eval (el) => el.id ${ref}`), 'go');
+    assert.equal(await ok('eval 1 + 1'), '2', 'an expression is evaluated as before');
+    try {
+      await ok(`tab new ${site.url}/frame`);
+      const inner = /button "inner" \[ref=(f\d+e\d+)\]/.exec(await ok('snapshot'))[1];
+      assert.equal(await ok(`eval el => el.textContent ${inner}`), 'inner', 'an element in an iframe');
+    } finally {
+      await ok('tab close frame');
+    }
+  });
+
   it('submits with --submit, and types into the focused element', async () => {
     const value = 'eval document.querySelector("#name").value';
     await ok('eval window.entered = 0; document.querySelector("#name").addEventListener("keydown", e => { if (e.key === "Enter") window.entered += 1; }); 0');
