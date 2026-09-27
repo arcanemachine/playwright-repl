@@ -41,6 +41,8 @@ Work goes in waves, and each one ends with a release that is ready to push.
      ask again.
    - Then it carries the plan out, in a browser and on a socket of its own, and reports as it goes:
      above all, where the tool did something other than what the docs led it to expect.
+   - Once it has confirmed the fixes work, it reviews them as a second pair of eyes: anything important
+     they miss or get wrong, not nitpicks.
 3. Triage what it reports. Fix what matters, and what is small and useful; don't put off something
    useful for later. Leave trivia alone, and say why.
 4. Repeat 2 and 3, with a fresh agent each time, until a pass comes back clean: no real bugs, and
