@@ -1,7 +1,10 @@
 # playwright-repl
 
-A text REPL for driving an existing Chromium through Playwright over CDP. You and agents can share the same
-browser: people click in it, and the REPL inspects it, fakes responses, and records what happened.
+A text REPL for driving an existing Chromium through Playwright over CDP: one session that people and agents
+share. People click in the browser and type commands at the prompt; agents send the same commands, and every
+one shows in the REPL, so each sees what the other does. The REPL inspects the page, records what happened
+(requests, console, and each step a person takes), fakes, patches or slows responses, and emulates phones,
+dark mode, locales and timezones.
 
 ## Getting started
 
