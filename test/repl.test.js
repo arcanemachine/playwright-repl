@@ -827,6 +827,17 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const errors = await ok('console 50 error');
     assert.doesNotMatch(errors, /hello-log/);
     assert.match(errors, /bad-thing/);
+    assert.match(errors, /boom-uncaught/, 'a page error is an error');
+    await ok('eval console.warn("careful-warn"); console.debug("quiet-debug"); 0');
+    await waitFor(async () => /quiet-debug/.test(await ok('console 50 debug')), 'the debug message');
+    const warnings = await ok('console 50 warning');
+    assert.match(warnings, /\[warning\] careful-warn/);
+    assert.match(warnings, /\[error\] bad-thing/, 'warning includes errors, as playwright-cli\'s does');
+    assert.doesNotMatch(warnings, /hello-log/);
+    const info = await ok('console 50 info');
+    assert.match(info, /hello-log/);
+    assert.doesNotMatch(info, /quiet-debug/, 'info leaves out debug');
+    assert.match(await ok('console 50 careful'), /careful-warn/, 'anything else is a filter');
   });
 
   it('captures requests and console messages together until capture off', async () => {
