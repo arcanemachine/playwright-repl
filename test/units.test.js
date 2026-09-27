@@ -235,6 +235,24 @@ describe('playwright-cli names', () => {
     for (const text of ['tab', 'route **/a 500 {}', 'eval 1+1', 'console error', 'upload #f a.png']) assert.equal(translate(text), null, text);
   });
 
+  it('finds playwright-cli\'s options anywhere on the line, and a body with spaces up to the next one', () => {
+    const { takeOptions } = require('../lib/cli-names');
+    const spec = { body: 'rest', status: 'value', submit: 'flag', filter: 'value' };
+    assert.deepEqual(takeOptions('**/a --body={"mock": true} --status 500', spec), {
+      found: [{ name: 'body', value: '{"mock": true}' }, { name: 'status', value: '500' }], rest: '**/a',
+    });
+    assert.deepEqual(takeOptions('e5 "a  b" --submit', spec), { found: [{ name: 'submit', value: undefined }], rest: 'e5 "a  b"' });
+    assert.deepEqual(takeOptions('--filter=/api/ 3', spec), { found: [{ name: 'filter', value: '/api/' }], rest: '3' });
+    assert.deepEqual(takeOptions('e5 --submitted', spec), { found: [], rest: 'e5 --submitted' }, 'only its own options');
+  });
+
+  it('refuses playwright-cli\'s options that are not taken here, rather than read them as words', () => {
+    assert.match(translate('snapshot --depth=3').refuse, /^playwright-cli's snapshot --depth is not supported here; snapshot <ref>/);
+    assert.match(translate('open example.com --headed').refuse, /pw-repl serve --launch \[--headed\]/);
+    assert.match(translate('route **/a --header=x:y').refuse, /route --header is not supported here/);
+    assert.equal(translate('snapshot --full'), null, 'this tool\'s own options are left to it');
+  });
+
   it('refuses what it cannot do the same way, with the nearest command', () => {
     assert.match(translate('run-code async page => 1').refuse, /eval <JavaScript>/);
     assert.match(translate('tab-close 2').refuse, /tab <index> then tab close/, 'an index here would be read as part of a URL');
