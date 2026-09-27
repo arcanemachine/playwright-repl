@@ -622,6 +622,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const missing = await repl.run('body 99999');
     assert.equal(missing.status, 'error');
     assert.match(missing.output, /No request #99999/);
+    assert.match(await ok('body /api/data'), /GET 418 faked[\s\S]*"fake": 1/, 'the latest whose URL contains it');
+    assert.match((await repl.run('body /never-requested')).output, /No finished request on the selected tab has a URL containing \/never-requested/);
   });
 
   it('keeps console messages and uncaught errors without a capture', async () => {
