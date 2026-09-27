@@ -90,6 +90,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(`eval "el => el.textContent" ${ref}`), 'Go');
     assert.equal(await ok(`eval (el) => el.id ${ref}`), 'go');
     assert.equal(await ok('eval 1 + 1'), '2', 'an expression is evaluated as before');
+    assert.equal(await ok('eval (await fetch("/api/data")).status'), '200', 'await at the top level');
+    assert.equal(await ok('eval const r = await fetch("/api/data"); await r.json()'), '{\n  "real": true\n}', 'statements with await give the last one\'s value');
+    assert.match((await repl.run('eval await Promise.reject(new Error("nope")); 1')).output, /Error: nope/);
     try {
       await ok(`tab new ${site.url}/frame`);
       const inner = /button "inner" \[ref=(f\d+e\d+)\]/.exec(await ok('snapshot'))[1];
