@@ -82,7 +82,8 @@ that, look at the browser itself: `tab` and `info` for where things are, `reques
 clicks made (`body <#>` for what one returned), `console` for console messages and page errors. `watch
 on` records each step someone takes in a tab, with the requests it caused (`watch on --changes` adds
 what each step changed on the page); `watch` reads it back, and `watch new` only what it has not shown
-yet.
+yet. For a tab they have not opened yet, `watch on --next-tab [url-part]` waits for it and watches it
+from its first page.
 
 Exit status: `0` ok, `1` the command failed, `2` completion not confirmed (outcome unknown: do not
 blindly retry a change), `64` usage or the REPL is not reachable. `pw-repl --help` has the options.
@@ -115,8 +116,9 @@ help is the command reference; this file does not repeat it.
   one works too (`--headless=new`); nobody answers its dialogs but `dialog`.
 - `PW_CHROME` — the Chromium `--launch` starts (default: Playwright's own, then one on the `PATH`).
 - `PW_CDP_URL` — CDP endpoint (default `http://localhost:9222`).
-- `PW_SCREENSHOT_DIR` — where the REPL saves screenshots (default `/tmp`), read when it starts, not by
-  `send`. `screenshot` prints each file's path; other REPLs may save theirs there too. Remove only your
+- `PW_SCREENSHOT_DIR` — where the REPL saves screenshots, read when it starts, not by `send`. Without it,
+  a REPL on a socket of its own saves them next to its socket, and any other in `/tmp`. `screenshot`
+  prints each file's path; other REPLs may save theirs in the same place. Remove only your
   own, and keep those too if they are needed, e.g. as evidence or as something to hand over.
 - `PW_ENDPOINT` / `PW_TMUX_SESSION` — defaults for `send -e` / `-s`. `PW_SOCKET` — the socket `send`
   looks for when neither is given (default `/tmp/playwright-repl.sock`).
