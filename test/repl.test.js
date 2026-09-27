@@ -222,6 +222,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await waitFor(async () => /click button "Go"/.test(await ok('watch')), 'the click');
       const stopped = await ok('recording-stop');
       assert.match(stopped, /Stopped watching the selected tab[\s\S]*click button "Go"/, 'stopped, then the steps shown');
+      assert.match((await repl.run('mousemove 1 2')).output, /mousemove is playwright-cli's and not here yet; click, dblclick and hover/);
     } finally {
       await ok('tab close cli-storage');
     }

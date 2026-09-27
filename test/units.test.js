@@ -277,6 +277,32 @@ describe('playwright-cli names', () => {
     assert.equal(translate('find --regex "Total: \\d+"').text, 'snapshot --regex "Total: \\d+"', 'a regexp as typed, backslashes and all');
   });
 
+  // Every command playwright-cli 0.1.21 lists.
+  const CLI_COMMANDS = [
+    'attach', 'check', 'clear-color-scheme', 'clear-contrast', 'clear-forced-colors', 'clear-media',
+    'clear-reduced-motion', 'click', 'close', 'close-all', 'console', 'cookie-clear', 'cookie-delete',
+    'cookie-get', 'cookie-list', 'cookie-set', 'dblclick', 'delete-data', 'detach', 'dialog-accept',
+    'dialog-dismiss', 'drag', 'drop', 'eval', 'fill', 'find', 'generate-locator', 'go-back', 'go-forward',
+    'goto', 'highlight', 'hover', 'install', 'install-browser', 'keydown', 'keyup', 'kill-all', 'list',
+    'localstorage-clear', 'localstorage-delete', 'localstorage-get', 'localstorage-list',
+    'localstorage-set', 'mousedown', 'mousemove', 'mouseup', 'mousewheel', 'network-state-set', 'open',
+    'pause-at', 'pdf', 'press', 'recording-start', 'recording-stop', 'reload', 'request', 'request-body',
+    'request-headers', 'requests', 'resize', 'response-body', 'response-headers', 'resume', 'route',
+    'route-list', 'run-code', 'screenshot', 'select', 'sessionstorage-clear', 'sessionstorage-delete',
+    'sessionstorage-get', 'sessionstorage-list', 'sessionstorage-set', 'set-color-scheme', 'set-contrast',
+    'set-forced-colors', 'set-media', 'set-reduced-motion', 'show', 'snapshot', 'state-load',
+    'state-save', 'step-over', 'tab-close', 'tab-list', 'tab-new', 'tab-select', 'tracing-start',
+    'tracing-stop', 'type', 'uncheck', 'unroute', 'upload', 'video-chapter', 'video-hide-actions',
+    'video-show-actions', 'video-start', 'video-stop', 'webmcp-call', 'webmcp-list',
+  ];
+
+  it('runs, rewrites or refuses each of playwright-cli\'s commands by name, never as unknown', () => {
+    const { commands } = require('../lib/commands');
+    for (const name of CLI_COMMANDS) assert.ok(translate(name) || Object.hasOwn(commands, name), name);
+    assert.match(translate('drag e1 e2').refuse, /^drag is playwright-cli's and not here yet$/);
+    assert.match(translate('close-all').refuse, /not here on purpose: it would close a browser someone else may be using/);
+  });
+
   it('reads and writes storage with eval, as playwright-cli\'s storage commands do', () => {
     assert.equal(translate('localstorage-get "my key"').text, 'eval localStorage.getItem("my key")');
     assert.equal(translate('sessionstorage-set k a b').text, 'eval sessionStorage.setItem("k", "a b"), "Set " + "k"');
