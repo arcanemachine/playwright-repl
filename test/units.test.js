@@ -228,7 +228,11 @@ describe('playwright-cli names', () => {
     assert.equal(translate('resize 800 600').text, 'viewport 800x600');
     assert.equal(translate('unroute').text, 'route off --all');
     assert.equal(translate('route **/slots.json --status=500 --body=\'{"error":"x"}\'').text, 'route **/slots.json 500 {"error":"x"}');
-    assert.equal(translate('route **/a --status=503').text, 'route **/a 503 {}');
+    assert.equal(translate('route **/a --status=503').text, 'route **/a 503');
+    assert.equal(translate('route "**/a" --body={"mock": true}').text, 'route **/a 200 {"mock": true}', 'status 200 unless given');
+    assert.equal(translate("route **/a --body='not found' --status=404").text, 'route **/a 404 --content-type=text/plain not found');
+    assert.equal(translate('route **/a --body=<b>x</b> --content-type=text/html').text, 'route **/a 200 --content-type=text/html <b>x</b>');
+    assert.equal(translate('route **/x 200 --content-type=text/plain see --header docs'), null, 'this tool\'s own route, whose body is free text');
   });
 
   it('leaves this tool\'s own commands alone', () => {

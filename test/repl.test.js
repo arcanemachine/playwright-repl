@@ -130,6 +130,11 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok('eval () => document.title'), 'Fixture', 'a function is called, as playwright-cli\'s eval does');
     await ok('route **/api/data --status=503 --body={"cli":1}');
     assert.match(await ok(fetchStatus), /^Faked: #\d+ GET \S+\/api\/data -> 503\n503$/);
+    const { spawnSync } = require('child_process');
+    const bin = require('path').join(__dirname, '..', 'bin', 'pw-repl.js');
+    const sent = spawnSync(process.execPath, [bin, 'send', '-e', repl.socket, 'route', '**/api/data', '--body={"mock": true}'], { encoding: 'utf8' });
+    assert.equal(sent.status, 0, sent.stdout);
+    assert.match(await ok('eval fetch("/api/data").then(r => r.status)'), /-> 200\n200$/, 'a body with spaces, through send, at status 200');
     await ok('unroute');
     await ok('network-state-set offline');
     assert.match(await ok(fetchStatus), /Failed to fetch/);
@@ -721,10 +726,18 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match((await repl.run('route **/x 101 {}')).output, /200 to 599/);
   });
 
-  it('rejects a route body that is not JSON', async () => {
+  it('rejects a route body that is not JSON, unless its type is given', async () => {
     const result = await repl.run('route **/api/data 500 {nope');
     assert.equal(result.status, 'error');
-    assert.match(result.output, /not valid JSON/);
+    assert.match(result.output, /not valid JSON: .*; for another kind, give its type: route <url-glob> <status> --content-type=text\/plain <body>/);
+    const text = 'eval fetch("/api/data").then(async r => `${r.status} ${r.headers.get("content-type")} ${await r.text()}`)';
+    await ok('route "**/api/data" 503 --content-type=text/plain down for now');
+    assert.match(await ok(text), /^503 text\/plain down for now$/m, 'a quoted glob matches as if unquoted');
+    await ok('route **/api/data 200 --content-type="text/html; charset=utf-8" <p>hi</p>');
+    assert.match(await ok(text), /^200 text\/html; charset=utf-8 <p>hi<\/p>$/m, 'a quoted type with a parameter');
+    await ok('route **/api/data 204');
+    assert.match(await ok(text), /^204 null $/m, 'no body');
+    await ok('route off "**/api/data"');
   });
 
   it('shows a fake as faked in requests as soon as it is answered', async () => {
