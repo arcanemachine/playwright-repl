@@ -368,6 +368,10 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await waitFor(async () => /click button "Go"/.test(trail = await ok('watch')), 'the click in the new tab');
       assert.match(trail, /^\S+ navigate \S+\/\?wanted$/m, 'from its first page');
       assert.doesNotMatch(trail, /about:blank|not-this-one/);
+      // Its first page can load before the watch is ready; its body is kept all the same.
+      const first = trail.match(/#(\d+) GET 200 \S+\/\?wanted$/m)[1];
+      await wanted.goto(`${site.url}/other?wanted`);
+      assert.match(await ok(`body ${first}`), /\(text\/html, \d+ bytes\)\n[\s\S]*<title>Fixture<\/title>/);
       assert.doesNotMatch(await ok('modes'), /Waiting to watch/, 'it waits for one tab only');
       await ok('tab not-this-one');
       assert.match(await ok('watch'), /^Not watching the selected tab\./, 'a tab that is not it is left alone');
