@@ -99,6 +99,28 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('snapshot #go'), /button "Go"/);
   });
 
+  it('watches alongside another Playwright client without throwing errors into the page', async () => {
+    const { chromium } = require('playwright-core');
+    const other = await chromium.connectOverCDP(chrome.cdpUrl);
+    try {
+      await ok(`tab new ${site.url}/?other-client`);
+      const page = other.contexts()[0].pages().find(p => p.url().includes('other-client'));
+      let called = 0;
+      await page.exposeBinding('__otherTool', () => { called += 1; return 'ok'; });
+      await ok('watch on');
+      assert.equal(await ok('eval window.__otherTool()'), 'ok');
+      await ok('click #go');
+      await waitFor(async () => /click button "Go"/.test(await ok('watch')), 'the click');
+      assert.equal(called, 1);
+      assert.doesNotMatch(await ok('console 50'), /is not exposed/);
+    } finally {
+      await ok('watch off');
+      await other.close();
+      await ok('tab close other-client');
+      await ok('tab 1');
+    }
+  });
+
   it('watches what happens in a tab, with the requests each step caused', async () => {
     assert.match(await ok('watch'), /^Not watching the selected tab\.\n\n +watch on +record/);
     await ok('watch on');
@@ -117,8 +139,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await waitFor(async () => /click button "Go"/.test(await ok('watch')), 'a click after navigating');
     await ok('click #pw');
     await ok('click #typed');
-    await ok('eval window.__pwReplWatch({ action: "navigate", target: "forged-navigation" })');
-    await ok('eval window.__pwReplWatch({ action: "click", target: "forged-click", t: 0 })');
+    await ok('eval window.__pwReplWatch(JSON.stringify({ action: "navigate", target: "forged-navigation" }))');
+    await ok('eval window.__pwReplWatch(JSON.stringify({ action: "click", target: "forged-click", t: 0 }))');
     await waitFor(async () => /forged-click/.test(trail = await ok('watch 50')), 'the page-sent click');
     assert.doesNotMatch(trail, /Password|my private draft|forged-navigation/);
     assert.match(trail, /click p\n/, 'an editable area is named by role only');
