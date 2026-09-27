@@ -361,10 +361,12 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await ok('tab ?wanted');
       await ok('watch off');
       await ok('watch on --next-tab');
+      await repl.runAs('cli-own', `tab new ${site.url}/?own-tab`);
+      assert.match(await ok('modes'), /Waiting to watch the next tab/, 'a tab a client opens with tab new is its own, not someone\'s');
       assert.match(await ok('watch off'), /^Stopped waiting to watch a new tab/);
     } finally {
       await person.close();
-      for (const part of ['not-this-one', '?wanted']) await repl.run(`tab close ${part}`);
+      for (const part of ['not-this-one', '?wanted', '?own-tab']) await repl.run(`tab close ${part}`);
       await ok('tab 1');
     }
   });
