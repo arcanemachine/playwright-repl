@@ -139,6 +139,39 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(refused.output, /run-code is playwright-cli's; here, eval <JavaScript>/);
   });
 
+  it('selects a tab by index only with playwright-cli\'s tab-select', async () => {
+    const as = (client, command) => repl.runAs(client, command);
+    try {
+      assert.equal((await as('cli-a', `tab new ${site.url}/?cli-a`)).status, 'ok');
+      const listed = (await ok('tab')).split('\n').filter(line => /^[ *] \[\d+\]/.test(line));
+      const index = listed.findIndex(line => line.includes('?cli-a'));
+      const other = listed.findIndex(line => !line.includes('?cli-a'));
+      const fresh = await as('cli-b', `tab-select ${index}`);
+      assert.match(fresh.output, /\?cli-a$/m, 'a new client, with no listing of its own, gets the tab at that index');
+      const port = new URL(site.url).port;
+      const missing = await as('cli-b', `tab-select ${port}`);
+      assert.equal(missing.status, 'error');
+      assert.match(missing.output, /No tab \[\d+\] in your last listing; tab-list lists them again/, 'never a tab whose URL contains the number');
+    } finally {
+      await repl.run('tab close cli-a');
+    }
+  });
+
+  it('selects the tab at an index in the sender\'s last listing with tab-select, even after tabs close', async () => {
+    const as = (client, command) => repl.runAs(client, command);
+    try {
+      await as('cli-x', `tab new ${site.url}/?cli-x`);
+      await as('cli-x', `tab new ${site.url}/?cli-y`);
+      const seen = (await as('cli-d', 'tab-list')).output.split('\n').filter(line => /^[ *] \[\d+\]/.test(line));
+      const [x, y] = ['?cli-x', '?cli-y'].map(part => seen.findIndex(line => line.includes(part)));
+      await ok('tab close cli-x');
+      assert.match((await as('cli-d', `tab-select ${y}`)).output, /\?cli-y$/m, 'the tab it listed, though one before it closed');
+      assert.match((await as('cli-d', `tab-select ${x}`)).output, /The tab at \[\d+\] in your last listing has closed; tab-list lists them again/);
+    } finally {
+      await repl.run('tab close cli-y');
+    }
+  });
+
   it('keeps a selected tab per client, and says who turned each mode on', async () => {
     const as = async (client, command) => {
       const result = await repl.runAs(client, command);
