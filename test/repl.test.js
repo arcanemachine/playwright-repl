@@ -682,6 +682,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('emulate light');
     assert.match(await ok('eval matchMedia("(prefers-color-scheme: light)").matches'), /true/);
     assert.match(await ok('emulate mobile iphone 13'), /iPhone 13, 390x664/, 'device names in any case');
+    assert.match(await ok('emulate mobile off'), /^Stopped emulating mobile in the selected tab\nThe page sees its own user agent, touch and languages again from its next load: reload/);
+    await ok('emulate mobile iphone 13');
     const near = await repl.run('emulate mobile iphone pro');
     assert.match(near.output, /No device "iphone pro"; matching: (?:iPhone \d+ Pro(?: Max)?, )+/, 'a near miss lists the names it matches');
     assert.doesNotMatch(near.output, /landscape,/);
