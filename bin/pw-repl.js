@@ -84,7 +84,12 @@ function parseSendArgs(args, allowCommand) {
   const requote = words.length > 1 && SELECTOR_FIRST.has(words[0]);
   // An empty word (fill #name "") is the empty value.
   // upload's files are read by the REPL, whose folder may not be this one.
-  const resolved = words[0] === 'upload' ? words.map((w, n) => (n > 1 ? require('path').resolve(w) : w)) : words;
+  // So are the files upload reads and screenshot --filename writes.
+  const resolve = require('path').resolve;
+  let resolved = words[0] === 'upload' ? words.map((w, n) => (n > 1 ? resolve(w) : w)) : words;
+  if (words[0] === 'screenshot') {
+    resolved = words.map((w, n) => (w.startsWith('--filename=') && w.length > 11 ? `--filename=${resolve(w.slice(11))}` : words[n - 1] === '--filename' ? resolve(w) : w));
+  }
   const quoted = requote ? resolved.map(w => (w === '' || /[\s"']/.test(w) ? JSON.stringify(w) : w)) : resolved;
   options.command = quoted.join(' ').trim();
   return options;
