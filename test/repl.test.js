@@ -418,6 +418,29 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(bare, /click button "Load"[\s\S]*\n\n +watch <n> [^\n]*\n +watch on \[--changes\] \[--live\] +record again$/);
   });
 
+  it('keeps the bodies of what a watch shows, after the tab navigates', async () => {
+    await ok(`tab new ${site.url}/?kept-bodies`);
+    const lastApiCall = async () => {
+      let last = '';
+      await waitFor(async () => / 200 .*\/api\/data$/.test(last = (await ok('requests /api/data')).trim().split('\n').pop()), 'the request');
+      return last.match(/#\d+/)[0];
+    };
+    await ok('click #load');
+    const unwatched = await lastApiCall();
+    await ok(`goto ${site.url}/other`);
+    const dropped = await repl.run(`body ${unwatched}`);
+    assert.equal(dropped.status, 'error');
+    assert.match(dropped.output, /not available: .*a watched tab keeps them as they arrive/);
+    await ok('back');
+    await ok('watch on');
+    await ok('click #load');
+    const watched = await lastApiCall();
+    await ok(`goto ${site.url}/other`);
+    assert.match(await ok(`body ${watched}`), /GET 200 \S+\/api\/data \(application\/json, 13 bytes\)\n\{\n  "real": true\n\}/);
+    await ok('watch off');
+    await ok('tab close');
+  });
+
   it('records typing before the step that follows it, and names a select by its label', async () => {
     await ok('reload');
     await ok('watch on');
