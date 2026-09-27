@@ -858,6 +858,17 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal((await repl.run('dialog dismiss')).status, 'error');
   });
 
+  it('answers a dialog with playwright-cli\'s dialog-accept and dialog-dismiss, ahead of the queue too', async () => {
+    for (const [command, answer] of [['dialog-accept', 'true'], ['dialog-dismiss', 'false']]) {
+      const start = repl.stdout.length;
+      const click = repl.run('click #alerter');
+      await waitFor(() => /Dialog \[confirm\]: sure\?/.test(repl.stdout.slice(start)), 'the dialog');
+      assert.match(await ok(command), /Accepted|Dismissed/);
+      assert.equal((await click).status, 'ok');
+      assert.equal(await ok('text #out'), `answered ${answer}`);
+    }
+  });
+
   it('reports a read-only timeout as an error and carries on', async () => {
     const result = await repl.run('text #not-on-the-page');
     assert.equal(result.status, 'error');
