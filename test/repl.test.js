@@ -450,6 +450,26 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('turns off only the sender\'s route, watch and capture with modes off --mine', async () => {
+    const as = async (client, command) => {
+      const result = await repl.runAs(client, command);
+      assert.equal(result.status, 'ok', `${client}: ${command}\n${result.output}`);
+      return result.output;
+    };
+    await as('mine-a', `tab new ${site.url}/?mine-a`);
+    await as('mine-a', 'route **/a-only 500 {}');
+    await as('mine-a', 'watch on');
+    await as('mine-a', 'capture on');
+    await as('mine-b', 'tab mine-a');
+    await as('mine-b', 'route **/b-only 500 {}');
+    assert.match(await as('mine-b', 'modes off --mine'), /\?mine-a: 1 route removed$/m);
+    const left = await ok('modes');
+    assert.match(left, /on by mine-a: watch, route \*\*\/a-only, capture$/m, 'a\'s stay on');
+    assert.doesNotMatch(left, /b-only/);
+    assert.match(await as('mine-a', 'modes off --mine'), /\?mine-a: watch off, capture off \(capture shows it\), 1 route removed$/m);
+    assert.match(await ok('modes'), /No modes are on/);
+  });
+
   it('watches the next tab someone opens, from its first page', async () => {
     const { chromium } = require('playwright-core');
     const person = await chromium.connectOverCDP(chrome.cdpUrl);
