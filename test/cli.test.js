@@ -5,10 +5,20 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { SKIP, waitFor, startChrome } = require('./harness');
+const { SKIP, waitFor, startChrome, startSite } = require('./harness');
 
 const BIN = path.join(__dirname, '..', 'bin', 'pw-repl.js');
 const pwRepl = (args, options) => spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', ...options });
+// For a command that loads a page from startSite(), which runs in this process: spawnSync would block it.
+const pwReplAsync = (args, { timeout = 30000, ...options } = {}) => new Promise(resolve => {
+  const child = spawn(process.execPath, [BIN, ...args], { stdio: ['ignore', 'pipe', 'pipe'], ...options });
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', d => { stdout += d; });
+  child.stderr.on('data', d => { stderr += d; });
+  const timer = setTimeout(() => child.kill('SIGKILL'), timeout);
+  child.on('close', status => { clearTimeout(timer); resolve({ status, stdout, stderr }); });
+});
 
 describe('pw-repl send help', () => {
   const env = { ...process.env, PW_SOCKET: '/nonexistent/pw-sh-test.sock', PW_TMUX_SESSION: 'pw-sh-test-no-such-session', PW_ENDPOINT: '' };
@@ -145,6 +155,147 @@ describe('pw-repl send help', () => {
       pwRepl(['stop'], { env, timeout: 20000 });
       fs.rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  it('launches in a profile given with --user-data-dir after --, and keeps it, with what the page saved', { skip: SKIP }, async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-launch-test-'));
+    const site = await startSite();
+    const socket = path.join(dir, 'repl.sock');
+    const profile = path.join(dir, 'profile');
+    const env = { ...process.env, PW_SOCKET: socket, PW_ENDPOINT: '', PW_CDP_URL: 'http://127.0.0.1:9' };
+    // A port file an earlier run left behind, naming a port nothing answers on.
+    fs.mkdirSync(profile);
+    fs.writeFileSync(path.join(profile, 'DevToolsActivePort'), '9\n/devtools/browser/gone\n');
+    // A log grown past its limit, from runs long ago.
+    fs.writeFileSync(path.join(dir, 'repl.log'), 'old run\n'.repeat(700000));
+    try {
+      const started = pwRepl(['serve', '--background', '--launch', socket, '--', `--user-data-dir=${profile}`], { env, timeout: 40000 });
+      assert.equal(started.status, 0, started.stderr);
+      const log = fs.readFileSync(path.join(dir, 'repl.log'), 'utf8');
+      assert.doesNotMatch(log, /old run/, 'a log past its limit is moved aside');
+      assert.match(fs.readFileSync(path.join(dir, 'repl.log.1'), 'utf8'), /^old run\n/, 'to <log>.1');
+      const command = /^  (\S+ .*about:blank)$/m.exec(log)[1];
+      assert.deepEqual(command.match(/--user-data-dir=\S+/g), [`--user-data-dir=${profile}`], 'only the profile it was given');
+      const url = /Another REPL reaches it with PW_CDP_URL=(\S+)/.exec(log)[1];
+      assert.notEqual(new URL(url).port, '9', 'not the port the stale file names');
+      const opened = await pwReplAsync(['send', `tab new ${site.url}/other`], { env });
+      assert.equal(opened.status, 0, opened.stderr);
+      assert.equal(pwRepl(['send', "eval localStorage.setItem('kept', 'yes')"], { env }).status, 0);
+      assert.equal(pwRepl(['stop'], { env, timeout: 20000 }).status, 0);
+      assert.ok(fs.existsSync(path.join(profile, 'Default')), 'the profile it was given stays');
+      assert.deepEqual(fs.readdirSync(profile).filter(name => name.startsWith('Singleton')), [], 'Chromium shut down in order and unlocked the profile');
+      assert.equal(await fetch(`${url}/json/version`).then(() => 'answers', () => 'gone'), 'gone', 'the browser stopped with the REPL');
+      const again = await pwReplAsync(['serve', '--background', '--launch', socket, `${site.url}/other`, '--', `--user-data-dir=${profile}`], { env, timeout: 40000 });
+      assert.equal(again.status, 0, again.stderr);
+      const tabs = pwRepl(['send', 'tab'], { env }).stdout;
+      // In the order Chromium restores them, which varies.
+      assert.deepEqual(tabs.match(/^[* ] \[\d+\] \S+/gm).map(line => line.slice(2).replace(/^\[\d+\] /, '').replace(site.url, '')).sort(), ['/other', '/other', 'about:blank'],
+        'its tabs are restored, with no new blank one, and the start URL');
+      assert.equal(tabs.match(/\(the start URL\)/g).length, 1);
+      assert.match(tabs, /^\* \[\d+\] \S+\/other {2}\(the start URL\)$/m, 'the start URL\'s tab is marked, and selected');
+      assert.match(pwRepl(['send', "eval localStorage.getItem('kept')"], { env }).stdout, /yes/, 'localStorage was saved before it stopped');
+      const runs = fs.readFileSync(path.join(dir, 'repl.log'), 'utf8');
+      assert.equal(runs.match(/^--- \S+ started$/gm).length, 2, 'the log is appended to, run after run');
+      assert.equal(runs.match(/^--- \S+ stopped$/gm).length, 1, 'and says where a run stopped');
+    } finally {
+      pwRepl(['stop'], { env, timeout: 20000 });
+      site.stop();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  describe('a --launch that does not start leaves nothing running', () => {
+    // A zombie counts as gone: a PID 1 that does not reap orphans (a container without an init) leaves one.
+    const alive = pid => {
+      try { process.kill(pid, 0); } catch { return false; }
+      try { return !/^State:\s+Z/m.test(fs.readFileSync(`/proc/${pid}/status`, 'utf8')); } catch { return true; }
+    };
+    // A stand-in for Chromium: it starts a helper process, then does what the script says.
+    const fakeChrome = (dir, then) => {
+      const exe = path.join(dir, 'chrome');
+      fs.writeFileSync(exe, `#!/bin/sh\necho "$@" > ${dir}/args\nsleep 600 &\necho $! > ${dir}/helper.pid\necho $$ > ${dir}/chrome.pid\n${then}\n`, { mode: 0o755 });
+      return exe;
+    };
+    const readPid = file => fs.existsSync(file) && Number(fs.readFileSync(file, 'utf8')) || null;
+
+    it('when Chromium exits before it is up, its helper processes are stopped', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-launch-test-'));
+      const env = { ...process.env, PW_CHROME: fakeChrome(dir, 'exit 3'), PW_ENDPOINT: '' };
+      try {
+        const result = pwRepl(['serve', '--launch', path.join(dir, 'repl.sock')], { env, timeout: 20000 });
+        assert.equal(result.status, 1);
+        assert.match(result.stdout + result.stderr, /Chromium did not start \(it exited with code 3\)/);
+        await waitFor(() => !alive(readPid(path.join(dir, 'helper.pid'))), 'the helper to be stopped', 3000);
+      } finally {
+        const helper = readPid(path.join(dir, 'helper.pid'));
+        if (helper && alive(helper)) process.kill(helper, 'SIGKILL');
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    for (const signal of ['SIGTERM', 'SIGINT']) {
+      it(`when the REPL gets ${signal} while Chromium starts, Chromium and its profile go too`, async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-launch-test-'));
+        const env = { ...process.env, PW_CHROME: fakeChrome(dir, 'exec sleep 600'), PW_ENDPOINT: '' };
+        const repl = spawn(process.execPath, [BIN, 'serve', '--launch', path.join(dir, 'repl.sock')], { env, stdio: 'ignore' });
+        try {
+          const chrome = await waitFor(() => readPid(path.join(dir, 'chrome.pid')), 'Chromium to start');
+          const helper = readPid(path.join(dir, 'helper.pid'));
+          const profile = /--user-data-dir=(\S+)/.exec(fs.readFileSync(path.join(dir, 'args'), 'utf8'))[1];
+          assert.ok(fs.existsSync(profile));
+          repl.kill(signal);
+          await waitFor(() => repl.exitCode !== null || repl.signalCode !== null, 'the REPL to exit');
+          await waitFor(() => !alive(chrome) && !alive(helper), 'Chromium and its helper to be stopped', 3000);
+          assert.equal(fs.existsSync(profile), false, 'its temporary profile is removed');
+        } finally {
+          repl.kill('SIGKILL');
+          for (const name of ['chrome.pid', 'helper.pid']) { const pid = readPid(path.join(dir, name)); if (pid && alive(pid)) process.kill(pid, 'SIGKILL'); }
+          fs.rmSync(dir, { recursive: true, force: true });
+        }
+      });
+    }
+
+    it('when a background start is interrupted while it waits, the REPL and Chromium are stopped', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-launch-test-'));
+      const env = { ...process.env, PW_CHROME: fakeChrome(dir, 'exec sleep 600'), PW_ENDPOINT: '' };
+      const starting = spawn(process.execPath, [BIN, 'serve', '--background', '--launch', path.join(dir, 'repl.sock')], { env, stdio: ['ignore', 'ignore', 'pipe'] });
+      let stderr = '';
+      starting.stderr.on('data', d => { stderr += d; });
+      try {
+        const chrome = await waitFor(() => readPid(path.join(dir, 'chrome.pid')), 'Chromium to start');
+        const helper = readPid(path.join(dir, 'helper.pid'));
+        starting.kill('SIGINT');
+        const status = await new Promise(resolve => starting.on('close', resolve));
+        assert.equal(status, 130);
+        assert.match(stderr, /interrupted; the background REPL was stopped before it served/);
+        assert.ok(!alive(chrome) && !alive(helper), 'Chromium and its helper are stopped');
+        assert.match(fs.readFileSync(path.join(dir, 'repl.log'), 'utf8'), /^--- \S+ started\n[\s\S]*^--- \S+ stopped\n--- \S+ the start was interrupted\n$/m, 'its log says where it started and stopped, and why');
+      } finally {
+        starting.kill('SIGKILL');
+        for (const name of ['chrome.pid', 'helper.pid']) { const pid = readPid(path.join(dir, name)); if (pid && alive(pid)) process.kill(pid, 'SIGKILL'); }
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('retries without the sandbox only once the first try is gone, helpers and all, and keeps a given profile', () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-launch-test-'));
+      const profile = path.join(dir, 'profile');
+      fs.mkdirSync(profile);
+      // The first try leaves a helper behind and fails for want of a sandbox; the retry notes whether it is still there.
+      const exe = fakeChrome(dir, `if [ -f ${dir}/first ]; then p=$(cat ${dir}/first); if kill -0 $p 2>/dev/null && ! grep -q '^State:.*Z' /proc/$p/status 2>/dev/null; then echo alive; else echo gone; fi > ${dir}/retry; exit 3; fi
+cp ${dir}/helper.pid ${dir}/first; echo 'No usable sandbox!' >&2; exit 1`);
+      const env = { ...process.env, PW_CHROME: exe, PW_ENDPOINT: '' };
+      try {
+        const result = pwRepl(['serve', '--launch', path.join(dir, 'repl.sock'), '--', `--user-data-dir=${profile}`], { env, timeout: 20000 });
+        assert.equal(result.status, 1);
+        assert.match(result.stdout + result.stderr, /Chromium did not start \(it exited with code 3\):\n.*--no-sandbox/);
+        assert.equal(fs.readFileSync(path.join(dir, 'retry'), 'utf8').trim(), 'gone', 'the first try\'s helper was stopped before the retry');
+        assert.ok(fs.existsSync(profile), 'the profile it was given stays');
+      } finally {
+        for (const name of ['first', 'helper.pid']) { const pid = readPid(path.join(dir, name)); if (pid && alive(pid)) process.kill(pid, 'SIGKILL'); }
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
   });
 
   it('refuses Chromium flags without --launch', () => {
