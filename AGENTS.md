@@ -8,8 +8,17 @@ folder this file is in) when it is not installed globally.
 
 If you hit a limitation or write a workaround, consider adding the capability to the REPL instead.
 
-- A command is a function in the `commands` object in `lib/commands.js`, plus an entry in `lib/help.js`
-  under one topic.
+- A command is a function in the `commands` object of the module for what it works on, plus an entry
+  in `lib/help.js` under one topic; `lib/commands.js` gathers every module's commands. A command that
+  needs no tab, only reads, or takes `--all` is also listed in `lib/runner.js`'s `NO_TAB_NEEDED`,
+  `READ_ONLY` or `INSPECTION`, and one that takes fixed words in `complete` (`lib/commands.js`).
+- The modules, one per facility, each with its commands: `lib/tabs.js` (tabs, navigating),
+  `lib/elements.js` (choosing a match; the interact and mouse commands), `lib/inspect.js` (reading the
+  page, screenshots, eval, CDP, waits), `lib/watch.js`, `lib/requestlog.js` (requests, bodies, console),
+  `lib/routes.js`, `lib/network.js`, `lib/emulation.js`, `lib/capture.js`, `lib/dialogs.js` and
+  `lib/modes.js`. Beneath them, `lib/tabstate.js` is the one record kept per tab, `lib/cdp.js` the CDP
+  session kept per tab, and `lib/util.js` small shared helpers. No facility requires `lib/modes.js` or
+  `lib/commands.js`, and a unit test fails on a require cycle, which CommonJS would not report.
 - `bin/pw-repl.js` is the command line; `lib/start.js` connects and runs the prompt; `lib/runner.js`
   runs commands one at a time (`quit` and `dialog` skip its queue); `lib/server.js` is the command
   server; `lib/send.js` and `lib/client.js` are `send` and `where`; `lib/background.js` is
