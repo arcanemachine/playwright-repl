@@ -76,6 +76,28 @@ async function startSite() {
     req.url = new URL(req.url, 'http://fixture').pathname;
     if (req.url === '/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(PAGE); }
     if (req.url === '/frame') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><title>Frame</title><iframe srcdoc="<button>inner</button>"></iframe>'); }
+    // Several matches: one under an overlay, one hidden, one free; and a pad that logs mouse events.
+    if (req.url === '/pick') {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      return res.end(`<!doctype html><title>Pick</title><body style="margin:0">
+<div style="position:fixed;top:0;left:0;width:300px;height:100px;z-index:5;background:#0003"></div>
+<button style="position:absolute;top:20px;left:20px" onclick="log.textContent += 'under '">Pick</button>
+<button style="visibility:hidden" onclick="log.textContent += 'hidden '">Pick</button>
+<button id="free" style="position:absolute;top:150px;left:20px" onclick="log.textContent += 'free '">Pick</button>
+<button style="position:absolute;top:40px;left:120px" onclick="log.textContent += 'covered '">Covered</button>
+<button style="position:absolute;top:60px;left:200px" onclick="log.textContent += 'covered '">Covered</button>
+<button style="position:absolute;top:3000px;left:20px" onclick="log.textContent += 'far-first '">Far</button>
+<button style="position:absolute;top:250px;left:20px" onclick="log.textContent += 'far-second '">Far</button>
+<div id="again" style="position:absolute;top:250px;left:120px"></div>
+<div id="pad" style="position:absolute;top:300px;left:0;width:200px;height:200px;background:#eee"></div>
+<p id="log" style="position:absolute;top:520px"></p>
+<script>
+for (const type of ['mousedown', 'mouseup', 'click']) pad.addEventListener(type, e => { log.textContent += type + ':' + e.button + '@' + e.clientX + ',' + e.clientY + ' '; });
+// Rendered again and again, as a React list is: the element chosen is soon replaced.
+setInterval(() => { again.innerHTML = '<button style="visibility:hidden">Again</button><button onclick="log.textContent += \\'redrawn \\'">Again</button>'; }, 150);
+pad.addEventListener('wheel', e => { e.preventDefault(); log.textContent += 'wheel:' + e.deltaY + '@' + e.clientX + ',' + e.clientY + ' '; });
+</script>`);
+    }
     if (req.url === '/other') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><title>Other</title><h1>Other</h1>'); }
     // Loads for a moment, for wait load.
     if (req.url === '/slow-load') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><title>Slow</title><img src="/slow-image">'); }

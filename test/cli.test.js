@@ -354,6 +354,45 @@ describe('pw-repl send with a socket that no longer answers', () => {
   });
 });
 
+// serve takes its socket before it reaches the browser, so it is not taken for a REPL without one.
+describe('pw-repl serve while it connects', () => {
+  let dir, socket, hanging, repl;
+
+  before(async () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-sh-test-'));
+    socket = path.join(dir, 'starting.sock');
+    // A browser address that takes the connection and never answers.
+    hanging = require('net').createServer(() => {});
+    await new Promise(resolve => hanging.listen(0, '127.0.0.1', resolve));
+    repl = spawn(process.execPath, [BIN, 'serve', socket], { env: { ...process.env, PW_CDP_URL: `http://127.0.0.1:${hanging.address().port}` }, stdio: ['pipe', 'ignore', 'ignore'] });
+    await waitFor(() => fs.existsSync(socket), 'the socket');
+  });
+
+  after(async () => {
+    if (repl.exitCode === null) { repl.kill(); await new Promise(resolve => repl.once('exit', resolve)); }
+    hanging.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  const env = () => ({ ...process.env, PW_SOCKET: socket, PW_TMUX_SESSION: 'pw-sh-test-no-such-session', PW_ENDPOINT: '' });
+
+  it('says it is starting, with where and with send, and runs nothing', async () => {
+    const where = await pwReplAsync(['where'], { env: env() });
+    assert.equal(where.status, 64);
+    assert.match(where.stdout, /server: \S+starting\.sock \(the REPL was started with pw-repl serve and is starting: connecting to the browser; retry shortly\)/);
+    const sent = await pwReplAsync(['send', '-c', 'me', 'tab'], { env: env() });
+    assert.equal(sent.status, 64);
+    assert.match(sent.stderr, /The REPL is starting \(connecting to the browser\); retry shortly/);
+    assert.doesNotMatch(sent.stderr, /-c needs/);
+  });
+
+  it('removes its socket when stopped before it serves', async () => {
+    repl.kill('SIGTERM');
+    await new Promise(resolve => repl.once('exit', resolve));
+    assert.equal(fs.existsSync(socket), false);
+  });
+});
+
 // A REPL that goes away after taking the command: it may have run it.
 describe('pw-repl send when the connection drops after sending', () => {
   let dir, socket, holder;

@@ -27,6 +27,47 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   };
   const fetchStatus = 'eval fetch("/api/data").then(r => r.status, e => String(e))';
 
+  it('clicks the first match that can be clicked, and says which, or why none can', async () => {
+    await ok(`tab new ${site.url}/pick`);
+    try {
+      const log = 'eval log.textContent';
+      assert.equal(await ok('click text=Pick'), 'Clicked: text=Pick (match 3 of 3; the ones before it are hidden or covered)');
+      assert.equal(await ok(log), 'free ');
+      assert.match(await ok('hover text=Pick'), /^Hovered: text=Pick \(match 3 of 3;/);
+      assert.equal(await ok('click #free'), 'Clicked: #free', 'a single match as before');
+      const none = await repl.run('dblclick text=Covered');
+      assert.equal(none.status, 'error');
+      assert.equal(none.unconfirmed, undefined, 'nothing was done');
+      assert.match(none.output, /^Error: None of the 2 matches for text=Covered could be acted on after 5s, so nothing was done:\n  <button> Covered: covered by <div>\n  <button> Covered: covered by <div>\n/);
+      assert.equal(await ok(log), 'free free ');
+      assert.equal(await ok('click text=Far'), 'Clicked: text=Far', 'the first in page order, out of view or not');
+      assert.equal(await ok(log), 'free free far-first ');
+      await ok('eval scrollTo(0, 0)');
+      for (let i = 0; i < 5; i += 1) assert.match(await ok('click text=Again'), /^Clicked: text=Again \(match 2 of 2;/, 'chosen again when rendered again');
+      assert.equal(await ok(log), 'free free far-first redrawn redrawn redrawn redrawn redrawn ');
+    } finally {
+      await ok('tab close');
+    }
+  });
+
+  it('moves the mouse, presses its buttons and turns its wheel at a point', async () => {
+    await ok(`tab new ${site.url}/pick`);
+    try {
+      assert.equal(await ok('mousemove 50 350'), 'Moved the mouse to 50, 350');
+      assert.equal(await ok('mousedown'), 'Pressed the left button');
+      assert.equal(await ok('mouseup'), 'Released the left button');
+      assert.equal(await ok('mousewheel 0 -120'), 'Turned the wheel by 0, -120');
+      await ok('mousedown right');
+      await ok('mouseup right');
+      assert.equal(await ok('eval log.textContent.trim()'), 'mousedown:0@50,350 mouseup:0@50,350 click:0@50,350 wheel:-120@50,350 mousedown:2@50,350 mouseup:2@50,350');
+      assert.match((await repl.run('mousemove 50')).output, /Usage: mousemove <x> <y>/);
+      assert.match((await repl.run('mousedown sideways')).output, /Usage: mousedown \[left\|right\|middle\]/);
+      assert.match((await repl.run('mousewheel a b')).output, /Usage: mousewheel <dx> <dy>/);
+    } finally {
+      await ok('tab close');
+    }
+  });
+
   it('reads and drives the page', async () => {
     assert.match(await ok('info'), /Title: Fixture$/m);
     await ok('fill #name Ada');
@@ -97,6 +138,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   it('calls a function on an element with eval <function> <ref>', async () => {
     const ref = /button "Go"[^\n]*\[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot --grep Go'))[1];
     assert.equal(await ok(`eval "el => el.textContent" ${ref}`), 'Go');
+    assert.equal(await ok(`eval (el => el.textContent) ${ref}`), 'Go', 'wrapped in parentheses');
+    assert.match((await repl.run(`eval (el => el)(document.body).id ${ref}`)).output, /SyntaxError/, 'a call, not a function');
     assert.equal(await ok(`eval (el) => el.id ${ref}`), 'go');
     assert.equal(await ok('eval 1 + 1'), '2', 'an expression is evaluated as before');
     assert.equal(await ok('eval ""'), '""', 'an empty string is shown as one');
@@ -158,6 +201,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(listed, /^click: function onclick\(event\) \{ fetch\('\/api\/data'\) \} \(line \d+\)$/m);
     assert.match(listed, /^click \(once\): function second\(\) \{ return 2; \} \(line \d+\)$/m);
     assert.match(await ok('listeners h1'), /No event listeners on h1/);
+    // Playwright's own, which it adds to window as it clicks, are not the page's.
+    await ok('eval window.addEventListener("keydown", function pageKeys() {}); 0');
+    const snap = await ok('snapshot');
+    await ok(`click ${/button "Go" \[ref=((?:f\d+)?e\d+)\]/.exec(snap)[1]}`);
+    const onWindow = await ok('listeners window');
+    assert.match(onWindow, /^keydown: function pageKeys\(\) \{\} \(line \d+\)$/m);
+    assert.doesNotMatch(onWindow, /_hitTargetInterceptor|__playwright/);
+    assert.match(onWindow, /^\(\d+ of Playwright's own left out\)$/m);
     assert.equal((await repl.run('listeners #nope')).status, 'error');
     assert.match((await repl.run('snapshot e99999')).output, /e99999 is a snapshot ref; if the page changed since that snapshot, take a new one/);
   });
@@ -177,6 +228,16 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok(`click aria-ref=${ref}`);
     assert.equal(await ok('text #out'), 'Hello Lin');
     assert.match(await ok('snapshot #go'), /button "Go"/);
+  });
+
+  it('keeps the refs of a whole-page snapshot after a snapshot of one element', async () => {
+    const snap = await ok('snapshot');
+    const results = /region "Results" \[ref=((?:f\d+)?e\d+)\]/.exec(snap)[1];
+    const go = /button "Go"[^\n]* \[ref=((?:f\d+)?e\d+)\]/.exec(snap)[1];
+    const part = await ok(`snapshot ${results}`);
+    assert.match(part, /^- region "Results" \[ref=\S+\]:\n  - alert/);
+    assert.doesNotMatch(part, /button "Go"/);
+    assert.equal(await ok(`text ${go}`), 'Go', 'a ref outside that element still works');
   });
 
   it('watches alongside another Playwright client without throwing errors into the page', async () => {
@@ -249,7 +310,6 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await waitFor(async () => /click button "Go"/.test(await ok('watch')), 'the click');
       const stopped = await ok('recording-stop');
       assert.match(stopped, /Stopped watching the selected tab[\s\S]*click button "Go"/, 'stopped, then the steps shown');
-      assert.match((await repl.run('mousemove 1 2')).output, /mousemove is playwright-cli's and not here yet; click, dblclick and hover/);
     } finally {
       await ok('tab close cli-storage');
     }
@@ -957,6 +1017,28 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('route off --all');
   });
 
+  it('says when requests and console leave older ones out', async () => {
+    await ok('eval Promise.all(Array.from({ length: 4 }, (_, i) => fetch("/api/data?cut=" + i)))');
+    let listed = '';
+    await waitFor(async () => /cut=3/.test(listed = await ok('requests 2 cut=')), 'the requests');
+    assert.match(listed, /^\(last 2 of 4 kept; requests 4 cut= shows them all\)\n#\d+ /);
+    assert.doesNotMatch(await ok('requests 4 cut='), /last \d+ of/, 'nothing said when all are shown');
+    await ok('eval ["a", "b", "c"].forEach(t => console.log("cut-" + t))');
+    assert.match(await ok('console 1 cut-'), /^\(last 1 of 3 kept; console 3 cut- shows them all\)\n[\s\S]*cut-c$/);
+  });
+
+  it('says when the request log has dropped older ones', async () => {
+    await ok('tab new about:blank');
+    try {
+      await ok(`goto ${site.url}/other`);
+      await ok('eval Promise.all(Array.from({ length: 205 }, (_, i) => fetch("/api/data?full=" + i)))');
+      assert.match(await ok('requests 1'), /^\(last 1 of 200 kept; requests 200 shows them all; older requests are no longer kept\)\n/);
+      assert.match(await ok('requests 200 full=1'), /^\(older requests are no longer kept: only the last 200 of every kind are\)\n/);
+    } finally {
+      await ok('tab close');
+    }
+  });
+
   it('keeps requests, marks fakes, and hides static files by default', async () => {
     await ok('route **/api/data 500 {}');
     await ok(fetchStatus);
@@ -969,7 +1051,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('requests 50 nothing-matches-this'), /No requests matching/);
     assert.match(await ok('requests 50 --regex /api/d.ta$'), /\/api\/data$/);
     assert.match(await ok('requests 50 --regex ^nothing'), /No requests matching \/\^nothing\//);
-    assert.match(await ok('requests --filter=d.ta$'), /^\(playwright-cli's requests --filter is requests --regex <pattern> here\)\n#\d+ /);
+    assert.match(await ok('requests --filter=d.ta$'), /^\(playwright-cli's requests --filter is requests --regex <pattern> here\)\n(?:\(last 20 of \d+ kept; requests \d+ --regex d\.ta\$ shows them all\)\n)?#\d+ /);
     assert.match(await ok('requests --static'), /style\.css/, 'playwright-cli\'s --static is --all');
     assert.match(await ok('requests 50 --regex "/api/d\\w+$"'), /\/api\/data$/, 'double-quoted, its backslashes kept');
     assert.match(await ok('requests --filter "/api/d\\w+$"'), /\/api\/data$/);
@@ -1043,7 +1125,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('eval history.pushState({}, "", "#cart"); console.log("after-route"); 0');
     await waitFor(async () => /after-route/.test(await ok('console 2')), 'the message after the route change');
     assert.doesNotMatch(await ok('console 2'), /after-many[\s\S]*--- the page loaded[\s\S]*after-route/, 'an app\'s own route change loads nothing');
-    assert.match(await ok('console 1'), /^\S+ --- the page loaded \S+\n\S+ \[log\] after-route$/, 'from the load the first message came from');
+    assert.match(await ok('console 1'), /^(?:\(last 1 of \d+ kept; console \d+ shows them all\)\n)?\S+ --- the page loaded \S+\n\S+ \[log\] after-route$/, 'from the load the first message came from');
     await ok('eval history.replaceState({}, "", location.pathname); 0');
   });
 
@@ -1286,11 +1368,23 @@ describe('a command that times out', { skip: SKIP }, () => {
     assert.equal((await repl.run('info')).status, 'ok');
   });
 
-  it('reports a click that timed out after finding its element as unconfirmed, and carries on', async () => {
-    const result = await repl.run('click #under');
-    assert.equal(result.status, 'error');
-    assert.equal(result.unconfirmed, true);
-    assert.match(result.output, /Outcome unknown: it timed out after it began acting on the page/);
+  it('reports a click that timed out after finding its element as unconfirmed, in a line, and carries on', async () => {
+    // Through send, for its exit status too.
+    const { spawn } = require('child_process');
+    const sent = await new Promise(resolve => {
+      const child = spawn(process.execPath, [require('path').join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, 'click', '#under'], { stdio: ['ignore', 'pipe', 'pipe'] });
+      let stdout = '';
+      let stderr = '';
+      child.stdout.on('data', d => { stdout += d; });
+      child.stderr.on('data', d => { stderr += d; });
+      child.on('close', status => resolve({ status, stdout, stderr }));
+    });
+    assert.equal(sent.status, 2, 'completion not confirmed');
+    assert.match(sent.stderr, /completion not confirmed/);
+    assert.doesNotMatch(sent.stdout, /snapshot ref/);
+    assert.match(sent.stdout, /^Error: Timed out after 5s on #under: <span.*> intercepts pointer events \(its call log is in the REPL's pane or log\)\nOutcome unknown: it timed out after it began acting on the page/);
+    assert.doesNotMatch(sent.stdout, /Call log/);
+    assert.match(repl.stdout, /Playwright's call log:[\s\S]*attempting click action/, 'the whole log is in the pane');
     assert.equal(repl.exited, false);
     assert.equal((await repl.run('info')).status, 'ok');
   });

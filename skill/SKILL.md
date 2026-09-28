@@ -1,6 +1,6 @@
 ---
 name: pw-repl
-description: Inspect and drive a Chromium browser, possibly one a person is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, and recording what the person does. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
+description: Inspect and drive a Chromium browser, possibly one a person is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, the mouse at a point (moves, buttons, wheel), requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, and recording what the person does. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
 allowed-tools: Bash(pw-repl:*) Bash(npx pw-repl:*)
 ---
 
@@ -20,15 +20,18 @@ the sections below are how to carry it out. With no args, get a REPL running and
 
 ## Start it
 
-`pw-repl where` says whether a REPL is running and how `send` reaches it. There are three ways to run
-one; each takes an optional start URL, which opens in a new tab.
+`pw-repl where` says whether a REPL is running and how `send` reaches it, or that one is still starting
+(retry shortly; it exits 64 until the REPL serves, as when none is running). Right after you start one,
+for a moment before its process is up, it can still say none is there: retry for a few seconds before
+taking that as a failed start. There are three ways to run one; each takes an optional start URL, which
+opens in a new tab.
 
 - `pw-repl serve --background` runs it detached, with a command server on `/tmp/playwright-repl.sock`
   (owner-only) and its output in `/tmp/playwright-repl.log`. `pw-repl attach` shows everything it does
   and takes commands; `pw-repl stop` stops it. It returns once the REPL serves; Ctrl-C before then gives
   up on the start, stops the REPL, exits 130, and says so in the log.
 - `pw-repl serve` runs the same in a terminal, where the pane shows every command. Its prompt is
-  `pw[serve]>`.
+  `pw[serve]>`. It stops at that prompt (`quit`, or Ctrl-C); `pw-repl stop` is for a background one.
 - Add `--launch` to `run` or `serve` (with or without `--background`) to have it start a Chromium of its
   own instead of connecting to one: headless unless `--headed`, in a temporary profile, on a free port of
   its own (never 9222). It stops with the REPL, Ctrl-C while it starts included, and `stop` returns once
@@ -79,11 +82,12 @@ pw-repl send tab
 pw-repl send -t 90 'screenshot -d 60'   # wait longer than the 20s default
 ```
 
-Always send commands with `pw-repl send`; don't type into the pane yourself. The words after `send`
-are the command. For `fill`, `type`, `select`, `press` and `upload`, a word quoted in your shell stays
-one word (`pw-repl send fill "text=Your name" Ada`); other commands get the words as they are, joined by
-spaces (`pw-repl send eval "document.title + ' x'"`). A command that takes only a selector takes the whole
-line, spaces and all: `pw-repl send click "text=Your name"`. It works however the REPL was started:
+Always send commands with `pw-repl send`; don't type into the pane yourself, except `quit` at the prompt
+of a REPL of your own, which `send` refuses. The words after `send` are the command. For `fill`, `type`,
+`select`, `press` and `upload`, a word quoted in your shell stays one word
+(`pw-repl send fill "text=Your name" Ada`); other commands get the words as they are, joined by spaces
+(`pw-repl send eval "document.title + ' x'"`). A command that takes only a selector takes the whole line,
+spaces and all: `pw-repl send click "text=Your name"`. It works however the REPL was started:
 
 - `run` (in tmux): `send` types the command into the tmux pane and reads the result back off the screen.
   It types only when the pane's last line is a bare prompt, so nothing lands in a shell or in the middle
