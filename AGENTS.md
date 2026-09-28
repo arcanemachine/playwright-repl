@@ -16,7 +16,8 @@ If you hit a limitation or write a workaround, consider adding the capability to
   `serve --background`, `attach` and `stop`; `lib/launch.js` is `--launch`; `lib/syntax.js` is how a
   command line's words are read, shared with `send`; `lib/cli-names.js` maps playwright-cli's command
   names to these; `lib/state.js` holds the session state, with each client's selected tab;
-  `lib/output.js` routes all output so the server can return it.
+  `lib/output.js` routes all output so the server can return it; `lib/skill.js` stamps the skill
+  `pw-repl skill` prints, and gives `where` its hash.
 - Match playwright-cli (Microsoft's CLI for agents) where it is reasonable: agents are likelier to be
   trained on it. A new command, option or output that does what one of its does takes its name and form,
   or accepts them too (`lib/cli-names.js`, `help playwright-cli`). Differ where sharing a browser with a
@@ -34,7 +35,9 @@ If you hit a limitation or write a workaround, consider adding the capability to
 - For anything the tests can't reach, exercise the change in a running REPL of your own: on a socket of
   your own, with `--launch` unless the change needs the user's browser, and then in a tab of your own.
 - `skill/SKILL.md` is how agents learn to use the REPL: keep it in step with a change to how it is
-  used, and leave its Custom rules section empty.
+  used, and leave its Custom rules section empty. Keep its `<!-- pw-repl skill stamp -->` line: `pw-repl
+  skill` replaces it with the version and a hash of the skill's text, which `where` reports, so agents
+  can tell a saved copy is out of date.
 
 ## Waves
 
