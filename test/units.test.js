@@ -61,6 +61,46 @@ describe('help', () => {
   });
 });
 
+describe('modules', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { spawnSync } = require('node:child_process');
+  const lib = path.join(__dirname, '..', 'lib');
+
+  it('names only commands that exist in the runner\'s lists', () => {
+    const { READ_ONLY, INSPECTION, NO_TAB_NEEDED } = require('../lib/runner');
+    const { cliCommands } = require('../lib/commands');
+    for (const [list, names] of Object.entries({ READ_ONLY, INSPECTION, NO_TAB_NEEDED })) {
+      for (const name of names) assert.ok(Object.hasOwn(commands, name) || Object.hasOwn(cliCommands, name), `${list} has ${name}, which is not a command`);
+    }
+  });
+
+  // A require cycle fails silently in CommonJS: one module gets the other's exports half made.
+  // Each module is loaded on its own, and the requires made while loading must not go round.
+  it('loads each lib module on its own, with exports and no require cycle', () => {
+    const script = `
+      const path = require('path');
+      const lib = path.dirname(require.resolve(process.argv[1]));
+      const exported = Object.keys(require(process.argv[1]));
+      const graph = {};
+      for (const [id, m] of Object.entries(require.cache)) {
+        if (path.dirname(id) === lib) graph[path.basename(id)] = m.children.map(c => c.id).filter(c => path.dirname(c) === lib).map(c => path.basename(c));
+      }
+      console.log(JSON.stringify({ exported, graph }));`;
+    for (const file of fs.readdirSync(lib).filter(f => f.endsWith('.js'))) {
+      const run = spawnSync(process.execPath, ['-e', script, path.join(lib, file)], { encoding: 'utf8' });
+      assert.equal(run.status, 0, `${file}: ${run.stderr}`);
+      const { exported, graph } = JSON.parse(run.stdout);
+      assert.ok(exported.length, `${file} exports nothing`);
+      const visit = (name, trail) => {
+        assert.ok(!trail.includes(name), `require cycle: ${[...trail, name].join(' -> ')}`);
+        for (const next of graph[name] || []) visit(next, [...trail, name]);
+      };
+      visit(file, []);
+    }
+  });
+});
+
 describe('server endpoints', () => {
   it('defaults to the shared socket', () => {
     assert.deepEqual(parseEndpoint(''), { socket: DEFAULT_SOCKET });
