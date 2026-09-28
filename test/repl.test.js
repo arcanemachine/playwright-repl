@@ -198,7 +198,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok(`goto ${site.url}/`);
     await ok('eval document.querySelector("#load").addEventListener("click", function second() { return 2; }, { once: true }); "added"');
     const listed = await ok('listeners #load');
-    assert.match(listed, /^click: function onclick\(event\) \{ fetch\('\/api\/data'\) \} \(line \d+\)$/m);
+    assert.match(listed, /^click: function onclick\(event\) \{ ↵ fetch\('\/api\/data'\) ↵ \} \(line \d+\)$/m);
     assert.match(listed, /^click \(once\): function second\(\) \{ return 2; \} \(line \d+\)$/m);
     assert.match(await ok('listeners h1'), /No event listeners on h1/);
     // Playwright's own, which it adds to window as it clicks, are not the page's.
@@ -212,6 +212,10 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('eval document.querySelector("#load").addEventListener("keyup", function aLongHandlerName() { return "' + 'x'.repeat(120) + '"; }); 0');
     assert.match(await ok('listeners #load'), /^keyup: function aLongHandlerName\(\) \{ return "x+… \(line \d+\)$/m, 'the start only');
     assert.match(await ok('listeners --all #load'), /^keyup: function aLongHandlerName\(\) \{ return "x{120}"; \} \(line \d+\)$/m, 'all of it');
+    // Made in the page, so the command stays one line and the handler has line breaks.
+    await ok('eval document.querySelector("#load").addEventListener("keydown", eval("(function commented() {\\n  // a comment\\n  return 1;\\n})")); 0');
+    assert.match(await ok('listeners #load'), /^keydown: function commented\(\) \{ ↵ \/\/ a comment ↵ return 1; ↵ \} \(line \d+\)$/m, 'line breaks marked');
+    assert.match(await ok('listeners --all #load'), /^keydown: function commented\(\) \{\n      \/\/ a comment\n      return 1;\n    \} \(line \d+\)$/m, 'as written');
     assert.equal((await repl.run('listeners #nope')).status, 'error');
     assert.match((await repl.run('snapshot e99999')).output, /e99999 is a snapshot ref; if the page changed since that snapshot, take a new one/);
   });
@@ -721,6 +725,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('wait load 1'), /^Loaded before the previous command, nothing since: \S+\/slow-load — Slow\n\(A page that changes its own URL does not load/);
     assert.equal((await repl.run('wait load --gone')).status, 'error');
     await ok(`goto ${site.url}/`);
+    // Chrome answers a link to a 204 by staying put, and reports it as aborted.
+    await ok('eval document.body.insertAdjacentHTML("beforeend", \'<a id="to-empty" href="/api/empty">empty</a>\'); 0');
+    await ok('click #to-empty');
+    const started = Date.now();
+    const stayed = await repl.run('wait load 5');
+    assert.equal(stayed.status, 'error');
+    assert.match(stayed.output, /The page did not load: #\d+ \S+\/api\/empty 204 \(no page to show, so the tab stays where it was\)/);
+    assert.ok(Date.now() - started < 3000, 'at once, not at the end of the wait');
   });
 
   it('says sleep takes milliseconds when the number looks like seconds', async () => {
@@ -1026,6 +1038,10 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await waitFor(async () => /cut=3/.test(listed = await ok('requests 2 cut=')), 'the requests');
     assert.match(listed, /^\(last 2 of 4 kept; requests 4 cut= shows them all\)\n\S+ --- the page loads \S+\n#\d+ /);
     assert.doesNotMatch(await ok('requests 4 cut='), /last \d+ of/, 'nothing said when all are shown');
+    assert.match(listed, /^#\d+ \S+ GET \S+ \S+ fetch http\S+cut=\d$/m, 'with its kind');
+    // Chrome reports a response with no body as aborted once it has come.
+    await ok('eval fetch("/api/empty").then(r => r.status)');
+    await waitFor(async () => /GET 204 \d+ms fetch \S+\/api\/empty$/.test(await ok('requests 1 /api/empty')), 'the 204 to show as answered');
     await ok('reload');
     await ok('eval fetch("/api/data?cut=after").then(r => r.status)');
     await waitFor(async () => /cut=after/.test(listed = await ok('requests 3 cut=')), 'the request after the reload');
@@ -1077,7 +1093,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     let recent = '';
     await waitFor(async () => /GET 418 faked/.test(recent = await ok('requests 50 /api/data')), 'the requests to settle');
     // The latest one: bodies from before an earlier navigation may be gone.
-    const real = [...recent.matchAll(/#(\d+) \S+ GET 200 \d+ms \S+\/api\/data/g)].pop()[1];
+    const real = [...recent.matchAll(/#(\d+) \S+ GET 200 \d+ms fetch \S+\/api\/data/g)].pop()[1];
     const faked = /#(\d+) \S+ GET 418 faked/.exec(recent)[1];
     assert.match(await ok(`body ${real}`), /"real": true/);
     assert.match(await ok(`body #${faked}`), /"fake": 1/);
