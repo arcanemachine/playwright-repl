@@ -1,7 +1,10 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const help = require('../lib/help');
-const { commands, complete, compactSnapshot, grepSnapshot, summarizeChanges, scrubEditable, clock } = require('../lib/commands');
+const { commands, complete } = require('../lib/commands');
+const { compactSnapshot, grepSnapshot } = require('../lib/inspect');
+const { summarizeChanges, scrubEditable } = require('../lib/watch');
+const { clock } = require('../lib/util');
 const { parseEndpoint, looksLikeEndpoint, DEFAULT_SOCKET } = require('../lib/client');
 
 describe('help', () => {
