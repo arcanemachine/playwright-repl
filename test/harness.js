@@ -82,6 +82,9 @@ async function startSite() {
     if (req.url === '/slow-image') { setTimeout(() => { res.writeHead(404); res.end(); }, 800); return; }
     if (req.url === '/style.css') { res.writeHead(200, { 'Content-Type': 'text/css' }); return res.end('h1 { color: teal; }'); }
     if (req.url === '/api/data') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"real":true}'); }
+    // No content type, as some servers send errors.
+    if (req.url === '/untyped-text') { res.writeHead(404); return res.end('not found'); }
+    if (req.url === '/untyped-bytes') { res.writeHead(200); return res.end(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01])); }
     res.writeHead(404); res.end();
   });
   await new Promise(r => server.listen(0, '127.0.0.1', r));

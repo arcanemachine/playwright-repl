@@ -137,6 +137,18 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const none = await repl.run('tab 99999999');
     assert.equal(none.status, 'error');
     assert.match(none.output, /No tab \[99999999\] in the latest listing, and no tab URL contains 99999999/);
+    // A client that has not listed tabs has no index to go by, and 1 is in every 127.0.0.1 URL.
+    await ok(`tab new ${site.url}/other`);
+    const unlisted = await repl.runAs('no-listing', 'tab 1');
+    assert.equal(unlisted.status, 'error');
+    assert.match(unlisted.output, /^Error: No tab \[1\] in a listing yet: each client has its own, from tab\. As part of a URL, 1 is in \d+ tabs\. Run tab, then tab <index>\.$/);
+    // Another client lists the tabs, then the tab is closed behind its back.
+    const listing = (await repl.runAs('lister', 'tab')).output;
+    const index = new RegExp(`\\[(\\d+)\\] \\S+/other`).exec(listing)[1];
+    await ok('tab close /other');
+    const closed = await repl.runAs('lister', `tab ${index}`);
+    assert.equal(closed.status, 'error', 'an index whose tab has closed is not read as part of a URL');
+    assert.match(closed.output, new RegExp(`^Error: Tab \\[${index}\\] has closed since the latest listing\\. Run tab to list them again\\.$`));
   });
 
   it('lists the event listeners the page added to an element', async () => {
@@ -640,9 +652,17 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('eval setTimeout(() => { location.href = "/slow-load"; }, 0); "leaving"');
     assert.match(await ok('wait load 5'), /^Loaded: \S+\/slow-load — Slow$/);
     assert.equal(await ok('eval document.readyState'), 'complete');
-    assert.match(await ok('wait load 1'), /Loaded: \S+\/slow-load/, 'a page that has loaded is done at once');
+    assert.match(await ok('wait load 1'), /^Loaded before the previous command, nothing since: \S+\/slow-load — Slow\n/, 'a page that has loaded is done at once, and says it is not a new load');
+    // An app's own routing changes the URL a moment later, without a load: the page being left is not reported as a new load.
+    await ok('eval setTimeout(() => history.pushState({}, "", "/routed"), 300); "routing"');
+    assert.match(await ok('wait load 1'), /^Loaded before the previous command, nothing since: \S+\/slow-load — Slow\n\(A page that changes its own URL does not load/);
     assert.equal((await repl.run('wait load --gone')).status, 'error');
     await ok(`goto ${site.url}/`);
+  });
+
+  it('says sleep takes milliseconds when the number looks like seconds', async () => {
+    assert.equal(await ok('sleep 3'), 'Slept 3ms (sleep takes milliseconds: sleep 3000 is 3s)');
+    assert.equal(await ok('sleep 150'), 'Slept 150ms');
   });
 
   it('waits for an element or text to be gone', async () => {
@@ -854,7 +874,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('caps long output unless --all is given', async () => {
-    assert.match(await ok('eval "x".repeat(13000)'), /\[truncated; use --all/);
+    assert.match(await ok('eval "x".repeat(13000)'), /\[truncated; add --all to the command/);
     assert.doesNotMatch(await ok('eval --all "x".repeat(13000)'), /truncated/);
   });
 
@@ -979,6 +999,13 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match((await repl.run('body /never-requested')).output, /No finished request on the selected tab has a URL containing \/never-requested/);
   });
 
+  it('shows a body with no content type as text when it is text', async () => {
+    await ok('eval Promise.all([fetch("/untyped-text"), fetch("/untyped-bytes")]).then(() => "fetched")');
+    await waitFor(async () => { const recent = await ok('requests 50 /untyped'); return /GET 404 .*\/untyped-text/.test(recent) && /GET 200 .*\/untyped-bytes/.test(recent); }, 'the requests to settle');
+    assert.match(await ok('body /untyped-text'), /404 \S+\/untyped-text \(no content type, 9 bytes\)\nnot found$/);
+    assert.match(await ok('body /untyped-bytes'), /\(no content type, 6 bytes\)\n\[binary body not shown\]$/);
+  });
+
   it('keeps console messages and uncaught errors without a capture', async () => {
     await ok('click #noisy');
     let logs = '';
@@ -987,6 +1014,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(logs, /\[error\] bad-thing/);
     await ok('eval console.log("y".repeat(10000))');
     await waitFor(async () => /y{4000}…/.test(await ok('console --all 5')), 'the long message');
+    assert.equal(await ok('console 5 --all'), await ok('console --all 5'), '--all at the end too');
+    assert.equal(await ok('console error --all'), await ok('console --all error'));
     assert.doesNotMatch(await ok('console --all 5'), /y{4001}/, 'long messages are clipped when stored');
     const errors = await ok('console 50 error');
     assert.doesNotMatch(errors, /hello-log/);
