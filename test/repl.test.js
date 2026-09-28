@@ -1457,6 +1457,47 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 });
 
+describe('quitting a REPL that changed a tab', { skip: SKIP }, () => {
+  let chrome, site;
+
+  before(async () => {
+    chrome = await startChrome();
+    site = await startSite();
+  });
+
+  after(async () => {
+    site?.stop();
+    await chrome?.stop();
+  });
+
+  it('leaves the tab as it was: no emulation, and the network at full speed', async () => {
+    const timed = 'eval (async () => { const t = performance.now(); await fetch("/api/data?" + Math.random()); return Math.round(performance.now() - t); })()';
+    const state = 'eval JSON.stringify([matchMedia("(prefers-color-scheme: dark)").matches, innerWidth, navigator.userAgent.includes("Mobile")])';
+    const first = await startRepl(chrome.cdpUrl);
+    let before;
+    try {
+      assert.equal((await first.run(`tab new ${site.url}/?quit`)).status, 'ok');
+      before = (await first.run(state)).output;
+      for (const command of ['emulate mobile', 'emulate dark', 'network slow 700']) {
+        const result = await first.run(command);
+        assert.equal(result.status, 'ok', `${command}\n${result.output}`);
+      }
+      assert.notEqual((await first.run(state)).output, before, 'emulated');
+      assert.ok(Number((await first.run(timed)).output) >= 650, 'slowed');
+    } finally {
+      await first.stop();
+    }
+    const second = await startRepl(chrome.cdpUrl);
+    try {
+      assert.equal((await second.run('tab quit')).status, 'ok');
+      assert.equal((await second.run(state)).output, before, 'the emulation was reset on quit');
+      assert.ok(Number((await second.run(timed)).output) < 500, 'the network is back to full speed');
+    } finally {
+      await second.stop();
+    }
+  });
+});
+
 describe('a command that times out', { skip: SKIP }, () => {
   let chrome, site, repl;
 
