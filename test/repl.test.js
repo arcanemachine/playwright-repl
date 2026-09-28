@@ -733,6 +733,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(stayed.status, 'error');
     assert.match(stayed.output, /The page did not load: #\d+ \S+\/api\/empty 204 \(no page to show, so the tab stays where it was\)/);
     assert.ok(Date.now() - started < 3000, 'at once, not at the end of the wait');
+    const went = await repl.run(`goto ${site.url}/api/empty`);
+    assert.equal(went.output, `Error: The page did not load: #${/#(\d+) \S+\/api\/empty/.exec(went.output)?.[1]} ${site.url}/api/empty 204 (no page to show, so the tab stays where it was)`, 'goto says it as wait load does');
+    assert.doesNotMatch(await ok('requests 3 /api/empty'), /--- the page loads \S+\/api\/empty/, 'no load marked where none happened');
   });
 
   it('says sleep takes milliseconds when the number looks like seconds', async () => {
@@ -793,6 +796,10 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('info'), /Viewport: 412x839 \(emulate mobile: Pixel 7\)/);
     const shot = /Saved: (\S+)/.exec(await ok('screenshot'))[1];
     assert.equal(require('path').dirname(shot), require('path').dirname(repl.socket), 'next to its own socket');
+    // The page has no viewport meta tag, so it is laid out wider than the phone and shown shrunk. The
+    // shot is of what the phone shows: a button's text is drawn where the button is, not left blank.
+    const drawn = await ok(`eval (async () => { const img = new Image(); img.src = "data:image/png;base64,${fs.readFileSync(shot).toString('base64')}"; await img.decode(); const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const g = c.getContext("2d"); g.drawImage(img, 0, 0); const r = document.querySelector("#noisy").getBoundingClientRect(); const d = g.getImageData(r.x, r.y, r.width, r.height).data; let dark = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 100) dark += 1; return [img.width === Math.round(visualViewport.width), dark > 0].join(" "); })()`);
+    assert.equal(drawn, 'true true');
     fs.rmSync(shot);
     assert.match(await ok(read), /^\d+ 2\.625 /, 'a screenshot keeps the phone\'s screen');
     const ref = /heading "Fixture" \[level=1\] \[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot'))?.[1];
