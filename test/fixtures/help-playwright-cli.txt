@@ -1,0 +1,82 @@
+playwright-cli's command names, and what they run here (each says so the first time):
+
+  tab-list               tab
+  tab-new                tab new [url]
+  tab-select             tab <index>, by index only
+  tab-close              tab close [url-part], or tab <index> then tab close
+  open                   tab new [url]; --mobile or --device=<name> is emulate mobile [name]
+  close                  modes off --mine, and tabs stay open
+  go-back                back
+  go-forward             forward
+  find                   snapshot --grep <text>
+  dialog-accept          dialog accept [text]
+  dialog-dismiss         dialog dismiss
+  resize                 viewport <w>x<h>
+  cookie-list            cookies
+  localstorage-list      storage
+  set-color-scheme       emulate dark|light
+  clear-color-scheme     emulate dark off
+  network-state-set      network off|on
+  route-list             route
+  unroute                route off <glob>|--all
+  request                body <#>, the response body only
+  response-body          body <#>
+  localstorage-get       eval localStorage.getItem("<key>")
+  localstorage-set       eval localStorage.setItem("<key>", "<value>")
+  localstorage-delete    eval localStorage.removeItem("<key>")
+  localstorage-clear     eval localStorage.clear()
+  sessionstorage-get     eval sessionStorage.getItem("<key>")
+  sessionstorage-set     eval sessionStorage.setItem("<key>", "<value>")
+  sessionstorage-delete  eval sessionStorage.removeItem("<key>")
+  sessionstorage-clear   eval sessionStorage.clear()
+  sessionstorage-list    eval Object.keys(sessionStorage)
+  tracing-start          capture on, which records requests and console messages together
+  tracing-stop           capture off, which prints what it recorded
+  recording-start        watch on, which records the steps taken in the tab (as steps, not code)
+  recording-stop         watch off, then watch, which shows the steps
+
+Not here as such:
+  run-code: eval <JavaScript> runs in the page; cdp <method> <json> sends a CDP command
+  list: pw-repl where says which REPL is running; one REPL serves everyone using its browser
+  attach: pw-repl serve connects to the browser on PW_CDP_URL; pw-repl skill has the rest
+  detach: pw-repl stop, or quit at the prompt, disconnects and leaves the browser running
+  drag, drop, highlight, webmcp-list, webmcp-call: not here yet
+  keydown, keyup: not here yet; press <key> presses and releases one
+  pdf: not here yet; screenshot --full saves the whole page as a PNG
+  generate-locator: not here yet; a snapshot ref (e5) works as a selector in any command
+  cookie-get: not here yet; cookies lists them without values, and cdp Network.getCookies {} shows the
+      values
+  cookie-set: not here yet; cdp Network.setCookie {"name": ..., "value": ..., "url": ...} sets one
+  cookie-delete: not here yet; cdp Network.deleteCookies {"name": ..., "url": ...} deletes one
+  show: not here; pw-repl attach, or the REPL's pane, shows everything the REPL does
+  close-all: not here on purpose: it would close a browser someone else may be using; close turns off your
+      modes
+  kill-all: not here on purpose: it would kill a browser someone else may be using; pw-repl stop stops a
+      REPL
+  delete-data: not here on purpose: it would wipe the data of a browser someone else may be using
+  cookie-clear: not here on purpose: it clears every site's cookies, in a browser someone else may be
+      using
+  state-save: not here on purpose: it would save the sign-ins of someone else sharing the browser
+  state-load: not here on purpose: it would replace the sign-ins of someone else sharing the browser
+  install: not needed here: pw-repl needs no workspace set up; pw-repl skill says how to use it
+  install-browser: not needed here: --launch uses Playwright's Chromium or one on the PATH (PW_CHROME)
+  set-reduced-motion, clear-reduced-motion, set-forced-colors, clear-forced-colors, set-contrast,
+      clear-contrast, set-media, clear-media: not here yet; emulate dark|light sets the color scheme
+  request-headers, response-headers, request-body: not here yet; body <#> shows the response body
+  video-start, video-stop, video-chapter, video-show-actions, video-hide-actions: not here: pw-repl does
+      not record video (playwright-cli itself does, in a browser of its own); screenshot saves an image,
+      and watch on records each step
+  pause-at, resume, step-over: not here: they step through a Playwright test
+
+Names both have (goto, click, fill, snapshot, eval, ...) take playwright-cli's forms too: click <ref>
+[button] [--modifiers=<keys>], fill and type --submit, type <text> into what has focus, eval <function>
+<ref>, press in any case, screenshot <ref> --full-page --filename=<file>, console <level>, requests
+--static --filter=<regexp>, find --regex <regexp>, route <pattern> --status= --body= --content-type=.
+Its other options are refused, never read as part of a selector or a value.
+
+Different on purpose, since the browser may be someone else's too:
+  routes, network and emulation     per tab, not the whole browser, so other people's tabs are untouched
+  close                             turns off your modes; tabs stay open (tab close <url-part> closes one)
+  upload <selector> <file>          names the input: file pickers are not caught, as a person's would be
+  no snapshot after each command    a person reads the pane too; snapshot when you need one
+  -s=<session>                      -c <name> is the nearest: a client with a selected tab of its own

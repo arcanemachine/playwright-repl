@@ -46,6 +46,19 @@ describe('help', () => {
       for (const line of (entry.detail || '').split('\n').filter(Boolean)) assert.ok(all.includes(line), `${name} detail missing`);
     }
   });
+
+  // A saved copy, so a change to how the entries are written (not what they say) shows as a diff.
+  // After an intended change to the help, save it again:
+  //   node -e "const fs=require('fs'),h=require('./lib/help');for(const v of ['--all','playwright-cli'])fs.writeFileSync('test/fixtures/help'+(v==='--all'?'-all':'-'+v)+'.txt',h.render(v)+'\n')"
+  it('renders exactly as saved in test/fixtures', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    for (const [view, file] of [['--all', 'help-all.txt'], ['playwright-cli', 'help-playwright-cli.txt']]) {
+      const saved = fs.readFileSync(path.join(__dirname, 'fixtures', file), 'utf8');
+      // By line, so a failure shows the lines that differ.
+      assert.deepEqual(`${help.render(view)}\n`.split('\n'), saved.split('\n'), `help ${view} differs from test/fixtures/${file}; if the change is intended, save it again (see above)`);
+    }
+  });
 });
 
 describe('server endpoints', () => {
