@@ -470,6 +470,28 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('modes'), /No modes are on/);
   });
 
+  it('hooks each page once, however often its tab is selected or watched', async () => {
+    const start = repl.stdout.length;
+    // Selected again, by this client and by others: each select must not hook it again.
+    for (const client of ['once-a', 'once-b']) assert.equal((await repl.runAs(client, 'tab 127.0.0.1')).status, 'ok');
+    await ok('tab 127.0.0.1');
+    await ok('watch on');
+    await ok('watch off');
+    await ok('watch on');
+    await ok('click #load');
+    await waitFor(async () => /#\d+ GET 200 \S+\/api\/data/.test(await ok('watch')), 'the click and its request');
+    assert.equal((await ok('watch 50')).match(/click button "Load"/g).length, 1, 'one step for one click');
+    assert.equal((await ok('requests 50 /api/data')).match(/\/api\/data$/gm).length, 1, 'one entry for one request');
+    await ok('click #noisy');
+    await waitFor(async () => /boom-uncaught/.test(await ok('console 50')), 'the page error');
+    assert.equal((await ok('console 50')).match(/hello-log/g).length, 1, 'one message for one console.log');
+    const click = repl.run('click #alerter');
+    await waitFor(() => /Dialog \[confirm\]: sure\?/.test(repl.stdout.slice(start)), 'the dialog');
+    await ok('dialog accept');
+    assert.equal((await click).status, 'ok');
+    assert.equal(repl.stdout.slice(start).match(/Dialog \[confirm\]: sure\?/g).length, 1, 'one notice for one dialog');
+  });
+
   it('watches the next tab someone opens, from its first page', async () => {
     const { chromium } = require('playwright-core');
     const person = await chromium.connectOverCDP(chrome.cdpUrl);
