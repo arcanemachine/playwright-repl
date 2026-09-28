@@ -25,12 +25,19 @@ one; each takes an optional start URL, which opens in a new tab.
 
 - `pw-repl serve --background` runs it detached, with a command server on `/tmp/playwright-repl.sock`
   (owner-only) and its output in `/tmp/playwright-repl.log`. `pw-repl attach` shows everything it does
-  and takes commands; `pw-repl stop` stops it.
+  and takes commands; `pw-repl stop` stops it. It returns once the REPL serves; Ctrl-C before then gives
+  up on the start, stops the REPL, exits 130, and says so in the log.
 - `pw-repl serve` runs the same in a terminal, where the pane shows every command. Its prompt is
   `pw[serve]>`.
 - Add `--launch` to `run` or `serve` (with or without `--background`) to have it start a Chromium of its
-  own instead of connecting to one: headless unless `--headed`, in a temporary profile, stopped with the
-  REPL. It prints the command it ran; flags after `--` are passed to that Chromium.
+  own instead of connecting to one: headless unless `--headed`, in a temporary profile, on a free port of
+  its own (never 9222). It stops with the REPL, Ctrl-C while it starts included, and `stop` returns once
+  it has exited. It prints the command it ran; flags after `--` are passed to that Chromium, and a
+  `--user-data-dir=<dir>` among them is used instead of the temporary profile, and kept. Started again in
+  a kept profile, Chromium picks up where it left off, as it would for a person, headless too: its tabs
+  come back, and session cookies with them, so a login stays. They start loading before the REPL is
+  attached, so `requests` and `console` have only what came after, often nothing: `reload` for a full
+  record.
 - `pw-repl run` runs it in a terminal with no server; `send` then reaches it through tmux, if it runs in
   the tmux session `playwright-repl`:
 
@@ -41,9 +48,11 @@ one; each takes an optional start URL, which opens in a new tab.
 
 `serve` and `serve --background` take a socket path of your own instead of the default
 (`pw-repl serve --background /tmp/mine.sock`); `send`, `attach`, `stop` and `where` then need
-`-e /tmp/mine.sock`, or `PW_SOCKET=/tmp/mine.sock`. The log of a background REPL is next to its socket
-(`/tmp/mine.log`); `tail -f` on it follows along without a terminal to attach from. `serve <port>`
-listens on TCP 127.0.0.1 instead of a socket, with no access control.
+`-e /tmp/mine.sock`, or `PW_SOCKET=/tmp/mine.sock`; a socket file left by a REPL that died is replaced
+when the next one starts there. The log of a background REPL is next to its socket
+(`/tmp/mine.log`), appended to run after run, with a line where each starts and stops (past 5 MB, a
+start moves it to `/tmp/mine.log.1`); `tail -f` on it follows along without a terminal to attach from.
+`serve <port>` listens on TCP 127.0.0.1 instead of a socket, with no access control.
 
 ### One REPL, many clients
 
@@ -145,8 +154,10 @@ pw-repl send -c <name> close                        # your modes off; tab close 
 - The browser may have tabs that are not yours, and someone may be using it. Whether to read or act in
   one of those tabs, or to open your own (`tab new <url>`), depends on the task; when that is not
   clear, ask.
-- No tab is selected when the REPL starts (unless it was given a start URL). Closing a tab the REPL
-  opened goes back to the tab before it, if the REPL opened that one too; otherwise no tab is selected.
+- No tab is selected when the REPL starts. A start URL's tab, marked `(the start URL)` in `tab`, is
+  selected at its prompt and for `send` without a client name; a named client (`-c`) selects it with
+  `tab <index>`. Closing a tab the REPL opened goes back to the tab before it, if the REPL opened that
+  one too; otherwise no tab is selected.
   Tab numbers change when tabs open or close; `tab <url-part>` and `tab close <url-part>` pick a tab by
   its URL and refuse if it is ambiguous.
 - Dialogs are never answered on their own. While one is open, its page and the commands that read it
