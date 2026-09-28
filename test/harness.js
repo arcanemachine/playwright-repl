@@ -104,6 +104,7 @@ pad.addEventListener('wheel', e => { e.preventDefault(); log.textContent += 'whe
     if (req.url === '/slow-image') { setTimeout(() => { res.writeHead(404); res.end(); }, 800); return; }
     if (req.url === '/style.css') { res.writeHead(200, { 'Content-Type': 'text/css' }); return res.end('h1 { color: teal; }'); }
     if (req.url === '/api/empty') { res.writeHead(204); return res.end(); }
+    if (req.url === '/api/slow') { setTimeout(() => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"slow":true}'); }, 1500); return; }
     if (req.url === '/api/data') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"real":true}'); }
     // No content type, as some servers send errors.
     if (req.url === '/untyped-text') { res.writeHead(404); return res.end('not found'); }

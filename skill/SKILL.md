@@ -184,6 +184,11 @@ pw-repl send -c <name> close                        # your modes off; tab close 
   lists what is on in every tab (the prompt shows the selected tab's, e.g. `(watch routes:1) pw>`);
   `modes off` turns off every mode in every tab.
 - Someone may be attached to the REPL's tmux session; killing the session ends it for them too.
+- pw-repl does not record video. For one of a flow in a browser of its own, Microsoft's playwright-cli (a
+  separate tool, the npm package `@playwright/cli`: `video-start`, `video-stop`); for this browser as the
+  person sees it, a screen recorder (`ffmpeg -f x11grab`, macOS `screencapture -v`, OBS). A screen
+  recorder records their whole screen, not the tab: ask before starting one, or have them start it. A
+  headless browser is not on the screen, so it does not show.
 
 ## Environment
 

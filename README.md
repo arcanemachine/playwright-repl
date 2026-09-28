@@ -29,7 +29,8 @@ npx pw-repl@latest run --launch https://example.com
 ```
 
 `--launch` starts a private headless Chromium for the REPL, and stops it with the REPL; it prints the
-command it ran. `--headed` shows that browser, to click in it yourself. The page opens in a new tab, and a `pw>` prompt waits:
+command it ran. `--headed` shows that browser, to click in it yourself. The page opens in a new tab,
+and a `pw>` prompt waits:
 
 ```text
 pw> help                          # common tasks and topics; help <topic>, help <command>, help --all
@@ -129,7 +130,8 @@ pw-repl differs, it is because someone else may be using the browser:
 - `watch` records what a person does as steps with their requests, not as generated code.
 
 For a browser of its own per agent, isolated sessions, traces, video, PDFs or generated test code,
-playwright-cli is the better fit.
+playwright-cli is the better fit. pw-repl does not record video; for one of the shared browser as you
+see it, use a screen recorder (`ffmpeg -f x11grab`, macOS `screencapture -v`, OBS).
 
 ## From scripts and agents
 
@@ -175,7 +177,8 @@ curl --unix-socket /tmp/playwright-repl.sock -H 'Content-Type: application/json'
 It returns `{"status": "ok" | "error", "output": "..."}`, plus `"unconfirmed": true` when the command may or
 may not have done what it was sent to do (it timed out, or the REPL quit while it ran and it was not
 read-only). While the REPL starts, `/run` answers 503 with `"starting": true`: retry. `GET /health` says
-`"status": "starting"` until it serves, then `"ok"`. `pw-repl serve <port>` serves TCP on 127.0.0.1 instead; other addresses are refused.
+`"status": "starting"` until it serves, then `"ok"`. `pw-repl serve <port>` serves TCP on 127.0.0.1
+instead; other addresses are refused.
 
 ## Tests
 

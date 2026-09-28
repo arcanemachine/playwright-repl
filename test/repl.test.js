@@ -793,13 +793,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('emulate timezone Asia/Tokyo');
     await ok('reload');
     assert.match(await ok(read), /^\d+ 2\.625 true true fr-FR Asia\/Tokyo true$/);
-    assert.match(await ok('info'), /Viewport: 412x839 \(emulate mobile: Pixel 7\)/);
+    assert.match(await ok('info'), /Viewport: 412x839 \(emulate mobile: Pixel 7[;)]/);
     const shot = /Saved: (\S+)/.exec(await ok('screenshot'))[1];
     assert.equal(require('path').dirname(shot), require('path').dirname(repl.socket), 'next to its own socket');
     // The page has no viewport meta tag, so it is laid out wider than the phone and shown shrunk. The
     // shot is of what the phone shows: a button's text is drawn where the button is, not left blank.
-    const drawn = await ok(`eval (async () => { const img = new Image(); img.src = "data:image/png;base64,${fs.readFileSync(shot).toString('base64')}"; await img.decode(); const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const g = c.getContext("2d"); g.drawImage(img, 0, 0); const r = document.querySelector("#noisy").getBoundingClientRect(); const d = g.getImageData(r.x, r.y, r.width, r.height).data; let dark = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 100) dark += 1; return [img.width === Math.round(visualViewport.width), dark > 0].join(" "); })()`);
-    assert.equal(drawn, 'true true');
+    const drawn = await ok(`eval (async () => { const img = new Image(); img.src = "data:image/png;base64,${fs.readFileSync(shot).toString('base64')}"; await img.decode(); const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const g = c.getContext("2d"); g.drawImage(img, 0, 0); const k = visualViewport.scale; const r = document.querySelector("#noisy").getBoundingClientRect(); const d = g.getImageData(r.x * k, r.y * k, r.width * k, r.height * k).data; let dark = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 100) dark += 1; return [img.width === Math.round(visualViewport.width * k), img.width, dark > 0].join(" "); })()`);
+    assert.equal(drawn, 'true 412 true', 'the phone\'s width, the page shown shrunk as the phone shows it');
+    assert.match(await ok('info'), /Viewport: 412x839 \(emulate mobile: Pixel 7; the page lays out \d+ wide, shown shrunk: it has no viewport meta tag\)/);
     fs.rmSync(shot);
     assert.match(await ok(read), /^\d+ 2\.625 /, 'a screenshot keeps the phone\'s screen');
     const ref = /heading "Fixture" \[level=1\] \[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot'))?.[1];
@@ -1004,7 +1005,6 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('requests 3 /api/data'), /GET 200 patched/);
     await ok('route **/api/data patch {"real":null}');
     assert.match(await ok(json), /^\{\}$/m, 'null removes a key');
-    assert.equal((await repl.run('route **/api/data patch [1]')).status, 'error', 'a patch is an object');
     await ok('route **/api/data delay 1');
     assert.match(await ok('eval (async () => { const t = Date.now(); await fetch("/api/data"); return Date.now() - t >= 900; })()'), /^true$/m);
     await ok('route **/api/data abort');
@@ -1065,6 +1065,28 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.match(await ok('requests 1'), /^\(last 1 of 200 kept; requests 200 shows them all; older requests are no longer kept\)\n/);
       assert.match(await ok('requests 200 full=1'), /^\(older requests are no longer kept: only the last 200 of every kind are\)\n/);
     } finally {
+      await ok('tab close');
+    }
+  });
+
+  it('waits for a request still under way, patches an array, and says why a reload did not load', async () => {
+    await ok(`tab new ${site.url}/`);
+    try {
+      await ok('eval fetch("/api/slow"); 0');
+      await ok('info');
+      assert.match(await ok('wait request /api/slow 5'), /GET 200 \S+\/api\/slow$/, 'begun two commands ago, finished during the wait');
+      await ok('route **/api/data patch [1, 2]');
+      assert.match(await ok('eval fetch("/api/data").then(r => r.json()).then(j => JSON.stringify(j))'), /^Patched: #\d+ GET \S+ -> 200\n\[1,2\]$/, 'an array replaces the body');
+      await ok('route off --all');
+      await ok('eval document.body.insertAdjacentHTML("beforeend", "<p>4242</p>"); 0');
+      assert.equal(await ok('wait text 4242'), 'Visible: 4242', 'a number that is all there is to wait for');
+      await ok('network off');
+      const reloaded = await repl.run('reload');
+      assert.match(reloaded.output, /^Error: The page did not load: #\d+ \S+ failed: net::ERR_INTERNET_DISCONNECTED$/);
+      assert.match(await ok('info'), /^  Error: Chrome's error page, for #\d+ http:\/\/\S+ failed: net::ERR_INTERNET_DISCONNECTED$/m);
+      await ok('network on');
+    } finally {
+      await ok('modes off --mine');
       await ok('tab close');
     }
   });
