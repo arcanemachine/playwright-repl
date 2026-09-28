@@ -209,6 +209,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(onWindow, /^keydown: function pageKeys\(\) \{\} \(line \d+\)$/m);
     assert.doesNotMatch(onWindow, /_hitTargetInterceptor|__playwright/);
     assert.match(onWindow, /^\(\d+ of Playwright's own left out\)$/m);
+    await ok('eval document.querySelector("#load").addEventListener("keyup", function aLongHandlerName() { return "' + 'x'.repeat(120) + '"; }); 0');
+    assert.match(await ok('listeners #load'), /^keyup: function aLongHandlerName\(\) \{ return "x+… \(line \d+\)$/m, 'the start only');
+    assert.match(await ok('listeners --all #load'), /^keyup: function aLongHandlerName\(\) \{ return "x{120}"; \} \(line \d+\)$/m, 'all of it');
     assert.equal((await repl.run('listeners #nope')).status, 'error');
     assert.match((await repl.run('snapshot e99999')).output, /e99999 is a snapshot ref; if the page changed since that snapshot, take a new one/);
   });
@@ -1021,8 +1024,12 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('eval Promise.all(Array.from({ length: 4 }, (_, i) => fetch("/api/data?cut=" + i)))');
     let listed = '';
     await waitFor(async () => /cut=3/.test(listed = await ok('requests 2 cut=')), 'the requests');
-    assert.match(listed, /^\(last 2 of 4 kept; requests 4 cut= shows them all\)\n#\d+ /);
+    assert.match(listed, /^\(last 2 of 4 kept; requests 4 cut= shows them all\)\n\S+ --- the page loads \S+\n#\d+ /);
     assert.doesNotMatch(await ok('requests 4 cut='), /last \d+ of/, 'nothing said when all are shown');
+    await ok('reload');
+    await ok('eval fetch("/api/data?cut=after").then(r => r.status)');
+    await waitFor(async () => /cut=after/.test(listed = await ok('requests 3 cut=')), 'the request after the reload');
+    assert.match(listed, /cut=3\n\S+ --- the page loads http:\/\/\S+\/\n#\d+ .*cut=after$/, 'where the load starts, though the filter hides its request');
     await ok('eval ["a", "b", "c"].forEach(t => console.log("cut-" + t))');
     assert.match(await ok('console 1 cut-'), /^\(last 1 of 3 kept; console 3 cut- shows them all\)\n[\s\S]*cut-c$/);
   });
@@ -1051,7 +1058,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('requests 50 nothing-matches-this'), /No requests matching/);
     assert.match(await ok('requests 50 --regex /api/d.ta$'), /\/api\/data$/);
     assert.match(await ok('requests 50 --regex ^nothing'), /No requests matching \/\^nothing\//);
-    assert.match(await ok('requests --filter=d.ta$'), /^\(playwright-cli's requests --filter is requests --regex <pattern> here\)\n(?:\(last 20 of \d+ kept; requests \d+ --regex d\.ta\$ shows them all\)\n)?#\d+ /);
+    assert.match(await ok('requests --filter=d.ta$'), /^\(playwright-cli's requests --filter is requests --regex <pattern> here\)\n(?:\(last 20 of \d+ kept; requests \d+ --regex d\.ta\$ shows them all\)\n)?(?:\S+ --- the page loads \S+\n)?#\d+ /);
     assert.match(await ok('requests --static'), /style\.css/, 'playwright-cli\'s --static is --all');
     assert.match(await ok('requests 50 --regex "/api/d\\w+$"'), /\/api\/data$/, 'double-quoted, its backslashes kept');
     assert.match(await ok('requests --filter "/api/d\\w+$"'), /\/api\/data$/);
