@@ -1,4 +1,4 @@
-const { describe, it, before, after } = require('node:test');
+const { describe, it, before, after, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const { SKIP, waitFor, startChrome, startSite, startRepl } = require('./harness');
@@ -10,8 +10,27 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     chrome = await startChrome();
     site = await startSite();
     repl = await startRepl(chrome.cdpUrl);
+  });
+
+  // Each test starts in a fresh fixture tab, so none depends on what an earlier one left behind.
+  beforeEach(async () => {
     const opened = await repl.run(`tab new ${site.url}/`);
     assert.equal(opened.status, 'ok', opened.output);
+  });
+
+  // Every mode off, and every tab but the first closed, through the REPL so it sees each one go.
+  // A dialog a failed test left open would hold every command after it, so it is dismissed first.
+  afterEach(async () => {
+    while (/^\[\d+\]/.test((await repl.run('dialog')).output)) await repl.run('dialog dismiss');
+    const off = await repl.run('modes off');
+    assert.equal(off.status, 'ok', off.output);
+    for (;;) {
+      const tabs = (await repl.run('tab')).output.match(/^[* ] \[\d+\]/gm) || [];
+      if (tabs.length <= 1) break;
+      await repl.run('tab 1');
+      const closed = await repl.run('tab close');
+      assert.equal(closed.status, 'ok', closed.output);
+    }
   });
 
   after(async () => {
@@ -1120,7 +1139,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok(fetchStatus);
     await ok('route off --all');
     let recent = '';
-    await waitFor(async () => /GET 418 faked/.test(recent = await ok('requests 50 /api/data')), 'the requests to settle');
+    await waitFor(async () => /GET 418 faked/.test(recent = await ok('requests 50 /api/data')) && /GET 200 \d+ms fetch/.test(recent), 'the requests to settle');
     // The latest one: bodies from before an earlier navigation may be gone.
     const real = [...recent.matchAll(/#(\d+) \S+ GET 200 \d+ms fetch \S+\/api\/data/g)].pop()[1];
     const faked = /#(\d+) \S+ GET 418 faked/.exec(recent)[1];
@@ -1292,8 +1311,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
 
   it('answers a dialog with dialog, ahead of the commands waiting on it', async () => {
     assert.equal(await ok('dialog'), 'No dialog is open.');
+    const start = repl.stdout.length;
     const click = repl.run('click #alerter');
-    await waitFor(() => /Dialog \[confirm\]: sure\?/.test(repl.stdout), 'the dialog');
+    await waitFor(() => /Dialog \[confirm\]: sure\?/.test(repl.stdout.slice(start)), 'the dialog');
     const waiting = repl.run('text #out');
     assert.match(await ok('dialog'), /^\[\d+\] \S+: confirm "sure\?"\n\n +dialog accept \[text\]/);
     assert.match(await ok('dialog accept'), /^Accepted: \[\d+\] \S+: confirm "sure\?"$/);
