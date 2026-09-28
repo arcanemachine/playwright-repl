@@ -1,16 +1,30 @@
 ---
 name: pw-repl
 description: Inspect and drive a Chromium browser, possibly one a person is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, the mouse at a point (moves, buttons, wheel), requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, and recording what the person does. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
-allowed-tools: Bash(pw-repl:*) Bash(npx pw-repl:*)
+allowed-tools: Bash(pw-repl:*) Bash(npx pw-repl@latest:*)
 ---
 
 # pw-repl
 
+<!-- pw-repl skill stamp -->
+
 pw-repl (playwright-repl) is a REPL that drives a running Chromium over CDP. The browser may be a
 shared session: a person can have their own tabs open in it and be using it while you work.
 
-`pw-repl` below is the command the `pw-repl` npm package installs. Without a global install,
-`npx pw-repl` works the same; from a clone, `<clone>/bin/pw-repl.js`.
+`pw-repl` below is the command the `pw-repl` npm package installs. Without a global install, use
+`npx pw-repl@latest` in its place, in that same form for every command, so each one runs the same
+version; from a clone, `<clone>/bin/pw-repl.js`.
+
+`pw-repl where` also names the skill of the pw-repl you run: `skill: e5f6a7b8 (pw-repl 0.4.3)`. When that
+is not the skill named at the top of this file, tell the user before going on:
+
+- if this file's pw-repl version is newer than that one, pw-repl is behind: say "⚠️ pw-repl is older
+  than this skill (pw-repl <that version>, skill from <this file's>); `npx pw-repl@latest` or
+  `npm install -g pw-repl` updates it."
+- otherwise, the skill is: ask "⚠️ This pw-repl skill is out of date (from pw-repl <this file's
+  version>; <that version> has a newer one). Update it? Everything but its Custom rules section will be
+  replaced." On a yes, save what `pw-repl skill` prints over this file, with this file's Custom rules
+  section in place of the new one's.
 
 ## Arguments
 

@@ -316,3 +316,17 @@ describe('playwright-cli names', () => {
     assert.match(translate('set-color-scheme sepia').refuse, /emulate dark\|light/);
   });
 });
+
+describe('skill stamp', () => {
+  const { hashOf, current } = require('../lib/skill');
+  const text = current().text;
+
+  it('hashes only the skill\'s own text', () => {
+    const hash = hashOf(text);
+    assert.match(hash, /^[0-9a-f]{8}$/);
+    assert.equal(hashOf(text.replace('<!-- pw-repl skill stamp -->', 'This skill is from pw-repl 9.9.9 (skill 12345678).')), hash, 'not its stamp');
+    assert.equal(hashOf(text.replace(/No custom rules have been added yet\./, '- Always use tab new.')), hash, 'not the Custom rules a person adds');
+    assert.equal(hashOf(text.replace(/\n/g, '\r\n')), hash, 'not its line endings');
+    assert.notEqual(hashOf(text.replace('## Start it', '## Start it now')), hash, 'but any change to the skill itself');
+  });
+});

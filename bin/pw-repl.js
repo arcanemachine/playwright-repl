@@ -139,9 +139,9 @@ function help(topic) {
   console.log(text);
 }
 
-// Printed as is, to be saved as a skill; the hint goes to the terminal only.
+// Printed to be saved as a skill, stamped with where it came from; the hint goes to the terminal only.
 function skill() {
-  process.stdout.write(require('fs').readFileSync(require('path').join(__dirname, '..', 'skill', 'SKILL.md'), 'utf8'));
+  process.stdout.write(require('../lib/skill').stamped());
   if (process.stdout.isTTY) console.error('\nSave it as pw-repl/SKILL.md in the folder your agent reads skills from:\npw-repl skill > <skills folder>/pw-repl/SKILL.md');
 }
 

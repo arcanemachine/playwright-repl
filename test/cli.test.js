@@ -53,11 +53,16 @@ describe('pw-repl send help', () => {
     assert.match(pwRepl(['send', 'help where'], { env, encoding: 'utf8' }).stdout, /where is run at the shell \(pw-repl where\), not in the REPL; pw-repl --help/);
   });
 
-  it('prints the skill as it is, with nothing else on stdout', () => {
+  it('prints the skill stamped with its version and hash, and where names the same skill', () => {
     const result = pwRepl(['skill']);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, fs.readFileSync(path.join(__dirname, '..', 'skill', 'SKILL.md'), 'utf8'));
-    assert.match(result.stdout, /^---\nname: pw-repl\ndescription: .+\nallowed-tools: Bash\(pw-repl:\*\) Bash\(npx pw-repl:\*\)\n---\n/);
+    const { version } = require('../package.json');
+    const hash = require('../lib/skill').current().hash;
+    const file = fs.readFileSync(path.join(__dirname, '..', 'skill', 'SKILL.md'), 'utf8');
+    assert.equal(result.stdout, file.replace('<!-- pw-repl skill stamp -->', `This skill is from pw-repl ${version} (skill ${hash}).`));
+    assert.match(result.stdout, /^---\nname: pw-repl\ndescription: .+\nallowed-tools: Bash\(pw-repl:\*\) Bash\(npx pw-repl@latest:\*\)\n---\n/);
+    const where = pwRepl(['where'], { env: { ...process.env, PW_SOCKET: '/nonexistent/pw-sh-test.sock', PW_TMUX_SESSION: 'pw-sh-test-no-such-session', PW_ENDPOINT: '' } });
+    assert.match(where.stdout, new RegExp(`^skill: ${hash} \\(pw-repl ${version.replace(/\./g, '\\.')}\\)\n`));
     assert.match(result.stdout, /\n## Custom rules\n\nNo custom rules have been added yet\.\n$/, 'ends with a place for your own rules');
     assert.equal(result.stderr, '', 'the save hint is for a terminal only');
     assert.match(pwRepl(['skill', 'extra']).stderr, /Usage:/);
