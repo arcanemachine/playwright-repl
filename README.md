@@ -98,6 +98,7 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 | show an agent what I do              | `watch on`, click around in the browser, then `watch`                                 |
 | see each step as I click             | `watch on --live`                                                                     |
 | record requests and console together | `capture on`, then `capture off`                                                      |
+| record a video of the page           | `record on`, then `record off` (`help video` for the other ways)                      |
 | break the backend on purpose         | `route <glob> <status> <json>` (fake a response), `route <glob> abort`, `network off` |
 | change or slow an API response       | `route <glob> patch <json>`, `route <glob> delay <secs>`                              |
 | slow the whole network               | `network slow`                                                                        |
@@ -130,8 +131,8 @@ pw-repl differs, it is because someone else may be using the browser:
 - `watch` records what a person does as steps with their requests, not as generated code.
 
 For a browser of its own per agent, isolated sessions, traces, video, PDFs or generated test code,
-playwright-cli is the better fit. pw-repl does not record video; for one of the shared browser as you
-see it, use a screen recorder (`ffmpeg -f x11grab`, macOS `screencapture -v`, OBS).
+playwright-cli is the better fit. `record on` records a tab's page, without the pointer; for the shared
+browser as you see it, use a screen recorder (`ffmpeg -f x11grab`, macOS `screencapture -v`, OBS).
 
 ## From scripts and agents
 

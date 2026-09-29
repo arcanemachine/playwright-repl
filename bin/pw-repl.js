@@ -50,7 +50,8 @@ In a tmux session named playwright-repl, pw-repl send reaches pw-repl run withou
 
 const REPL_HELP = `The REPL's own commands: help at the pw> prompt, or pw-repl send help here (no REPL needed).
 
-pw-repl help <topic | command | --all> shows one part of it.`;
+pw-repl help <topic | command | --all> shows one part of it; pw-repl help video and pw-repl help
+playwright-cli are guides.`;
 
 function usage() {
   console.error(USAGE);
@@ -108,6 +109,14 @@ function parseSendArgs(args, allowCommand) {
   // So are the files upload reads and screenshot --filename writes.
   const resolve = require('path').resolve;
   let resolved = words[0] === 'upload' ? words.map((w, n) => (n > 1 ? resolve(w) : w)) : words;
+  // record on <file> writes it too.
+  if (words[0] === 'record' || /^video-(?:start|stop)$/.test(words[0])) {
+    resolved = words.map((w, n) => {
+      if (n < (words[0] === 'record' ? 2 : 1)) return w;
+      if (w.startsWith('--filename=') && w.length > 11) return `--filename=${resolve(w.slice(11))}`;
+      return words[n - 1] === '--filename' || !/^(?:\d+|-.*)$/.test(w) ? resolve(w) : w;
+    });
+  }
   if (words[0] === 'screenshot') {
     resolved = words.map((w, n) => (w.startsWith('--filename=') && w.length > 11 ? `--filename=${resolve(w.slice(11))}` : words[n - 1] === '--filename' ? resolve(w) : w));
   }

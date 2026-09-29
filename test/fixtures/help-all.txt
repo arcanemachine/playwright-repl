@@ -14,14 +14,15 @@ Common tasks:
   see each step as I click          watch on --live
   watch a tab someone will open     watch on --next-tab [url-part]
   requests and console together     capture on, then capture off
+  a video of the page               record on, then record off
   break the backend on purpose      route <glob> <status> <json>, route <glob> abort, network off
   change or slow an API response    route <glob> patch <json>, route <glob> delay <secs>
   slow the whole network            network slow
   clean up                          modes off
 
-Modes (watch, capture, route, network off or slow, emulate) stay on until turned off; the prompt shows
-the selected tab's: (watch routes:1) pw>. tab, watch, capture, route, network, emulate and modes on
-their own show their state and what you can run next.
+Modes (watch, capture, record, route, network off or slow, emulate, viewport) stay on until turned off;
+the prompt shows the selected tab's: (watch routes:1) pw>. tab, watch, capture, record, route, network,
+emulate and modes on their own show their state and what you can run next.
 
 Topics (help <topic>):
   tabs      open, select, close, navigate        network   requests, bodies, console, fakes, network off
@@ -32,6 +33,8 @@ help <command> for usage and caveats (e.g. help route); help --all for everythin
 
 Know playwright-cli? Its command names work here too (tab-list, go-back, set-color-scheme, route
 --status=...); help playwright-cli lists them.
+
+Recording video? help video says which way suits what you want.
 
 == tabs ==
 No tab is selected when the REPL starts: tab new opens one, tab <index|url-part> selects one. tab on its
@@ -137,7 +140,7 @@ Output is capped; --all right after the command, or at the end, shows everything
       each with the named elements around it. A hit with no named element around it prints without a path. A
       hit on text (a label) keeps the ref of the element holding it, so snapshot <that ref> shows what sits
       beside it, such as the value next to the label. --regex <pattern> is --grep by a regular expression:
-      snapshot --regex "Total: \d+".
+      snapshot --regex "Total: \d+". Refs belong to the tab whose snapshot gave them.
 
       An element with no role or name of its own (a card that is only a div) is left out, with its ref;
       snapshot --full keeps it.
@@ -209,7 +212,39 @@ Output is capped; --all right after the command, or at the end, shows everything
 
       --delay counts down out loud first (maximum 60s), so someone can hold a hover or open a menu.
 
-  viewport [WxH]                                       show or set the viewport size
+  record [on [file] [seconds] | off [file]]            record the selected tab's page to a video
+      record on starts recording the selected tab, and record off stops it and saves the file: its path,
+      length, size and bytes. record on its own, or record off when nothing is recording, says whether the
+      selected tab is recording, and how your last recording ended (record off, its seconds, its tab closing
+      or the REPL stopping) with what record off would have said.
+
+      record off <file> saves it under that name instead. --filename=<file> is file too, as playwright-cli
+      writes it.
+
+      The file is a .webm, or an .mp4 if its name ends so, absolute or relative to the folder pw-repl send
+      runs in, and owner-only, as a screenshot is; it never replaces a file. Without one, it is
+      recording-<timestamp>.webm where screenshot saves. With seconds, it stops by itself after them (at most
+      3600, which is also the default); commands run meanwhile. One recording per tab.
+
+      It brings the tab to the front of its window first, as screenshot does. It records the page only, from
+      inside the browser, at the page's size in CSS pixels, made even (an odd width or height loses a pixel),
+      a phone's too under emulate mobile: a Pixel 7's is 412 wide, less sharp than the phone draws it. It has
+      no pointer and no browser toolbars, and a tab behind another, hidden or headless keeps recording. Set
+      the size first with viewport (1280x720 fills a 16:9 player); a page that changes size while recording is
+      fitted into the first size. Chrome sends a frame as the page draws, and a still page keeps its real
+      length.
+
+      It needs ffmpeg: $PW_FFMPEG, then Playwright's own (npx playwright-core install ffmpeg), then one on the
+      PATH. Playwright's writes only WebM; an .mp4 needs a system ffmpeg, with H.264. WebM plays in browsers,
+      GitHub, GitLab and Slack; MP4 plays everywhere. It takes about 15 MB a minute.
+
+      For a video with the pointer, or of the person's screen, help video compares the other ways.
+
+  viewport [WxH | off]                                 show, set or unset the viewport size
+      viewport 1280x720 sets the selected tab's page to that size, until viewport off, modes off or the REPL
+      exits. The window is not resized. viewport on its own shows the size, and whether it was set or is the
+      window's. emulate mobile sets a phone's size instead, and each refuses while the other is on.
+
   emulate [<what> [off] | off]                         emulate a phone, dark mode, a locale or a timezone
       emulate mobile [device]  a phone's screen, touch and user agent: a Pixel 7, or a device named as in
                                Playwright's list, e.g. emulate mobile iPhone 13; a name that is not
@@ -220,10 +255,12 @@ Output is capped; --all right after the command, or at the end, shows everything
       emulate timezone <zone>  an IANA timezone, e.g. Asia/Tokyo
       emulate <what> off       stop one (dark or light off stops the color scheme); emulate off stops all
 
-      Per tab, until turned off or the REPL exits. emulate on its own shows what is on.
+      Per tab, until turned off or the REPL exits; emulate mobile <device> while another is on switches to it.
+      emulate on its own shows what is on.
 
       The page sees the user agent, touch and navigator.languages from its next load: reload after turning
-      mobile or locale on or off. Dark, light and timezone apply at once, but what the page already drew with
+      mobile or locale on or off. Touch means the page sees a touch screen; click still clicks with the mouse,
+      and sends no touch events. Dark, light and timezone apply at once, but what the page already drew with
       them (times, colors set by its script) changes only when it reloads.
 
       While mobile is on, viewport refuses: the device sets the size.
@@ -337,8 +374,8 @@ requests and console record all the time; a capture records only while it runs.
       Per tab; lasts until network on or the REPL exits. Routes still answer while it is off or slow.
 
 == devtools ==
-Cookie and storage listings omit values. eval, cdp, html, screenshots and URLs can still show sensitive
-data (cdp Network.getCookies shows cookie values).
+Cookie and storage listings omit values. eval, cdp, html, screenshots, recordings and URLs can still
+show sensitive data (cdp Network.getCookies shows cookie values).
 
   eval [--all] <JavaScript>           evaluate JavaScript in the selected tab and print the result
       Promises are awaited, await works at the top level, and a function (() => document.title) is called.
@@ -379,13 +416,13 @@ Times (requests, console, watch) are local, with their UTC offset: 18:16:15.721-
 Dialogs are reported and never answered on their own; dialog answers one.
 
   modes [off [--mine]]              the modes on in every tab; modes off turns them all off
-      The modes are watch, network off or slow, route, capture and emulate. Each is turned on and off with its
-      own command: watch on|off, network off|slow|on, route <glob> ... | route off <glob>|--all, capture
-      on|off, emulate ... | emulate off.
+      The modes are watch, network off or slow, route, capture, record, emulate and viewport. Each is turned
+      on and off with its own command: watch on|off, network off|slow|on, route <glob> ... | route off
+      <glob>|--all, capture on|off, record on|off, emulate ... | emulate off, viewport <WxH> | viewport off.
 
-      modes off turns off every one in every tab; a capture it stops is kept for capture to show. With clients
-      (help session), modes says which client turned each on, and modes off --mine turns off only the sender's
-      own.
+      modes off turns off every one in every tab; a capture it stops is kept for capture to show, and a
+      recording it stops is saved, as record off would. With clients (help session), modes says which client
+      turned each on, and modes off --mine turns off only the sender's own.
 
   dialog [accept [text] | dismiss]  show, accept or dismiss an open alert, confirm or prompt
       While a dialog is open, its page and the commands that read it wait. dialog runs at once, ahead of them;

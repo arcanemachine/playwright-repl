@@ -1,5 +1,8 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const help = require('../lib/help');
 const { commands, complete } = require('../lib/commands');
 const { compactSnapshot, grepSnapshot } = require('../lib/inspect');
@@ -34,6 +37,8 @@ describe('help', () => {
     assert.match(help.render('network'), /\nnetwork \[on\|off\|slow [^\n]*— [\s\S]*dev proxy/, 'a topic and a command of the same name');
     assert.match(help.render('route'), /^route <glob> <how> \| off <glob>\|--all — [\s\S]*route <glob> patch <json>/);
     assert.equal(help.render('nope'), null);
+    assert.match(help.render('video-start'), /^video-start is playwright-cli's name for record on \[file\.webm\|file\.mp4\]; --filename=<file> is the file\shere\.\n\nrecord \[on/, 'a playwright-cli name, with the command it runs');
+    assert.match(help.render('video-chapter'), /^video-chapter is playwright-cli's; not here/);
   });
 
   it('fits a normal-width pane', () => {
@@ -52,11 +57,11 @@ describe('help', () => {
 
   // A saved copy, so a change to how the entries are written (not what they say) shows as a diff.
   // After an intended change to the help, save it again:
-  //   node -e "const fs=require('fs'),h=require('./lib/help');for(const v of ['--all','playwright-cli'])fs.writeFileSync('test/fixtures/help'+(v==='--all'?'-all':'-'+v)+'.txt',h.render(v)+'\n')"
+  //   node -e "const fs=require('fs'),h=require('./lib/help');for(const v of ['--all','playwright-cli','video'])fs.writeFileSync('test/fixtures/help'+(v==='--all'?'-all':'-'+v)+'.txt',h.render(v)+'\n')"
   it('renders exactly as saved in test/fixtures', () => {
     const fs = require('node:fs');
     const path = require('node:path');
-    for (const [view, file] of [['--all', 'help-all.txt'], ['playwright-cli', 'help-playwright-cli.txt']]) {
+    for (const [view, file] of [['--all', 'help-all.txt'], ['playwright-cli', 'help-playwright-cli.txt'], ['video', 'help-video.txt']]) {
       const saved = fs.readFileSync(path.join(__dirname, 'fixtures', file), 'utf8');
       // By line, so a failure shows the lines that differ.
       assert.deepEqual(`${help.render(view)}\n`.split('\n'), saved.split('\n'), `help ${view} differs from test/fixtures/${file}; if the change is intended, save it again (see above)`);
@@ -100,6 +105,22 @@ describe('modules', () => {
         for (const next of graph[name] || []) visit(next, [...trail, name]);
       };
       visit(file, []);
+    }
+  });
+});
+
+describe('record', () => {
+  it('refuses without an ffmpeg, and says how to get one', () => {
+    const { findFfmpeg } = require('../lib/record');
+    const saved = { PATH: process.env.PATH, PW_FFMPEG: process.env.PW_FFMPEG, PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH };
+    const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-repl-no-ffmpeg-'));
+    try {
+      Object.assign(process.env, { PATH: empty, PLAYWRIGHT_BROWSERS_PATH: empty });
+      delete process.env.PW_FFMPEG;
+      assert.throws(() => findFfmpeg('webm'), /^Error: record needs ffmpeg, and none was found: npx playwright-core install ffmpeg/);
+    } finally {
+      for (const [key, value] of Object.entries(saved)) if (value === undefined) delete process.env[key]; else process.env[key] = value;
+      fs.rmSync(empty, { recursive: true, force: true });
     }
   });
 });
@@ -295,6 +316,8 @@ describe('playwright-cli names', () => {
     assert.equal(translate('set-color-scheme dark').text, 'emulate dark');
     assert.equal(translate('network-state-set offline').text, 'network off');
     assert.equal(translate('resize 800 600').text, 'viewport 800x600');
+    assert.equal(translate('video-start demo.webm').text, 'record on demo.webm');
+    assert.equal(translate('video-stop').text, 'record off');
     assert.equal(translate('unroute').text, 'route off --all');
     assert.equal(translate('route **/slots.json --status=500 --body=\'{"error":"x"}\'').text, 'route **/slots.json 500 {"error":"x"}');
     assert.equal(translate('route **/a --status=503').text, 'route **/a 503');

@@ -3,6 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const { SKIP, waitFor, startChrome, startSite, startRepl } = require('./harness');
 
+// The ffmpeg record would use, if any: its tests are skipped without one, as the browser's are without Chromium.
+const FFMPEG = (() => { try { return require('../lib/record').findFfmpeg('webm'); } catch { return null; } })();
+
 describe('REPL against a real browser', { skip: SKIP }, () => {
   let chrome, site, repl;
 
@@ -976,6 +979,81 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('viewport 900x700');
     assert.equal(await ok('viewport'), '900x700 (set with viewport)');
     await ok(`goto ${site.url}/`);
+  });
+
+  it('unsets a viewport, which counts as a mode, and keeps it through a screenshot', async () => {
+    const windowSize = /^(\d+x\d+) \(the window's size\)$/.exec(await ok('viewport'))[1];
+    assert.equal(await ok('viewport off'), `No viewport is set in the selected tab: ${windowSize} (the window's size)`);
+    await ok('viewport 700x500');
+    assert.match(await ok('modes'), /\(viewport:700x500\)/);
+    assert.match((await repl.run('emulate mobile')).output, /viewport off first/, 'one screen size at a time');
+    const shot = /Saved: (\S+)/.exec(await ok('screenshot'))[1];
+    const png = fs.readFileSync(shot);
+    fs.unlinkSync(shot);
+    assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [700, 500]);
+    assert.equal(await ok('eval innerWidth + "x" + innerHeight'), '700x500', 'the screenshot kept it');
+    assert.equal(await ok('viewport off'), `Viewport off: ${windowSize} (the window's size)`);
+    assert.equal(await ok('eval innerWidth + "x" + innerHeight'), windowSize);
+    await ok('viewport 640x480');
+    assert.match(await ok('modes off'), /viewport off/);
+    assert.equal(await ok('viewport'), `${windowSize} (the window's size)`);
+  });
+
+  it('records the page to a video of its size and its real length, and fits a size change into it', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
+    const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-record-'));
+    const file = require('path').join(dir, 'clip.webm');
+    try {
+      await ok('viewport 640x360');
+      assert.match(await ok(`record on ${file}`), /^Recording the selected tab to \S+clip\.webm until record off/);
+      assert.match(await ok('modes'), /\(viewport:640x360 record\)/);
+      assert.match((await repl.run(`record on ${file}`)).output, /already being recorded/);
+      await ok('eval document.body.style.background = "red"');
+      await ok('viewport 320x200');
+      await waitFor(async () => /changed size at/.test(await ok('record')), 'a frame of the new size');
+      const saved = await ok('record off');
+      const [, seconds] = /^Saved: \S+clip\.webm \((\d+\.\d)s, 640x360, \d+ KB\)\nthe page changed size at \d+\.\ds and was fitted into the first size$/.exec(saved) || [];
+      assert.ok(seconds, saved);
+      // The video's own length and size, as ffmpeg reads them back: the same as reported, to a frame.
+      const probe = require('child_process').spawnSync(FFMPEG, ['-hide_banner', '-i', file], { encoding: 'utf8' }).stderr;
+      const [, mm, ss] = /Duration: 00:(\d\d):(\d\d\.\d\d)/.exec(probe);
+      assert.ok(Math.abs(Number(mm) * 60 + Number(ss) - Number(seconds)) <= 0.1, `${probe}\nreported ${seconds}s`);
+      assert.match(probe, /Video: vp8.*, 640x360/);
+      assert.equal(fs.statSync(file).mode & 0o777, 0o600, 'owner-only, as a screenshot is');
+      assert.match(await ok('record'), /not being recorded[^]*Your last recording, ended at [^:]+:\d\d:\d\d\.\d+-?[+-]?\d\d:\d\d: Saved: /);
+      assert.match((await repl.run(`record on ${file}`)).output, /Recording already exists/);
+      assert.match((await repl.run(`record on ${dir}/clip.gif`)).output, /a \.webm or \.mp4 file/);
+      // modes off saves it before it resets the size, which the recording would otherwise end with.
+      await ok('viewport 640x360');
+      await ok(`record on ${dir}/second.webm`);
+      const off = await ok('modes off');
+      assert.match(off, /record off \(Saved: \S+second\.webm \(\d+\.\ds, 640x360, \d+ KB\)\), viewport off/);
+      assert.doesNotMatch(off, /changed size/);
+      // playwright-cli's form: --filename names the file, video-stop <file> renames it, and a
+      // name that cannot be used leaves it recording, and says so.
+      assert.match(await ok(`video-start --filename=${dir}/cli.webm`), /Recording the selected tab to \S+\/cli\.webm /);
+      const refused = await repl.run(`video-stop --filename=${dir}/cli.mp4`);
+      assert.match(refused.output, /name it \.webm, not cli\.mp4; still recording to \S+\/cli\.webm/);
+      assert.match(await ok(`video-stop ${dir}/renamed.webm`), /^Saved: \S+\/renamed\.webm \(/);
+      assert.ok(fs.existsSync(`${dir}/renamed.webm`) && !fs.existsSync(`${dir}/cli.webm`));
+      assert.match(await ok('record'), /Saved: \S+\/renamed\.webm/);
+      assert.match((await repl.run('record on --bogus')).output, /record takes no --bogus/);
+      await ok(`video-start --filename=${dir}/same.webm`);
+      assert.match(await ok(`video-stop --filename=${dir}/same.webm`), /^Saved: \S+\/same\.webm \(/, 'named at both ends');
+      // A phone's size, taken from the page as it is shown, not from a frame drawn before it reloaded.
+      await ok('viewport off');
+      await ok('emulate mobile');
+      await ok(`record on ${dir}/phone.webm`);
+      await ok('reload');
+      assert.match(await ok('record off'), /^Saved: \S+\/phone\.webm \(\d+\.\ds, 412x838, /);
+      await ok('emulate off');
+      // Its tab closing ends it, and record says so with no tab selected.
+      await ok('tab new about:blank');
+      await ok(`record on ${dir}/third.webm`);
+      await ok('tab close');
+      assert.match(await ok('record'), /Your last recording, ended at \S+: Its tab closed, which ended it\. Saved: \S+third\.webm/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('goes back to a page from the back/forward cache without waiting for loads that never come', async () => {

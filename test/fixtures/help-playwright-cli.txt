@@ -21,6 +21,8 @@ playwright-cli's command names, and what they run here (each says so the first t
   unroute                route off <glob>|--all
   request                body <#>, the response body only
   response-body          body <#>
+  video-start            record on [file.webm|file.mp4]; --filename=<file> is the file
+  video-stop             record off [file]
   localstorage-get       eval localStorage.getItem("<key>")
   localstorage-set       eval localStorage.setItem("<key>", "<value>")
   localstorage-delete    eval localStorage.removeItem("<key>")
@@ -63,9 +65,8 @@ Not here as such:
   set-reduced-motion, clear-reduced-motion, set-forced-colors, clear-forced-colors, set-contrast,
       clear-contrast, set-media, clear-media: not here yet; emulate dark|light sets the color scheme
   request-headers, response-headers, request-body: not here yet; body <#> shows the response body
-  video-start, video-stop, video-chapter, video-show-actions, video-hide-actions: not here: pw-repl does
-      not record video (playwright-cli itself does, in a browser of its own); screenshot saves an image,
-      and watch on records each step
+  video-chapter, video-show-actions, video-hide-actions: not here: record on|off records a video, without
+      chapters or action labels
   pause-at, resume, step-over: not here: they step through a Playwright test
 
 Names both have (goto, click, fill, snapshot, eval, ...) take playwright-cli's forms too: click <ref>

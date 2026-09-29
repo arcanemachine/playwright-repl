@@ -1,6 +1,6 @@
 ---
 name: pw-repl
-description: Inspect and drive a Chromium browser, possibly one a person is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, the mouse at a point (moves, buttons, wheel), requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, and recording what the person does. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
+description: Inspect and drive a Chromium browser, possibly one a person is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, the mouse at a point (moves, buttons, wheel), requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, recording what the person does, and recording a video of a tab. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
 allowed-tools: Bash(pw-repl:*) Bash(npx pw-repl@latest:*)
 ---
 
@@ -158,7 +158,8 @@ blindly retry a change), `64` usage or the REPL is not reachable. `pw-repl --hel
 ## Learn the commands
 
 Run `pw-repl send help`. It lists six topics; `help <topic>` lists their commands, `help <command>`
-gives usage and caveats, and `help --all` prints everything at once. It needs no running REPL. The
+gives usage and caveats, and `help --all` prints everything at once. pw-repl answers it itself: it needs
+no running REPL, and never reaches one. The
 help is the command reference; this file does not repeat it. If you know playwright-cli, its command
 names work too (`help playwright-cli` lists them).
 
@@ -200,17 +201,15 @@ pw-repl send -c <name> close                        # your modes off; tab close 
   lists what is on in every tab (the prompt shows the selected tab's, e.g. `(watch routes:1) pw>`);
   `modes off` turns off every mode in every tab.
 - Someone may be attached to the REPL's tmux session; killing the session ends it for them too.
-- pw-repl does not record video. For one of a flow in a browser of its own, Microsoft's playwright-cli (a
-  separate tool, the npm package `@playwright/cli`: `video-start`, `video-stop`); for this browser as the
-  person sees it, a screen recorder (`ffmpeg -f x11grab`, macOS `screencapture -v`, OBS). A screen
-  recorder records their whole screen, not the tab: ask before starting one, or have them start it. A
-  headless browser is not on the screen, so it does not show.
+- For a video, `help video` says which way suits what you want: `record on` records a tab's page, and a
+  screen recorder on the person's machine records what they see.
 
 ## Environment
 
 - Chromium must be running with `--remote-debugging-port=9222`, unless `--launch` starts one. A headless
   one works too (`--headless=new`); nobody answers its dialogs but `dialog`.
 - `PW_CHROME` — the Chromium `--launch` starts (default: Playwright's own, then one on the `PATH`).
+- `PW_FFMPEG` — the ffmpeg `record` uses (default: Playwright's own, then one on the `PATH`).
 - `PW_CDP_URL` — CDP endpoint (default `http://localhost:9222`).
 - `PW_SCREENSHOT_DIR` — where the REPL saves screenshots, read when it starts, not by `send`. Without it,
   a REPL on a socket of its own saves them next to its socket, and any other in `/tmp`. `screenshot`
