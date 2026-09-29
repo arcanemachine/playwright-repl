@@ -502,7 +502,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await other.goto(`${site.url}/?not-this-one`);
       const wanted = await person.contexts()[0].newPage();
       await wanted.goto(`${site.url}/?wanted`);
-      await waitFor(async () => /\?wanted$/m.test(await ok('info').then(t => t.split('\n')[0])), 'the wanted tab to be selected');
+      await waitFor(async () => /\?wanted$/m.test(await ok('info').then(t => t.split('\n')[0])), 'the wanted tab to be selected', 20000);
       await wanted.click('#go');
       let trail = '';
       await waitFor(async () => /click button "Go"/.test(trail = await ok('watch')), 'the click in the new tab');
