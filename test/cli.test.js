@@ -316,6 +316,18 @@ cp ${dir}/helper.pid ${dir}/first; echo 'No usable sandbox!' >&2; exit 1`);
     assert.equal(pwRepl(['help', 'route']).stdout.trimEnd(), require('../lib/help').render('route'), 'with a command, the REPL help');
     assert.equal(pwRepl(['help', '-h']).stdout, bare.stdout, 'help -h is the usage too');
   });
+
+  it('refuses an address that is not loopback as a usage error, not a stack trace', () => {
+    const env = { ...process.env, PW_ENDPOINT: '' };
+    for (const args of [['send', '-e', '10.0.0.1:9230', 'tab'], ['where', '-e', '10.0.0.1:9230'], ['stop', '-e', '10.0.0.1:9230'], ['attach', '-e', '10.0.0.1:9230']]) {
+      const result = pwRepl(args, { env });
+      assert.equal(result.status, 64, args.join(' '));
+      assert.equal(result.stderr, 'pw-repl: Refusing non-loopback address 10.0.0.1; use 127.0.0.1, localhost, or ::1\n', args.join(' '));
+    }
+    const byEnv = pwRepl(['send', 'tab'], { env: { ...process.env, PW_ENDPOINT: '10.0.0.1:9230' } });
+    assert.equal(byEnv.status, 64, 'from PW_ENDPOINT too');
+    assert.match(byEnv.stderr, /^pw-repl: Refusing non-loopback address 10\.0\.0\.1;/);
+  });
 });
 
 // A socket file with nothing behind it: what a REPL killed mid-shutdown leaves.

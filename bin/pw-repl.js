@@ -84,6 +84,16 @@ function parseSendArgs(args, allowCommand) {
       }
     } else if (arg === '--') { i++; break; } else break;
   }
+  // An address that is refused (not loopback) is a usage error, said once, not a stack trace.
+  const endpoint = options.endpoint || process.env.PW_ENDPOINT;
+  if (endpoint) {
+    try {
+      require('../lib/client').parseEndpoint(endpoint);
+    } catch (error) {
+      console.error(`pw-repl: ${error.message}`);
+      process.exit(64);
+    }
+  }
   const words = args.slice(i);
   if (!allowCommand && words.length) usage();
   // For a command that reads a quoted selector (fill "text=Your name" Ada), a
