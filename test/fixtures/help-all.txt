@@ -212,6 +212,25 @@ Output is capped; --all right after the command, or at the end, shows everything
 
       --delay counts down out loud first (maximum 60s), so someone can hold a hover or open a menu.
 
+  highlight [<selector> [--style=<css>] | off]         draw a box over elements, for a person or a screenshot
+      highlight <selector> draws Playwright's highlight over every match, as playwright-cli's does: a
+      tinted box, labelled with its locator, that follows the element as the page scrolls or changes, and is
+      in screenshots. --style=<css> adds CSS to the box, quoted if it has spaces; this circles e5 in blue:
+        highlight e5 --style="outline: 3px solid blue; border-radius: 50%"
+
+      highlight on its own lists the selected tab's highlights. highlight --hide <selector> hides one, and
+      highlight --hide or highlight off hides them all. A highlight is a mode of its tab: modes shows it,
+      modes off hides it, and the REPL hides every one as it stops. Loading a new page drops them; a page that
+      changes its route without loading keeps them.
+
+      The box is drawn over the page, in an element of Playwright's own added to it (x-pw-glass); the page's
+      own elements are not changed, and clicks and typing reach them as before. Playwright always labels the
+      box, and the label can cover what is just below it. For a screenshot without one, eval can outline
+      the element itself (with border-radius: 50% for a circle). That changes the page, so put it back
+      afterwards, as it was if it had a style of its own:
+        eval document.querySelector("#rate-3").style.outline = "3px solid blue"
+        eval document.querySelector("#rate-3").style.outline = ""
+
   record [on [file] [seconds] | off [file]]            record the selected tab's page to a video
       record on starts recording the selected tab, and record off stops it and saves the file: its path,
       length, size and bytes. record on its own, or record off when nothing is recording, says whether the
@@ -398,7 +417,8 @@ show sensitive data (cdp Network.getCookies shows cookie values).
   cdp [--all] <method> <JSON object>  send one CDP command through a temporary session
       The session is detached afterwards, so subscriptions and settings do not persist.
 
-      Browser.close and Target.closeTarget are refused.
+      Browser.close and Target.closeTarget are refused, and so is Page.handleJavaScriptDialog: dialog answers
+      one.
 
   cookies [--all]                     cookie names, domains and flags; values are omitted
   storage [--all]                     localStorage keys; values are omitted
@@ -424,22 +444,29 @@ selected tab, if any: (watch network:off routes:2 capture) pw>. modes lists them
 
 Times (requests, console, watch) are local, with their UTC offset: 18:16:15.721-06:00.
 
-Dialogs are reported and never answered on their own; dialog answers one.
+Dialogs are reported and never answered on their own; dialog accept or dismiss answers one, from any
+client, whoever opened it.
 
   modes [off [--mine]]              the modes on in every tab; modes off turns them all off
-      The modes are watch, network off or slow, route, capture, record, emulate and viewport. Each is turned
-      on and off with its own command: watch on|off, network off|slow|on, route <glob> ... | route off
-      <glob>|--all, capture on|off, record on|off, emulate ... | emulate off, viewport <WxH> | viewport off.
+      The modes are watch, network off or slow, route, capture, record, emulate, viewport and highlight. Each
+      is turned on and off with its own command: watch on|off, network off|slow|on, route <glob> ... | route
+      off <glob>|--all, capture on|off, record on|off, emulate ... | emulate off, viewport <WxH> | viewport
+      off, highlight <selector> | highlight off.
 
       modes off turns off every one in every tab; a capture it stops is kept for capture to show, and a
       recording it stops is saved, as record off would. With clients (help session), modes says which client
       turned each on, and modes off --mine turns off only the sender's own.
 
   dialog [accept [text] | dismiss]  show, accept or dismiss an open alert, confirm or prompt
-      While a dialog is open, its page and the commands that read it wait. dialog runs at once, ahead of them;
-      it answers the selected tab's dialog, or the only one open. accept text answers a prompt.
+      While a dialog is open, its page and the commands that read it wait, a click that opened it included,
+      until it is answered. Commands run one at a time, so every client's commands behind that one wait too,
+      in any tab: in a shared REPL, answer a dialog you open. dialog runs at once, ahead of them; it answers
+      the selected tab's dialog (marked *), or the only one open. accept text answers a prompt, and accept
+      alone keeps its default, as OK in the browser does.
 
-      With nobody at the browser (e.g. headless), it is the only way to answer one.
+      An agent can answer any dialog, one it opened included; one the person answers in the browser is gone
+      from dialog then. cdp cannot answer one: Chrome lets only a session that saw it open do so. With nobody
+      at the browser (e.g. headless), it is the only way to answer one.
 
   help [topic | command | --all]    this help; --all prints every topic and command in full
   quit                              disconnect, leaving Chromium running (one --launch started stops too)

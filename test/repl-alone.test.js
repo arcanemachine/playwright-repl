@@ -18,7 +18,7 @@ describe('quitting a REPL that changed a tab', { skip: SKIP }, () => {
     await chrome?.stop();
   });
 
-  it('leaves the tab as it was: no emulation, and the network at full speed', async () => {
+  it('leaves the tab as it was: no emulation, the network at full speed, and nothing highlighted', async () => {
     const timed = 'eval (async () => { const t = performance.now(); await fetch("/api/data?" + Math.random()); return Math.round(performance.now() - t); })()';
     const state = 'eval JSON.stringify([matchMedia("(prefers-color-scheme: dark)").matches, innerWidth, navigator.userAgent.includes("Mobile")])';
     const first = await startRepl(chrome.cdpUrl);
@@ -26,7 +26,7 @@ describe('quitting a REPL that changed a tab', { skip: SKIP }, () => {
     try {
       assert.equal((await first.run(`tab new ${site.url}/?quit`)).status, 'ok');
       before = (await first.run(state)).output;
-      for (const command of ['emulate mobile', 'emulate dark', 'network slow 700']) {
+      for (const command of ['emulate mobile', 'emulate dark', 'network slow 700', 'highlight h1']) {
         const result = await first.run(command);
         assert.equal(result.status, 'ok', `${command}\n${result.output}`);
       }
@@ -40,6 +40,7 @@ describe('quitting a REPL that changed a tab', { skip: SKIP }, () => {
       assert.equal((await second.run('tab quit')).status, 'ok');
       assert.equal((await second.run(state)).output, before, 'the emulation was reset on quit');
       assert.ok(Number((await second.run(timed)).output) < 500, 'the network is back to full speed');
+      assert.equal((await second.run('eval document.querySelectorAll("x-pw-glass").length')).output, '0', 'the highlight was hidden on quit');
     } finally {
       await second.stop();
     }

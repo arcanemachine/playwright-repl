@@ -41,10 +41,10 @@ send exit status: 0 ok, 1 command error, 2 completion not confirmed, 64 usage or
 The browser must be running with --remote-debugging-port (default http://localhost:9222; set $PW_CDP_URL).
 
 --launch is the quick start instead: it starts a Chromium of the REPL's own (headless unless --headed, in
-a temporary profile, on a free port of its own), prints the command it ran, and stops it with the REPL
-(Ctrl-C while it starts too); stop returns once that Chromium has exited. Flags after -- go to it; a
---user-data-dir=<dir> among them is used instead of the temporary profile, and kept. PW_CHROME picks
-which one. To set a browser up your own way, start it yourself and use PW_CDP_URL.
+a temporary profile, on a free port of its own, which pw-repl where names), prints the command it ran,
+and stops it with the REPL (Ctrl-C while it starts too); stop returns once that Chromium has exited.
+Flags after -- go to it; a --user-data-dir=<dir> among them is used instead of the temporary profile, and
+kept. PW_CHROME picks which one. To set a browser up your own way, start it yourself and use PW_CDP_URL.
 
 In a tmux session named playwright-repl, pw-repl send reaches pw-repl run without the server.`;
 

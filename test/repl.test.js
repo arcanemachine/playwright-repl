@@ -24,7 +24,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   // Every mode off, and every tab but the first closed, through the REPL so it sees each one go.
   // A dialog a failed test left open would hold every command after it, so it is dismissed first.
   afterEach(async () => {
-    while (/^\[\d+\]/.test((await repl.run('dialog')).output)) await repl.run('dialog dismiss');
+    while (/^[* ]*\[\d+\]/.test((await repl.run('dialog')).output)) await repl.run('dialog dismiss');
     const off = await repl.run('modes off');
     assert.equal(off.status, 'ok', off.output);
     for (;;) {
@@ -1529,6 +1529,85 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(read.output, 'answered true', 'the command queued behind the dialog ran once it was answered');
     assert.equal(await ok('dialog'), 'No dialog is open.');
     assert.equal((await repl.run('dialog dismiss')).status, 'error');
+    // cdp cannot answer one, and says so ahead of the command the dialog holds up.
+    const start2 = repl.stdout.length;
+    let clicked = false;
+    const click2 = repl.run('click #alerter').then(result => { clicked = true; return result; });
+    await waitFor(() => /Dialog \[confirm\]: sure\?/.test(repl.stdout.slice(start2)), 'the dialog');
+    const refused = await repl.run('cdp Page.handleJavaScriptDialog {"accept": true}');
+    assert.equal(refused.status, 'error');
+    assert.match(refused.output, /cdp cannot answer a dialog[^\n]*; dialog accept or dialog dismiss answers it/);
+    assert.equal(clicked, false, 'refused while the click still waits on the dialog');
+    await ok('dialog dismiss');
+    assert.equal((await click2).status, 'ok');
+    // accept alone keeps a prompt's default, as OK in the browser does.
+    const start3 = repl.stdout.length;
+    await ok('eval setTimeout(() => { document.querySelector("#out").textContent = prompt("Name?", "Ada"); })');
+    await waitFor(() => /Dialog \[prompt\]: Name\?/.test(repl.stdout.slice(start3)), 'the prompt');
+    await ok('dialog accept');
+    assert.equal(await ok('text #out'), 'Ada');
+  });
+
+  it('highlights elements as playwright-cli does, as a mode that modes off and a new page end', async () => {
+    const drawn = 'eval !!document.querySelector("x-pw-glass")?.shadowRoot || document.querySelectorAll("x-pw-glass").length';
+    assert.match(await ok('highlight'), /^Nothing is highlighted in the selected tab\./);
+    assert.equal(await ok('highlight #go --style="outline: 3px solid blue"'), 'Highlighted #go; highlight --hide #go hides it');
+    assert.notEqual(await ok(drawn), 'false', 'drawn over the page');
+    assert.match(await ok('highlight button'), /^Highlighted button \(all \d+ matches\);/);
+    assert.match(await ok('highlight'), /^#go {2}--style="outline: 3px solid blue"\nbutton\n/);
+    assert.match(await ok('modes'), /\(highlight:2\)/);
+    // The page is used through it as before.
+    await ok('fill #name Ada');
+    await ok('click #go');
+    assert.equal(await ok('text #out'), 'Hello Ada');
+    assert.equal(await ok('highlight --hide #go'), 'Hid the highlight on #go');
+    assert.match((await repl.run('highlight --hide #go')).output, /#go is not highlighted/);
+    assert.match((await repl.run('highlight #nothing-here')).output, /No element matches #nothing-here; nothing was highlighted/);
+    assert.match((await repl.run('highlight #go --style')).output, /^Error: Usage: highlight/);
+    assert.match(await ok('modes off'), /1 highlight hidden/);
+    assert.match(await ok('highlight'), /^Nothing is highlighted/);
+    await ok('highlight #go');
+    assert.equal(await ok('highlight off'), 'Hid 1 highlight');
+    // A new document drops them.
+    await ok('highlight #go');
+    await ok('reload');
+    assert.match(await ok('highlight'), /^Nothing is highlighted/);
+  });
+
+  it('marks which of several open dialogs it answers', async () => {
+    const confirmSoon = 'eval setTimeout(() => { document.querySelector("#out").textContent = "answered " + confirm("sure?"); })';
+    await ok(confirmSoon);
+    await ok(`tab new ${site.url}/?second`);
+    const start = repl.stdout.length;
+    await ok(confirmSoon);
+    await waitFor(() => /Dialog \[confirm\]/.test(repl.stdout.slice(start)), 'the second dialog');
+    assert.match(await ok('dialog'), /^ {2}\[\d+\] \S+\/: confirm "sure\?"\n\* \[\d+\] \S+\?second: confirm "sure\?"\n/);
+    assert.match(await ok('dialog dismiss'), /^Dismissed: \[\d+\] \S+\?second:/, 'the selected tab\'s');
+    assert.match(await ok('dialog'), /^\[\d+\] \S+\/: confirm/, 'one left, unmarked');
+    await ok('dialog accept');
+  });
+
+  it('forgets a dialog answered in the browser', async () => {
+    // Answered as the person at the browser would, on a connection of its own: one that saw it open.
+    const targets = await (await fetch(`${chrome.cdpUrl}/json`)).json();
+    const target = targets.find(t => t.type === 'page' && t.url === `${site.url}/`);
+    const socket = new WebSocket(target.webSocketDebuggerUrl);
+    await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
+    const replies = new Map();
+    socket.onmessage = event => { const { id } = JSON.parse(event.data); replies.get(id)?.(); };
+    const send = (id, method, params = {}) => new Promise(resolve => { replies.set(id, resolve); socket.send(JSON.stringify({ id, method, params })); });
+    try {
+      await send(1, 'Page.enable');
+      const start = repl.stdout.length;
+      await ok('eval setTimeout(() => { document.querySelector("#out").textContent = "answered " + confirm("sure?"); })');
+      await waitFor(() => /Dialog \[confirm\]: sure\?/.test(repl.stdout.slice(start)), 'the dialog');
+      assert.match(await ok('dialog'), /confirm "sure\?"/);
+      await send(2, 'Page.handleJavaScriptDialog', { accept: false });
+      await waitFor(async () => (await ok('dialog')) === 'No dialog is open.', 'the dialog to be gone');
+      assert.equal(await ok('text #out'), 'answered false');
+    } finally {
+      socket.close();
+    }
   });
 
   it('answers a dialog with playwright-cli\'s dialog-accept and dialog-dismiss, ahead of the queue too', async () => {

@@ -195,12 +195,16 @@ pw-repl send -c <name> close                        # your modes off; tab close 
   one too; otherwise no tab is selected.
   Tab numbers change when tabs open or close; `tab <url-part>` and `tab close <url-part>` pick a tab by
   its URL and refuse if it is ambiguous.
-- Dialogs are never answered on their own. While one is open, its page and the commands that read it
-  wait; `dialog` shows it, and `dialog accept` or `dialog dismiss` answers it.
+- You can answer any dialog yourself, one you opened included: `dialog` shows it, and `dialog accept`
+  or `dialog dismiss` answers it. Nothing answers one on its own, and while one is open its page and
+  the commands that read it wait. One answered in the browser is gone from `dialog` too.
 - Modes and tabs stay on or open until they are turned off or closed, whoever started them. `modes`
   lists what is on in every tab (the prompt shows the selected tab's, e.g. `(watch routes:1) pw>`);
   `modes off` turns off every mode in every tab.
 - Someone may be attached to the REPL's tmux session; killing the session ends it for them too.
+- To point something out, to the person or in a screenshot, `highlight <ref|selector>` draws a box over it
+  without changing the page (`--style=<css>` restyles it; `highlight off` hides them). Its label can
+  cover what is below it; `help highlight` says how to mark a screenshot without one.
 - For a video, `help video` says which way suits what you want: `record on` records a tab's page, and a
   screen recorder on the person's machine records what they see.
 

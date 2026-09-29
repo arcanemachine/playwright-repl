@@ -42,7 +42,7 @@ Not here as such:
   list: pw-repl where says which REPL is running; one REPL serves everyone using its browser
   attach: pw-repl serve connects to the browser on PW_CDP_URL; pw-repl skill has the rest
   detach: pw-repl stop, or quit at the prompt, disconnects and leaves the browser running
-  drag, drop, highlight, webmcp-list, webmcp-call: not here yet
+  drag, drop, webmcp-list, webmcp-call: not here yet
   keydown, keyup: not here yet; press <key> presses and releases one
   pdf: not here yet; screenshot --full saves the whole page as a PNG
   generate-locator: not here yet; a snapshot ref (e5) works as a selector in any command
