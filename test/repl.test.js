@@ -1007,6 +1007,11 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(failed.output, /The new tab stays open and selected; tab close closes it\./);
     await ok('tab close');
     assert.match(await ok('info'), /Title: Fixture$/m, 'back to the tab before');
+    const missing = await repl.run(`tab new ${site.url}/no-such-page`);
+    assert.equal(missing.status, 'error');
+    assert.match(missing.output, /The page did not load: #\d+ \S+\/no-such-page 404, then failed: net::\S+\n/);
+    assert.equal(missing.output.match(/then failed/g).length, 1, 'why, said once');
+    await ok('tab close');
   });
 
   it('greps the snapshot by role, name or flag, with where each hit sits', async () => {
