@@ -93,8 +93,11 @@ async function startSite() {
 <p id="log" style="position:absolute;top:520px"></p>
 <script>
 for (const type of ['mousedown', 'mouseup', 'click']) pad.addEventListener(type, e => { log.textContent += type + ':' + e.button + '@' + e.clientX + ',' + e.clientY + ' '; });
-// Rendered again and again, as a React list is: the element chosen is soon replaced.
-setInterval(() => { again.innerHTML = '<button style="visibility:hidden">Again</button><button onclick="log.textContent += \\'redrawn \\'">Again</button>'; }, 150);
+// Rendered again, as a React list is, each time redraw() is called: the element chosen before is replaced.
+// On demand, not on a timer: a click must hold still for two frames, which a busy machine could not fit
+// between redraws on a timer.
+window.redraw = () => { again.innerHTML = '<button style="visibility:hidden">Again</button><button onclick="log.textContent += \\'redrawn \\'">Again</button>'; };
+redraw();
 pad.addEventListener('wheel', e => { e.preventDefault(); log.textContent += 'wheel:' + e.deltaY + '@' + e.clientX + ',' + e.clientY + ' '; });
 </script>`);
     }

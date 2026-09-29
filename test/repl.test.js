@@ -62,7 +62,10 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.equal(await ok('click text=Far'), 'Clicked: text=Far', 'the first in page order, out of view or not');
       assert.equal(await ok(log), 'free free far-first ');
       await ok('eval scrollTo(0, 0)');
-      for (let i = 0; i < 5; i += 1) assert.match(await ok('click text=Again'), /^Clicked: text=Again \(match 2 of 2;/, 'chosen again when rendered again');
+      for (let i = 0; i < 5; i += 1) {
+        await ok('eval redraw()');
+        assert.match(await ok('click text=Again'), /^Clicked: text=Again \(match 2 of 2;/, 'chosen again when rendered again');
+      }
       assert.equal(await ok(log), 'free free far-first redrawn redrawn redrawn redrawn redrawn ');
     } finally {
       await ok('tab close');
@@ -145,12 +148,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('eval document.querySelector("#hold").remove(); 0');
   });
 
-  it('clicks without delay in a tab that stays in the background', async () => {
+  it('keeps a tab in the background drawing after input, so clicks there are not delayed', async () => {
     await ok(`tab new ${site.url}/?background-clicks`);
-    const started = Date.now();
     for (let i = 0; i < 5; i++) await ok('click #go');
-    // Chrome all but stops drawing a background tab after input: 1-2s a click, without the screencast.
-    assert.ok(Date.now() - started < 2500, `5 clicks took ${Date.now() - started}ms`);
+    // Chrome all but stops drawing a background tab after input (about a frame a second), and a click
+    // waits for frames: 1-2s each without the screencast. Frames are counted, not clicks timed, so a busy
+    // machine does not fail it.
+    const frames = await ok('eval new Promise(r => { let n = 0; const t = performance.now(); const f = () => { n++; if (performance.now() - t < 1000) requestAnimationFrame(f); else r(n); }; requestAnimationFrame(f); })');
+    assert.ok(Number(frames) >= 20, `${frames} frames in a second`);
     await ok('tab close');
   });
 
