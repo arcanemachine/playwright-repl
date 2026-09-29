@@ -46,6 +46,9 @@ If you hit a limitation or write a workaround, consider adding the capability to
   Compare with the last commit that has one (`git log --grep='npm test:'`): a run that grew by more than
   a few seconds means a slow test crept in, usually one waiting out a real timeout (5s for a click).
   Find it (each test prints its time) and make it faster, or say why it can't be, before committing.
+- Don't race the clock in a test: a page that changes on a timer, or a command timed against a budget,
+  fails on a busy machine. Have the page change when the test asks (eval), or measure the thing itself
+  (frames drawn, not clicks timed). A click waits for its element to hold still for two frames.
 - A test that times out in a run much slower than usual (the machine is busy) may be load, not a bug:
   run it again, alone. If it fails alone too, find out why before going on.
 - For anything the tests can't reach, exercise the change in a running REPL of your own: on a socket of
