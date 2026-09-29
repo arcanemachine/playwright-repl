@@ -49,8 +49,6 @@ If you hit a limitation or write a workaround, consider adding the capability to
 - Don't race the clock in a test: a page that changes on a timer, or a command timed against a budget,
   fails on a busy machine. Have the page change when the test asks (eval), or measure the thing itself
   (frames drawn, not clicks timed). A click waits for its element to hold still for two frames.
-- A test that times out in a run much slower than usual (the machine is busy) may be load, not a bug:
-  run it again, alone. If it fails alone too, find out why before going on.
 - For anything the tests can't reach, exercise the change in a running REPL of your own: on a socket of
   your own, with `--launch` unless the change needs the user's browser, and then in a tab of your own.
 - `skill/SKILL.md` is how agents learn to use the REPL: keep it in step with a change to how it is
