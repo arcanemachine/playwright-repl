@@ -56,7 +56,7 @@ own lists them all.
 
       A page that does not load says why, as wait load does: a failed request, after which the tab shows
       Chrome's error page (info names the URL that failed), or an answer with no page (a 204), which leaves
-      the tab where it was. reload, back and forward say it the same way.
+      the tab where it was. tab new, reload, back and forward say it the same way.
 
   back                                                 go back one history entry
       The browser may bring the page back from its back/forward cache, as it was: nothing loads or runs again,
