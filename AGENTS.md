@@ -41,6 +41,8 @@ If you hit a limitation or write a workaround, consider adding the capability to
   Compare with the last commit that has one (`git log --grep='npm test:'`): a run that grew by more than
   a few seconds means a slow test crept in, usually one waiting out a real timeout (5s for a click).
   Find it (each test prints its time) and make it faster, or say why it can't be, before committing.
+- A test that times out in a run much slower than usual (the machine is busy) may be load, not a bug:
+  run it again, alone. If it fails alone too, find out why before going on.
 - For anything the tests can't reach, exercise the change in a running REPL of your own: on a socket of
   your own, with `--launch` unless the change needs the user's browser, and then in a tab of your own.
 - `skill/SKILL.md` is how agents learn to use the REPL: keep it in step with a change to how it is
