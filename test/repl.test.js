@@ -1004,6 +1004,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     const file = require('path').join(dir, 'clip.webm');
     try {
       await ok('viewport 640x360');
+      // A page that scrolls: its scrollbars are in the video, which is the viewport's size.
+      await ok('eval document.body.style.height = "3000px"');
       assert.match(await ok(`record on ${file}`), /^Recording the selected tab to \S+clip\.webm until record off/);
       assert.match(await ok('modes'), /\(viewport:640x360 record\)/);
       assert.match((await repl.run(`record on ${file}`)).output, /already being recorded/);
@@ -1037,6 +1039,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.ok(fs.existsSync(`${dir}/renamed.webm`) && !fs.existsSync(`${dir}/cli.webm`));
       assert.match(await ok('record'), /Saved: \S+\/renamed\.webm/);
       assert.match((await repl.run('record on --bogus')).output, /record takes no --bogus/);
+      assert.match((await repl.run('record on --mp4')).output, /record takes no --mp4: the file's ending picks the format, as in record on clip\.mp4$/);
+      assert.match((await repl.run('video-start --size 800x600')).output, /record takes no --size: the video is the page's size; set it first with viewport/);
       await ok(`video-start --filename=${dir}/same.webm`);
       assert.match(await ok(`video-stop --filename=${dir}/same.webm`), /^Saved: \S+\/same\.webm \(/, 'named at both ends');
       // A phone's size, taken from the page as it is shown, not from a frame drawn before it reloaded.
@@ -1049,8 +1053,26 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       // Its tab closing ends it, and record says so with no tab selected.
       await ok('tab new about:blank');
       await ok(`record on ${dir}/third.webm`);
-      await ok('tab close');
+      assert.match(await ok('tab close'), /^Closed about:blank\nIts tab closed, which ended it\. Saved: \S+third\.webm \(/, 'tab close says so');
       assert.match(await ok('record'), /Your last recording, ended at \S+: Its tab closed, which ended it\. Saved: \S+third\.webm/);
+      // Another client's record off stops it too, and both are told whose it was.
+      assert.equal((await repl.runAs('rec-a', 'tab new data:text/html,owned')).status, 'ok');
+      assert.equal((await repl.runAs('rec-a', `record on ${dir}/owned.webm`)).status, 'ok');
+      assert.equal((await repl.runAs('rec-b', 'tab owned')).status, 'ok');
+      assert.match((await repl.runAs('rec-b', 'record off')).output, /^rec-b's record off ended rec-a's recording\. Saved: \S+owned\.webm/);
+      assert.match((await repl.runAs('rec-a', 'record')).output, /Your last recording, ended at \S+: rec-b's record off ended rec-a's recording/);
+      // A folder it cannot write in is refused before it stops, at either end.
+      fs.mkdirSync(`${dir}/ro`, { mode: 0o555 });
+      assert.match((await repl.run(`record on ${dir}/ro/x.webm`)).output, /Cannot write in \S+\/ro to save x\.webm there/);
+      // A quoted file, with a space in it.
+      fs.mkdirSync(`${dir}/my dir`);
+      assert.match((await repl.run(`record on ${dir}/my dir/kept.webm`)).output, /record takes one file, and "\S+\/my" and "dir\/kept\.webm" are two: quote a file name with spaces in it/);
+      await ok(`record on "${dir}/my dir/kept.webm"`);
+      assert.match((await repl.run(`record off ${dir}/ro/x.webm`)).output, /Cannot write in \S+\/ro to save x\.webm there; still recording to \S+\/my dir\/kept\.webm/);
+      assert.match(await ok(`record off --filename='${dir}/my dir/renamed kept.webm'`), /^Saved: \S+\/my dir\/renamed kept\.webm \(/);
+      const unselected = await repl.runAs('no-tab', 'record off');
+      assert.equal(unselected.status, 'ok', unselected.output);
+      assert.match(unselected.output, /^The selected tab is not being recorded/, 'record off with no tab selected says so too');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

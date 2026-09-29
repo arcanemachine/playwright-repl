@@ -118,10 +118,10 @@ pad.addEventListener('wheel', e => { e.preventDefault(); log.textContent += 'whe
   return { url: `http://127.0.0.1:${server.address().port}`, stop: () => server.close() };
 }
 
-async function startRepl(cdpUrl) {
+async function startRepl(cdpUrl, env = {}) {
   const socket = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'pw-repl-sock-')), 'repl.sock');
   const proc = spawn(process.execPath, [path.join(ROOT, 'bin', 'pw-repl.js'), 'serve', socket], {
-    env: { ...process.env, PW_CDP_URL: cdpUrl },
+    env: { ...process.env, ...env, PW_CDP_URL: cdpUrl },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
   const repl = { socket, proc, stdout: '', exited: false };

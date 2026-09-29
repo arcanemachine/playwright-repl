@@ -197,3 +197,60 @@ describe('closing the terminal of a serving REPL', { skip: SKIP }, () => {
     assert.equal(fs.existsSync(repl.socket), false);
   });
 });
+
+describe('a recording whose ffmpeg exits before record off', { skip: SKIP }, () => {
+  let chrome, repl, dir;
+
+  before(async () => {
+    chrome = await startChrome();
+    dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-record-'));
+    // An ffmpeg that takes frames until the test has it fail, leaving what it wrote so far.
+    const fake = `${dir}/ffmpeg`;
+    fs.writeFileSync(fake, `#!/bin/sh
+case "$*" in *-encoders*) echo " V....D libvpx  VP8"; exit 0;; esac
+for out; do :; done
+cat >/dev/null &
+while [ ! -f ${dir}/fail ]; do sleep 0.05; done
+[ -f ${dir}/partial ] && printf webm > "$out"
+echo "fake ffmpeg: failed" >&2
+exit 1
+`, { mode: 0o755 });
+    // Its own REPL, for an ffmpeg of its own.
+    repl = await startRepl(chrome.cdpUrl, { PW_FFMPEG: fake });
+  });
+
+  after(async () => {
+    await repl?.stop();
+    await chrome?.stop();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  const ok = async command => {
+    const result = await repl.run(command);
+    assert.equal(result.status, 'ok', `${command}\n${result.output}`);
+    return result.output;
+  };
+
+  it('ends it then, says so, and fails the next record off once', async () => {
+    await ok('tab new about:blank');
+    assert.match(await ok(`record on ${dir}/lost.webm`), /^Recording the selected tab/);
+    fs.writeFileSync(`${dir}/fail`, '');
+    await waitFor(async () => /not being recorded/.test(await ok('record')), 'the recording to end');
+    assert.match(await ok('record'), /Your last recording, ended at \S+: ffmpeg exited while recording, which ended it\. Nothing was saved: ffmpeg wrote no video \(\d+ frames sent; it exited with 1: fake ffmpeg: failed\)\.$/);
+    assert.ok(!fs.existsSync(`${dir}/lost.webm`));
+    const off = await repl.run('record off');
+    assert.equal(off.status, 'error', 'record off fails with it');
+    assert.match(off.output, /ffmpeg exited while recording/);
+    assert.equal((await repl.run('record off')).status, 'ok', 'once');
+    // Cut short with a file: saved, and still a failure.
+    fs.rmSync(`${dir}/fail`);
+    fs.writeFileSync(`${dir}/partial`, '');
+    await ok(`record on ${dir}/cut.webm`);
+    fs.writeFileSync(`${dir}/fail`, '');
+    await waitFor(async () => /not being recorded/.test(await ok('record')), 'the recording to end');
+    const cut = await repl.run('record off');
+    assert.equal(cut.status, 'error', cut.output);
+    assert.match(cut.output, /ffmpeg exited while recording, which ended it\. Saved: \S+cut\.webm \(\d+x\d+, 1 KB\)\nffmpeg exited with 1 \(fake ffmpeg: failed\), so the file holds only what it had written, short of the [\d.]+s recorded/);
+    assert.ok(fs.existsSync(`${dir}/cut.webm`));
+  });
+});

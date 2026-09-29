@@ -209,7 +209,10 @@ pw-repl send -c <name> close                        # your modes off; tab close 
 - Chromium must be running with `--remote-debugging-port=9222`, unless `--launch` starts one. A headless
   one works too (`--headless=new`); nobody answers its dialogs but `dialog`.
 - `PW_CHROME` — the Chromium `--launch` starts (default: Playwright's own, then one on the `PATH`).
-- `PW_FFMPEG` — the ffmpeg `record` uses (default: Playwright's own, then one on the `PATH`).
+- `PW_FFMPEG` — the ffmpeg `record` uses, and no other, read by the REPL, not by `send` (default:
+  Playwright's own, then one on the `PATH`).
+- Playwright's own Chromium and ffmpeg are found where Playwright installs them: `PLAYWRIGHT_BROWSERS_PATH`,
+  or `~/.cache/ms-playwright`.
 - `PW_CDP_URL` — CDP endpoint (default `http://localhost:9222`).
 - `PW_SCREENSHOT_DIR` — where the REPL saves screenshots, read when it starts, not by `send`. Without it,
   a REPL on a socket of its own saves them next to its socket, and any other in `/tmp`. `screenshot`

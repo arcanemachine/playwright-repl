@@ -98,7 +98,10 @@ describe('pw-repl send help', () => {
     const chrome = await startChrome();
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-bg-test-'));
     const socket = path.join(dir, 'repl.sock');
-    const env = { ...process.env, PW_CDP_URL: chrome.cdpUrl, PW_SOCKET: socket, PW_ENDPOINT: '' };
+    // An ffmpeg that writes its file once its input ends, for a recording stop ends.
+    const ffmpeg = path.join(dir, 'ffmpeg');
+    fs.writeFileSync(ffmpeg, '#!/bin/sh\ncase "$*" in *-encoders*) echo " V....D libvpx  VP8"; exit 0;; esac\nfor out; do :; done\ncat >/dev/null\nprintf webm > "$out"\n', { mode: 0o755 });
+    const env = { ...process.env, PW_CDP_URL: chrome.cdpUrl, PW_SOCKET: socket, PW_ENDPOINT: '', PW_FFMPEG: ffmpeg };
     try {
       const started = pwRepl(['serve', '--background', socket], { env, timeout: 30000 });
       assert.equal(started.status, 0, started.stderr);
@@ -127,9 +130,18 @@ describe('pw-repl send help', () => {
       assert.match(pwRepl(['send', 'info'], { env }).stdout, /URL:/, 'still running after attach leaves');
 
       assert.equal(pwRepl(['stop'], { env: { ...env, PW_SOCKET: path.join(dir, 'other.sock') } }).status, 64, 'stop goes by PW_SOCKET, not the default socket');
+      // One that ended by itself, unseen, from another client; and one the stop ends.
+      assert.equal(pwRepl(['send', '-c', 'other', 'tab new about:blank'], { env }).status, 0);
+      assert.equal(pwRepl(['send', '-c', 'other', `record on ${dir}/ended.webm 1`], { env }).status, 0);
+      // A file the shell kept whole, spaces and all.
+      fs.mkdirSync(path.join(dir, 'my dir'));
+      assert.equal(pwRepl(['send', 'record', 'on', `${dir}/my dir/stopped.webm`], { env }).status, 0);
+      await waitFor(() => /It reached its 1s and stopped/.test(fs.readFileSync(path.join(dir, 'repl.log'), 'utf8')), 'the 1s recording to end');
       const stopped = pwRepl(['stop'], { env, timeout: 20000 });
       assert.equal(stopped.status, 0, stopped.stderr);
-      assert.match(stopped.stdout, /Stopped the background REPL \(pid \d+\) on \S+repl\.sock/);
+      assert.match(stopped.stdout, /^Stopped the background REPL \(pid \d+\) on \S+repl\.sock; its log stays at \S+\n/);
+      assert.match(stopped.stdout, /\nA recording ended before the REPL stopped, unseen since: It reached its 1s and stopped\. Saved: \S+ended\.webm \(/, 'and says what became of each recording');
+      assert.match(stopped.stdout, /\nThe REPL stopped, which ended a recording\. Saved: \S+\/my dir\/stopped\.webm \(/);
       assert.equal(fs.existsSync(socket), false);
       assert.equal(fs.existsSync(path.join(dir, 'repl.pid')), false);
       assert.equal(pwRepl(['stop', '-e', socket], { env }).status, 64);

@@ -15,7 +15,7 @@ const USAGE = `Usage:
       see everything a background REPL does, and type commands to it; Ctrl-C leaves it running
 
   pw-repl stop [-e endpoint]
-      stop a background REPL
+      stop a background REPL, and say what became of each recording it ended
 
   pw-repl send [-e endpoint | -s session] [-c client] [-t seconds] <command...>
       run one command in a running REPL and print its output
@@ -103,7 +103,8 @@ function parseSendArgs(args, allowCommand) {
   // words are joined as they are.
   const { SELECTOR_FIRST } = require('../lib/syntax');
   // So does playwright-cli's storage key (localstorage-set "my key" v).
-  const requote = words.length > 1 && (SELECTOR_FIRST.has(words[0]) || /^(?:local|session)storage-/.test(words[0]));
+  // And record's file, which may have spaces in it.
+  const requote = words.length > 1 && (SELECTOR_FIRST.has(words[0]) || /^(?:local|session)storage-/.test(words[0]) || words[0] === 'record' || /^video-(?:start|stop)$/.test(words[0]));
   // An empty word (fill #name "") is the empty value.
   // upload's files are read by the REPL, whose folder may not be this one.
   // So are the files upload reads and screenshot --filename writes.

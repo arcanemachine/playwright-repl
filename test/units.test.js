@@ -118,9 +118,39 @@ describe('record', () => {
       Object.assign(process.env, { PATH: empty, PLAYWRIGHT_BROWSERS_PATH: empty });
       delete process.env.PW_FFMPEG;
       assert.throws(() => findFfmpeg('webm'), /^Error: record needs ffmpeg, and none was found: npx playwright-core install ffmpeg/);
+      assert.throws(() => findFfmpeg('mp4'), /^Error: record needs ffmpeg, and none was found: an \.mp4 needs ffmpeg from your system's packages, with H\.264/);
     } finally {
       for (const [key, value] of Object.entries(saved)) if (value === undefined) delete process.env[key]; else process.env[key] = value;
       fs.rmSync(empty, { recursive: true, force: true });
+    }
+  });
+  it('uses PW_FFMPEG and no other when it is set, and says why it cannot', () => {
+    const { findFfmpeg } = require('../lib/record');
+    const saved = process.env.PW_FFMPEG;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-repl-ffmpeg-'));
+    const fake = (name, script) => {
+      const file = path.join(dir, name);
+      fs.writeFileSync(file, `#!/bin/sh\n${script}\n`, { mode: 0o755 });
+      return file;
+    };
+    const use = file => { process.env.PW_FFMPEG = file; };
+    try {
+      use(path.join(dir, 'missing'));
+      assert.throws(() => findFfmpeg('webm'), /^Error: PW_FFMPEG=\S+missing cannot be used: not found$/);
+      use(fake('plain', 'exit 0'));
+      fs.chmodSync(process.env.PW_FFMPEG, 0o644);
+      assert.throws(() => findFfmpeg('webm'), /cannot be used: not executable$/);
+      use(fake('webm-only', 'echo " V....D libvpx  VP8"'));
+      assert.equal(findFfmpeg('webm'), process.env.PW_FFMPEG);
+      assert.throws(() => findFfmpeg('mp4'), /^Error: PW_FFMPEG=\S+webm-only cannot write MP4 \(H\.264\): its -encoders lists no libx264$/, 'no other ffmpeg in its place');
+      // A probe that failed is tried again, not remembered as an ffmpeg with no encoders.
+      const tried = path.join(dir, 'tried');
+      use(fake('flaky', `[ -f ${tried} ] || { touch ${tried}; exit 1; }\necho " V....D libvpx  VP8"`));
+      assert.throws(() => findFfmpeg('webm'), /cannot be used: -encoders failed \(exit 1\)$/);
+      assert.equal(findFfmpeg('webm'), process.env.PW_FFMPEG);
+    } finally {
+      if (saved === undefined) delete process.env.PW_FFMPEG; else process.env.PW_FFMPEG = saved;
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 });
