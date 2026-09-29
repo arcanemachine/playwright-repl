@@ -36,7 +36,12 @@ If you hit a limitation or write a workaround, consider adding the capability to
   (`test/harness.js`), and the real REPL with its server. Nothing is mocked, and the shared browser is
   never touched. It finds Chromium through `PW_TEST_CHROME`, or where `--launch` looks (Playwright's
   browsers, then the `PATH`), and skips the browser tests if there is none. Add a test with each new
-  command or behaviour.
+  command or behaviour. In `test/repl.test.js` each test starts in a fresh tab of its own, and every mode
+  is turned off after it; a test whose REPL quits, times out or is killed goes in
+  `test/repl-alone.test.js`, with a Chromium of its own.
+- Help entries (`lib/help.js`) are plain paragraphs: `wrap()` lays each out at 104 columns, and keeps as
+  written a paragraph with a bullet, a table or an indented example. `test/fixtures` holds the rendered
+  help; after an intended change to it, save it again (the command is in `test/units.test.js`).
 - Time each full run, and put the result in the body of the commit it tests (`npm test: 151 tests, 79s`).
   Compare with the last commit that has one (`git log --grep='npm test:'`): a run that grew by more than
   a few seconds means a slow test crept in, usually one waiting out a real timeout (5s for a click).
