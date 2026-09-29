@@ -533,6 +533,20 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('watches a tab a link opens from its first request, and lists each page\'s under its own step', async () => {
+    await ok('eval document.body.insertAdjacentHTML("beforeend", \'<a id="popup" href="/other?popup" target="_blank">New tab</a>\'); "added"');
+    await ok('watch on --next-tab ?popup');
+    await ok('click #popup');
+    await waitFor(async () => /\?popup$/m.test((await ok('info')).split('\n')[0]), 'the new tab to be selected', 20000);
+    let listed = '';
+    await waitFor(async () => /#1 \S+ GET 200 \d+ms document \S+\/other\?popup$/m.test(listed = await ok('requests --all')), 'its document request', 20000);
+    assert.match(listed, /--- the page loads \S+\/other\?popup\n#1 /, 'from its first page, numbered first');
+    await ok('reload');
+    let trail = '';
+    await waitFor(async () => (trail = await ok('watch')).match(/navigate \S+\/other\?popup/g)?.length === 2, 'the reload\'s step', 20000);
+    assert.match(trail, /navigate \S+\/other\?popup\n +#1 GET 200 \S+\/other\?popup\n\S+ navigate \S+\/other\?popup\n +#\d+ GET 200 \S+\/other\?popup$/m, 'each document under its own navigate step');
+  });
+
   it('waits for one next tab at a time, and leaves another client\'s wait to it', async () => {
     const as = async (client, command) => {
       const result = await repl.runAs(client, command);
