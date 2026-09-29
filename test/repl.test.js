@@ -533,6 +533,26 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('waits for one next tab at a time, and leaves another client\'s wait to it', async () => {
+    const as = async (client, command) => {
+      const result = await repl.runAs(client, command);
+      assert.equal(result.status, 'ok', `${client}: ${command}\n${result.output}`);
+      return result.output;
+    };
+    await as('wait-a', 'watch on --next-tab ?never-a');
+    const second = await repl.runAs('wait-b', 'watch on --next-tab ?never-b');
+    assert.equal(second.status, 'error');
+    assert.match(second.output, /^Error: Waiting to watch the next tab that opens with a URL containing \?never-a already, for wait-a: one at a time\. modes shows it/);
+    assert.match(await ok('modes'), /\?never-a \(watch off stops waiting\), for wait-a/, 'the first still waits');
+    assert.match(await as('wait-b', 'watch off'), /^Waiting to watch the next tab that opens with a URL containing \?never-a, for wait-a, is left on: watch off stops only your own/);
+    assert.match(await ok('modes'), /\?never-a \(watch off stops waiting\), for wait-a/);
+    await as('wait-a', 'watch on --next-tab ?again-a');
+    assert.match(await ok('modes'), /\?again-a \(watch off stops waiting\), for wait-a/, 'its own client may change it');
+    assert.match(await as('wait-a', 'watch off'), /^Stopped waiting to watch a new tab/);
+    await as('wait-b', 'watch on --next-tab ?never-b');
+    assert.match(await ok('modes'), /\?never-b \(watch off stops waiting\), for wait-b/, 'once it is off, another may wait');
+  });
+
   it('watches what happens in a tab, with the requests each step caused', async () => {
     assert.match(await ok('watch'), /^Not watching the selected tab\.\n\n +watch on +record/);
     await ok('watch on');
