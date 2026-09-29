@@ -1052,6 +1052,26 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(fetchStatus), '200');
   });
 
+  it('puts a notice from a tab in the answer only for a client that has the tab selected', async () => {
+    await repl.runAs('notice-a', `tab new ${site.url}/?notice-a`);
+    await repl.runAs('notice-b', `tab new ${site.url}/?notice-b`);
+    await repl.runAs('notice-b', 'route **/api/data 500 {}');
+    const later = 'eval setTimeout(() => fetch("/api/data"), 100); "later"';
+    const start = repl.stdout.length;
+    await repl.runAs('notice-b', later);
+    const other = await repl.runAs('notice-a', 'sleep 1000');
+    assert.equal(other.status, 'ok', other.output);
+    await waitFor(() => /Faked: #\d+ GET \S+\/api\/data -> 500/.test(repl.stdout.slice(start)), 'the fake in the pane');
+    assert.doesNotMatch(other.output, /Faked:/, 'not in the answer of a client without that tab');
+    await repl.runAs('notice-b', later);
+    const own = await repl.runAs('notice-b', 'sleep 1000');
+    assert.match(own.output, /^Faked: #\d+ GET \S+\/api\/data -> 500$/m, 'in the answer of the client that has it selected');
+    await repl.runAs('notice-b', 'eval setTimeout(() => alert("hi"), 100); "later"');
+    const meanwhile = await repl.runAs('notice-a', 'sleep 1000');
+    assert.doesNotMatch(meanwhile.output, /Dialog/, 'a dialog in another client\'s tab either');
+    assert.match(await ok('dialog dismiss'), /Dismissed/);
+  });
+
   it('redraws the prompt after a fake that fires between commands', async () => {
     await ok('route **/api/data 503 {}');
     await ok('eval setTimeout(() => fetch("/api/data"), 200); "scheduled"');

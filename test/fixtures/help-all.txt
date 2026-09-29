@@ -314,10 +314,10 @@ requests and console record all the time; a capture records only while it runs.
       route <glob> abort            fail it as if the connection broke
 
       Each matching request prints a line (Faked:, Patched:, Delayed:, Aborted:) in the REPL window, and in
-      the answer to a command running then, with its number as in requests (one the page makes after reload or
-      a click has answered shows only in the window: wait request <glob> waits for it); requests shows a fake
-      as <status> faked and a patch as <status> patched. If a route fails it prints "Route failed" and aborts
-      the request.
+      the answer to a command running then if that command's client has the tab selected, with its number as
+      in requests (one the page makes after reload or a click has answered shows only in the window: wait
+      request <glob> waits for it); requests shows a fake as <status> faked and a patch as <status> patched.
+      If a route fails it prints "Route failed" and aborts the request.
 
       Routes belong to the tab and last until route off <glob> (or route off --all) or the REPL exits. Routing
       the same glob again replaces it. route on its own lists the selected tab's routes. A glob may be quoted.
