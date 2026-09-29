@@ -159,7 +159,8 @@ pw-repl where           # which REPL send would reach
 ```
 
 `pw-repl send` sends one command and prints its result, through the server when it is running and through the
-`playwright-repl` tmux session otherwise.
+`playwright-repl` tmux session otherwise. Chain several in the shell: `&&` stops at the first that fails or
+is not confirmed (exit 1 or 2), `;` runs on.
 
 Several agents can share one REPL: `pw-repl send -c <name>` (or `PW_CLIENT=<name>`) sends as a client with a
 selected tab of its own, shown in the pane as `[server:<name>]`. `modes` says which client turned each mode on,

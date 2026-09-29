@@ -114,6 +114,22 @@ spaces and all: `pw-repl send click "text=Your name"`. It works however the REPL
 `pw-repl where` says which one a command would reach (the server, or the tmux pane running the
 REPL), or why neither is reachable, without running anything.
 
+`send` takes one command; chain several in your shell. Use `&&` when a step only makes sense if the one
+before it worked: it stops at any exit status but 0, a failure and an outcome not confirmed included.
+Use `;` when the steps do not depend on each other. `-t` is each command's own limit. Write each
+`pw-repl send` out in full, not in a shell variable, which hides it from permission rules that allow
+`pw-repl` commands:
+
+```bash
+pw-repl send -c cart-bug click e5 && pw-repl send -c cart-bug wait load &&
+  pw-repl send -c cart-bug screenshot
+pw-repl send -c cart-bug count .item; pw-repl send -c cart-bug text h1
+```
+
+Other clients' commands can run between yours. Your selected tab is your own, and so is the previous
+command that `wait request` and `wait load` count from; a tab's requests, console and watch are shared
+with whoever else uses that tab.
+
 Every command you run and its output show in the REPL's pane, or in `attach` and the log for a
 background REPL (server commands as `[server]` lines), so whoever looks there sees what you do. The pane
 shows REPL commands only, not what was clicked in the browser (unless `watch on --live` is on); for

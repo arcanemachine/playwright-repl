@@ -367,7 +367,9 @@ lines.
 Clients: pw-repl send -c <name> (or $PW_CLIENT) sends as a client of its own. It has a selected tab of
 its own, so clients do not move each other's; its commands show as [server:<name>] lines. modes and tab
 say which client turned each mode on and opened each tab, and modes off --mine turns off only the
-sender's own. Senders without a name share the prompt's selected tab.
+sender's own. Senders without a name share the prompt's selected tab. Other clients' commands can run
+between a client's own: its selected tab, and the previous command that wait request and wait load count
+from, are its own; a tab's requests, console and watch are shared.
 
 The prompt is pw[serve]> while the server is on and pw> without it. Before it are the modes on in the
 selected tab, if any: (watch network:off routes:2 capture) pw>. modes lists them for every tab.
