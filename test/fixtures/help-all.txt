@@ -289,8 +289,9 @@ Output is capped; --all right after the command, or at the end, shows everything
       value at once, so use type for text the video should show being typed. record off also saves the steps
       next to the video, as clip.steps.txt for clip.webm: one line for each command run on the tab while it
       recorded, with when it began and ended in seconds into the video, the element or point it acted on in
-      the video's pixels, and the command. They are for editing the video afterwards, such as zooming in on a
-      step. After the page changes size, the steps leave out where they acted.
+      the video's pixels, and the command with what it acts on, never what it types or chooses, the code it
+      runs or the URL it goes to. They are for editing the video afterwards, such as zooming in on a step.
+      After the page changes size, the steps leave out where they acted.
 
       It needs ffmpeg: $PW_FFMPEG, and only it when it is set (the REPL's, not send's); otherwise Playwright's
       own (npx playwright-core install ffmpeg, in $PLAYWRIGHT_BROWSERS_PATH or ~/.cache/ms-playwright), then
