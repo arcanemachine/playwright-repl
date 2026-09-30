@@ -27,10 +27,11 @@ If you hit a limitation or write a workaround, consider adding the capability to
   names to these; `lib/state.js` holds the session state, with each client's selected tab;
   `lib/output.js` routes all output so the server can return it; `lib/skill.js` stamps the skill
   `pw-repl skill` prints, and gives `where` its hash.
-- Match playwright-cli (Microsoft's CLI for agents) where it is reasonable: agents are likelier to be
-  trained on it. A new command, option or output that does what one of its does takes its name and form,
-  or accepts them too (`lib/cli-names.js`, `help playwright-cli`). Differ where sharing a browser with a
-  person needs it, and say why in the help.
+- Match Playwright and playwright-cli (Microsoft's CLI for agents) as closely as is reasonable: agents are
+  likelier to be trained on them. A new command, option or output that does what one of theirs does takes
+  its name, form and API style (an option named as Playwright's API names it, e.g. type's `delay`), or
+  accepts theirs too (`lib/cli-names.js`, `help playwright-cli`). Deviate only where it is necessary, as
+  where sharing a browser with a user needs it, and say why in the help.
 - Comment the *why* when it isn't obvious from the code.
 - `npm test` runs the suite (under two minutes): a private headless Chromium, a local test site
   (`test/harness.js`), and the real REPL with its server. Nothing is mocked, and the shared browser is
@@ -60,7 +61,10 @@ If you hit a limitation or write a workaround, consider adding the capability to
 
 Work goes in waves, and each one ends with a release that is ready to push.
 
-1. Build what was asked, with tests, and try it in a running REPL.
+1. Build what was asked, with tests, and try it in a running REPL. For anything the user will look at
+   (a cursor, an overlay, a video), show them a demo while it is still a prototype (a recording or
+   screenshots they can open) and get their go-ahead on how it looks before writing tests or
+   building on it.
 2. Try it on a fresh agent that has not seen the code or the change (a guinea pig), on something real: a
    small local page whose planted bugs need the change to find.
    - Brief it with goals only: what to find out or do in the browser, never the commands.
