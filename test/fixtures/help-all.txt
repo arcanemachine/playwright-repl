@@ -101,6 +101,13 @@ selectors with spaces. mousemove and the other mouse commands act at a point ins
       With one word, or one quoted, it is typed into the element that has focus: type "garden hose". --submit
       at the end presses Enter afterwards.
 
+      Keys are sent all at once. While the tab is recording (help record), they are 60ms apart, so the video
+      shows the text being typed; long text goes faster, so typing never takes more than 8s, well within
+      pw-repl send's 20s default. type --delay=<ms> <selector> <text> sets the gap between keys yourself, with
+      no limit on the total; for long text, raise send's -t. It is a gap between keys, not a wait before
+      starting like screenshot's --delay. A page that reacts to each key, such as search as you type, may
+      react to each one.
+
   press <key> | press <selector> <key>  press a key (Enter, Escape, Control+A; any case), maybe on an element
   select <selector> <value>             choose an option in a select (the value is the rest of the line)
   check <selector>                      check a checkbox
@@ -231,6 +238,25 @@ Output is capped; --all right after the command, or at the end, shows everything
         eval document.querySelector("#rate-3").style.outline = "3px solid blue"
         eval document.querySelector("#rate-3").style.outline = ""
 
+  cursor [on [<selector> | <x> <y>] | off]             draw a pointer where the REPL acts, for videos
+      The REPL's clicks and typing don't move a pointer on screen, so a recording shows things happening with
+      nothing pointing at them. cursor on draws a pointer in the selected tab. After that, these commands move
+      it smoothly to their element or point before they act: click, dblclick, hover, fill, type <selector>,
+      press <selector>, select, check, uncheck, upload and mousemove. Each move takes 150 to 600ms, depending
+      on the distance (300 to 1000ms while the tab is recording), and the command waits for it. Clicks (click,
+      dblclick, check, uncheck, mousedown, and upload when it clicks a button) show a ring where they land.
+
+      It shows only the REPL's input, from every client, never the user's own mouse. Only the drawing moves:
+      no mouse events are sent along the way, so the page gets the same input as with the cursor off. fill,
+      select and the like move the drawing to their element but leave the real mouse where it was; mousedown,
+      mouseup and mousewheel act at the real mouse, so the pointer moves back there first.
+
+      cursor on fades it in where the mouse last went (or the middle), cursor on <selector> or <x> <y> fades
+      it in there instead (a video's first element, say), cursor off fades it out, and cursor alone says
+      whether it is on and where. It is a mode of its tab: modes lists it and modes off turns it off. It stays
+      on across page loads, at the same spot, and shows in screenshots and recordings. Selectors, snapshot and
+      text don't see it, it takes no clicks, and it points at elements inside frames too.
+
   record [on [file] [seconds] | off [file]]            record the selected tab's page to a video
       record on starts recording the selected tab, and record off stops it and saves the file: its path,
       length, size and bytes. record on its own, or record off when nothing is recording, says whether the
@@ -254,10 +280,17 @@ Output is capped; --all right after the command, or at the end, shows everything
       It brings the tab to the front of its window first, as screenshot does. It records the page only, from
       inside the browser, at the viewport's size in CSS pixels, scrollbars included, made even (an odd width
       or height loses a pixel), a phone's too under emulate mobile: a Pixel 7's is 412 wide, less sharp than
-      the phone draws it. It has no pointer and no browser toolbars, and a tab behind another, hidden or
-      headless keeps recording. Set the size first with viewport (1280x720 fills a 16:9 player); a page that
-      changes size while recording is fitted into the first size. Chrome sends a frame as the page draws, and
-      a still page keeps its real length.
+      the phone draws it. It has no pointer (cursor on draws one) and no browser toolbars, and a tab behind
+      another, hidden or headless keeps recording. Set the size first with viewport (1280x720 fills a 16:9
+      player); a page that changes size while recording is fitted into the first size. Chrome sends a frame as
+      the page draws, and a still page keeps its real length.
+
+      While a tab records, type sends keys at a pace the video can show (help type); fill still sets the whole
+      value at once, so use type for text the video should show being typed. record off also saves the steps
+      next to the video, as clip.steps.txt for clip.webm: one line for each command run on the tab while it
+      recorded, with when it began and ended in seconds into the video, the element or point it acted on in
+      the video's pixels, and the command. They are for editing the video afterwards, such as zooming in on a
+      step. After the page changes size, the steps leave out where they acted.
 
       It needs ffmpeg: $PW_FFMPEG, and only it when it is set (the REPL's, not send's); otherwise Playwright's
       own (npx playwright-core install ffmpeg, in $PLAYWRIGHT_BROWSERS_PATH or ~/.cache/ms-playwright), then
@@ -448,10 +481,10 @@ Dialogs are reported and never answered on their own; dialog accept or dismiss a
 client, whoever opened it.
 
   modes [off [--mine]]              the modes on in every tab; modes off turns them all off
-      The modes are watch, network off or slow, route, capture, record, emulate, viewport and highlight. Each
-      is turned on and off with its own command: watch on|off, network off|slow|on, route <glob> ... | route
-      off <glob>|--all, capture on|off, record on|off, emulate ... | emulate off, viewport <WxH> | viewport
-      off, highlight <selector> | highlight off.
+      The modes are watch, network off or slow, route, capture, record, emulate, viewport, highlight and
+      cursor. Each is turned on and off with its own command: watch on|off, network off|slow|on, route <glob>
+      ... | route off <glob>|--all, capture on|off, record on|off, emulate ... | emulate off, viewport <WxH> |
+      viewport off, highlight <selector> | highlight off, cursor on|off.
 
       modes off turns off every one in every tab; a capture it stops is kept for capture to show, and a
       recording it stops is saved, as record off would. With clients (help session), modes says which client

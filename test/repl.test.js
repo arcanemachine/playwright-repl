@@ -999,6 +999,43 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok('viewport'), `${windowSize} (the window's size)`);
   });
 
+  it('types at a pace a video can show while recording, and saves when each step ran and where', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
+    const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-steps-'));
+    try {
+      // The gaps between keys, measured in the page, not timed from here.
+      await ok('eval window.keys = []; document.querySelector("#name").addEventListener("keydown", () => keys.push(performance.now()))');
+      const gaps = 'eval keys.slice(1).map((t, i) => t - keys[i]).every(gap => gap >= 50)';
+      await ok('type #name ab');
+      assert.equal(await ok(gaps), 'false', 'at once, not recording');
+      await ok('eval keys.length = 0; document.querySelector("#name").value = ""');
+      await ok(`record on ${dir}/clip.webm`);
+      await ok('type #name abcd');
+      assert.equal(await ok(gaps), 'true');
+      await ok('eval keys.length = 0');
+      await ok('type --delay=0 #name efg');
+      assert.equal(await ok(gaps), 'false', '--delay sets its own pace');
+      assert.match((await repl.run('type --delay=fast #name e')).output, /^Error: Usage: type --delay=<ms>/);
+      await ok('click #go');
+      await ok('mousemove 10 20');
+      await ok('text #out');
+      const saved = await ok(`record off ${dir}/named.webm`);
+      assert.match(saved, new RegExp(`^Saved: \\S+named\\.webm \\([^)]+\\)\\nSteps: ${dir}/named\\.steps\\.txt \\(8; `), 'moved with the video');
+      const lines = fs.readFileSync(`${dir}/named.steps.txt`, 'utf8').trim().split('\n');
+      assert.match(lines[0], /^# pw-repl record steps, for a video of \d+x\d+, \d+\.\d\ds long$/);
+      // eval may change the page, so it is a step too; the ones here only read it.
+      const steps = lines.filter(l => !l.startsWith('#') && !/ eval /.test(l)).map(l => l.split(' '));
+      assert.deepEqual(steps.map(w => w.slice(6).join(' ')), ['type #name abcd', 'type --delay=0 #name efg', 'type --delay=fast #name e  # failed', 'click #go', 'mousemove 10 20'], 'text reads the page, and is left out');
+      for (const [t0, t1] of steps) assert.ok(Number(t0) <= Number(t1), `${t0} ${t1}`);
+      assert.ok(Number(steps[3][0]) >= Number(steps[0][1]), 'in order, on the video\'s clock');
+      const box = await ok('eval (r => [r.x, r.y, r.width, r.height].map(Math.round).join(" "))(document.querySelector("#go").getBoundingClientRect())');
+      assert.equal(steps[3].slice(2, 6).join(' '), box, 'the element it clicked');
+      assert.equal(steps[4].slice(2, 6).join(' '), '10 20 0 0', 'a point');
+      assert.equal(steps[2].slice(2, 6).join(' '), '- - - -');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('records the page to a video of its size and its real length, and fits a size change into it', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
     const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-record-'));
     const file = require('path').join(dir, 'clip.webm');
@@ -1013,7 +1050,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await ok('viewport 320x200');
       await waitFor(async () => /changed size at/.test(await ok('record')), 'a frame of the new size');
       const saved = await ok('record off');
-      const [, seconds] = /^Saved: \S+clip\.webm \((\d+\.\d)s, 640x360, \d+ KB\)\nthe page changed size at \d+\.\ds and was fitted into the first size$/.exec(saved) || [];
+      const [, seconds] = /^Saved: \S+clip\.webm \((\d+\.\d)s, 640x360, \d+ KB\)\nthe page changed size at \d+\.\ds and was fitted into the first size\nSteps: /.exec(saved) || [];
       assert.ok(seconds, saved);
       // The video's own length and size, as ffmpeg reads them back: the same as reported, to a frame.
       const probe = require('child_process').spawnSync(FFMPEG, ['-hide_banner', '-i', file], { encoding: 'utf8' }).stderr;
@@ -1572,6 +1609,59 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('highlight #go');
     await ok('reload');
     assert.match(await ok('highlight'), /^Nothing is highlighted/);
+  });
+
+  it('draws a cursor that goes where the REPL acts and shows its clicks, as a mode of the tab', async () => {
+    const drawn = 'eval (c => c ? c.host.isConnected + " " + new DOMMatrix(getComputedStyle(c.arrow).transform).e + "," + new DOMMatrix(getComputedStyle(c.arrow).transform).f : "none")(document[Symbol.for("pw-repl-cursor")])';
+    assert.equal(await ok('cursor'), 'The cursor is off in the selected tab; cursor on shows it');
+    await ok('mousemove 30 40');
+    assert.match(await ok('cursor on'), /^The cursor is on, at 30, 40: /, 'where the mouse is');
+    assert.equal(await ok(drawn), 'true 30,40');
+    assert.match(await ok('modes'), /\(cursor\)/);
+    // Out of sight of selectors, the snapshot and text, and the page is used through it as before.
+    assert.doesNotMatch(await ok('snapshot'), /pw-repl-cursor|svg/);
+    await ok('fill #name Ada');
+    // Its rings counted as they are added: they fade, so looking for one afterwards would race it.
+    await ok('eval window.rings = 0; new MutationObserver(ms => { for (const m of ms) window.rings += m.addedNodes.length; }).observe(document[Symbol.for("pw-repl-cursor")].root, { childList: true })');
+    await ok('click #go');
+    assert.equal(await ok('text #out'), 'Hello Ada');
+    const centre = await ok('eval (r => Math.round(r.x + r.width / 2) + "," + Math.round(r.y + r.height / 2))(document.querySelector("#go").getBoundingClientRect())');
+    assert.equal(await ok(drawn), `true ${centre}`, 'at the centre of what it clicked, where Playwright clicks');
+    assert.equal(await ok('eval rings'), '1');
+    await ok('dblclick #go');
+    assert.equal(await ok('eval rings'), '3', 'one for each click');
+    await ok('hover #name');
+    assert.equal(await ok('eval rings'), '3', 'a hover is no click');
+    await ok('mousemove 5 6');
+    assert.equal(await ok(drawn), 'true 5,6');
+    assert.match(await ok('cursor'), /^The cursor is on in the selected tab, at 5, 6;/);
+    // The glide's wait for the element is the command's, not one more before it (a real 5s timeout).
+    assert.match((await repl.run('fill #missing x')).output, /^Error: No element matches #missing \(waited 5s\)/);
+    // A select's list, drawn over the page (a native one is not in recordings), and gone afterwards.
+    await ok('eval document.body.insertAdjacentHTML("beforeend", "<select id=pick><option>One</option><option value=2>Two</option></select>")');
+    await ok('eval window.rows = []; new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.childElementCount) rows.push([...n.children].map(c => c.textContent).join(",")); }).observe(document[Symbol.for("pw-repl-cursor")].root, { childList: true })');
+    await ok('select #pick 2');
+    assert.equal(await ok('eval document.querySelector("#pick").value'), '2');
+    assert.equal(await ok('eval rows.join("|")'), 'One,Two');
+    assert.equal(await ok('eval [...document[Symbol.for("pw-repl-cursor")].root.children].filter(c => c.tagName === "DIV" && c.childElementCount).length'), '0', 'the list is gone (a click\'s ring may still be fading)');
+    await ok('eval document.querySelector("#pick").remove()');
+    // A new page draws it again where it was.
+    await ok('click text=Other');
+    await ok('wait load');
+    await waitFor(async () => /^true /.test(await ok(drawn)), 'the cursor on the new page');
+    assert.match(await ok('modes off'), /cursor off/);
+    assert.equal(await ok(drawn), 'none');
+    assert.equal(await ok('count pw-repl-cursor'), '0 element(s)');
+    // It fades in on an element asked for, as a video's first.
+    await ok('goto ' + site.url + '/');
+    assert.match(await ok('cursor on #go'), /^The cursor is on, at \d+, \d+: /);
+    const at = await ok('eval (r => Math.round(r.x + r.width / 2) + "," + Math.round(r.y + r.height / 2))(document.querySelector("#go").getBoundingClientRect())');
+    assert.equal(await ok(drawn), `true ${at}`);
+    assert.equal(await ok('cursor off'), 'The cursor is off');
+    await ok('cursor on');
+    assert.equal(await ok('cursor off'), 'The cursor is off');
+    assert.equal(await ok('cursor off'), 'The cursor was not on in the selected tab');
+    assert.match((await repl.run('cursor sideways')).output, /^Error: Usage: cursor \[on \[<selector> \| <x> <y>\] \| off\]/);
   });
 
   it('marks which of several open dialogs it answers', async () => {

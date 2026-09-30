@@ -1,8 +1,9 @@
 There are three ways to record a video of a page, and each gives something up.
 
 record on (help record) records the selected tab's page from inside the browser: headless, hidden and
-background tabs too, with nothing to set up but ffmpeg. It has no pointer and no browser toolbars. For
-quick clips, and for an agent recording its own work.
+background tabs too, with nothing to set up but ffmpeg. It has no pointer and no browser toolbars:
+cursor on draws a pointer that shows where the REPL clicks. For quick clips, and for an agent recording
+its own work.
 
 A screen recorder on the person's machine (OBS, ffmpeg -f x11grab, macOS screencapture -v) records their
 screen as they see it, pointer included, smooth and in real time. It records the screen or a window, not
