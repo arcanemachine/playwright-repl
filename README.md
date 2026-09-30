@@ -99,6 +99,7 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 | see each step as I click             | `watch on --live`                                                                     |
 | record requests and console together | `capture on`, then `capture off`                                                      |
 | record a video of the page           | `record on`, then `record off` (`help video` for the other ways)                      |
+| show a pointer where the agent acts  | `cursor on`, then `cursor off` (in screenshots and videos)                            |
 | point something out on the page      | `highlight <ref>` (`--style=<css>` to restyle it), then `highlight off`               |
 | break the backend on purpose         | `route <glob> <status> <json>` (fake a response), `route <glob> abort`, `network off` |
 | change or slow an API response       | `route <glob> patch <json>`, `route <glob> delay <secs>`                              |
@@ -109,13 +110,14 @@ Everything else is in `help <topic>`; `help <command>` has usage and caveats.
 
 ### Modes
 
-`watch`, `capture`, `route`, `network off` or `slow`, `emulate`, `viewport`, `record` and `highlight` stay on
-until you turn them off: `watch on|off`, `capture on|off`, `route ...|route off`, `network off|slow|on`,
-`emulate ...|emulate off`, `viewport <WxH>|viewport off`, `record on|off`, `highlight <selector>|highlight off`.
+`watch`, `capture`, `route`, `network off` or `slow`, `emulate`, `viewport`, `record`, `highlight` and `cursor`
+stay on until you turn them off: `watch on|off`, `capture on|off`, `route ...|route off`, `network off|slow|on`,
+`emulate ...|emulate off`, `viewport <WxH>|viewport off`, `record on|off`, `highlight <selector>|highlight off`,
+`cursor on|off`.
 While any are on in the selected tab, the prompt shows them: `(watch network:off routes:2) pw>`. `modes`
 lists them for every tab, and `modes off` turns them all off.
 
-`tab`, `watch`, `capture`, `route`, `network`, `emulate`, `viewport`, `record`, `highlight` and `modes` on
+`tab`, `watch`, `capture`, `route`, `network`, `emulate`, `viewport`, `record`, `highlight`, `cursor` and `modes` on
 their own show their state and what you can run next.
 
 ## How it differs from playwright-cli
@@ -133,8 +135,9 @@ pw-repl differs, it is because someone else may be using the browser:
 - `watch` records what a person does as steps with their requests, not as generated code.
 
 For a browser of its own per agent, isolated sessions, traces, video, PDFs or generated test code,
-playwright-cli is the better fit. `record on` records a tab's page, without the pointer; for the shared
-browser as you see it, use a screen recorder (`ffmpeg -f x11grab`, macOS `screencapture -v`, OBS).
+playwright-cli is the better fit. `record on` records a tab's page, and `cursor on` draws a pointer where the
+agent acts; for the shared browser as you see it, use a screen recorder (`ffmpeg -f x11grab`, macOS
+`screencapture -v`, OBS).
 
 ## From scripts and agents
 

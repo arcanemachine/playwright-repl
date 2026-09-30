@@ -205,8 +205,9 @@ pw-repl send -c <name> close                        # your modes off; tab close 
 - To point something out, to the person or in a screenshot, `highlight <ref|selector>` draws a box over it
   without changing the page (`--style=<css>` restyles it; `highlight off` hides them). Its label can
   cover what is below it; `help highlight` says how to mark a screenshot without one.
-- For a video, `help video` says which way suits what you want: `record on` records a tab's page, and a
-  screen recorder on the person's machine records what they see.
+- For a video, `help video` says which way suits what you want: `record on` records a tab's page (`cursor
+  on` draws a pointer where you act, for the viewer), and a screen recorder on the person's machine records
+  what they see.
 
 ## Environment
 
