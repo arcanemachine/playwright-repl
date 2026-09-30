@@ -286,7 +286,9 @@ Output is capped; --all right after the command, or at the end, shows everything
       the phone draws it. It has no pointer (cursor on draws one) and no browser toolbars, and a tab behind
       another, hidden or headless keeps recording. Set the size first with viewport (1280x720 fills a 16:9
       player); a page that changes size while recording is fitted into the first size. Chrome sends a frame as
-      the page draws, and a still page keeps its real length.
+      the page draws, and a still page keeps its real length. Under viewport or emulate, a page the tab loads
+      while recording holds the last frame until the new page's HTML is in, and is then recorded at the
+      viewport's size.
 
       While a tab records, type sends keys at a pace the video can show (help type), and mousewheel scrolls in
       small eased steps over up to 1s rather than at once; fill still sets the whole value at once, so use

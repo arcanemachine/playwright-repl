@@ -1125,6 +1125,106 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('records an emulated viewport at its size after a navigation', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
+    const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-record-crop-'));
+    const pending = new Set();
+    const server = require('http').createServer((req, res) => {
+      if (req.url === '/hold') {
+        pending.add(res);
+        res.on('close', () => pending.delete(res));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(req.url === '/grid'
+        ? '<!doctype html><h1>WIDE PATTERN</h1><img src="/hold"><style>html,body{margin:0}body{width:2000px;height:1400px;background:repeating-linear-gradient(90deg,#f00 0 100px,#0f0 100px 200px)}</style>'
+        : '<!doctype html><h1>Landing</h1>');
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${server.address().port}`;
+    const { PNG } = require('playwright-core/lib/utilsBundle');
+    try {
+      for (const [width, height] of [[640, 360], [1280, 720]]) {
+        const capture = async (name, action, lastColour = 'red', checkFrame = null) => {
+          const base = `${dir}/${width}-${name}`;
+          await ok(`record on ${base}.webm`);
+          await action();
+          // Let the browser draw several frames, without making the test depend on a time budget.
+          await ok('eval new Promise(resolve => { let n = 0; const frame = () => ++n === 10 ? resolve() : requestAnimationFrame(frame); requestAnimationFrame(frame); })');
+          const saved = await ok('record off');
+          assert.doesNotMatch(saved, /the page changed size/, saved);
+          const decoded = require('child_process').spawnSync(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-i', `${base}.webm`, '-vsync', '0', `${base}-%03d.png`], { encoding: 'utf8' });
+          assert.equal(decoded.status, 0, decoded.stderr);
+          const files = fs.readdirSync(dir).filter(file => file.startsWith(`${width}-${name}-`) && file.endsWith('.png')).sort();
+          assert.ok(files.length, `${name}: no decoded frames`);
+          let gridFrames = 0;
+          let lastRuns = [];
+          let lastImage = null;
+          for (const file of files) {
+            const image = PNG.sync.read(fs.readFileSync(`${dir}/${file}`));
+            assert.deepEqual([image.width, image.height], [width, height]);
+            const runs = [];
+            let colour = null;
+            let start = 0;
+            for (let x = 0; x < width; x += 1) {
+              const i = (150 * width + x) * 4;
+              const [r, g, b] = image.data.slice(i, i + 3);
+              const next = r > 180 && g < 80 && b < 80 ? 'red' : g > 180 && r < 80 && b < 80 ? 'green' : null;
+              if (next !== colour) {
+                if (colour) runs.push({ colour, width: x - start });
+                colour = next;
+                start = x;
+              }
+            }
+            if (colour) runs.push({ colour, width: width - start });
+            lastRuns = runs;
+            lastImage = image;
+            if (runs.length < 2) continue;
+            gridFrames += 1;
+            assert.ok(runs.slice(0, 2).every(run => Math.abs(run.width - 100) <= 4), `${file}: ${JSON.stringify(runs.slice(0, 4))}`);
+          }
+          assert.ok(gridFrames, `${name}: the grid never appeared`);
+          assert.equal(lastRuns[0]?.colour, lastColour, `${name}: the final page content was not captured`);
+          checkFrame?.(lastImage, files.at(-1));
+        };
+        await ok('goto about:blank');
+        await ok(`viewport ${width}x${height}`);
+        await capture('navigation', async () => {
+          await ok(`goto ${url}/grid`);
+          await ok('wait text "WIDE PATTERN"');
+          assert.equal(await ok('eval document.readyState'), 'interactive', 'record while load is still blocked');
+        });
+        await ok('goto about:blank');
+        await capture('restart', async () => {
+          await ok(`goto ${url}/grid`);
+          await ok('wait text "WIDE PATTERN"');
+          assert.equal(await ok('eval document.readyState'), 'interactive');
+        });
+        await capture('reload', async () => {
+          await ok('reload');
+          await ok('wait text "WIDE PATTERN"');
+          assert.equal(await ok('eval document.readyState'), 'interactive');
+        });
+        await capture('spa', async () => {
+          await ok('eval history.pushState({}, "", "#spa"); const h = document.querySelector("h1"); h.textContent = "SPA PATTERN"; h.style.cssText = "background: white; color: black; width: 300px; height: 40px; margin: 0"');
+        }, 'red', (image, file) => {
+          let white = 0;
+          for (let y = 0; y < Math.min(50, image.height); y += 1) {
+            for (let x = 0; x < Math.min(320, image.width); x += 1) {
+              const i = (y * image.width + x) * 4;
+              if (image.data[i] > 240 && image.data[i + 1] > 240 && image.data[i + 2] > 240) white += 1;
+            }
+          }
+          assert.ok(white > 100, `${file}: SPA landmark was not captured`);
+        });
+      }
+    } finally {
+      for (const res of pending) res.end();
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('goes back to a page from the back/forward cache without waiting for loads that never come', async () => {
     await ok(`goto ${site.url}/`);
     await ok(`goto ${site.url}/other`);
