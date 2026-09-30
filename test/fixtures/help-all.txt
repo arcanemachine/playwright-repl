@@ -285,13 +285,15 @@ Output is capped; --all right after the command, or at the end, shows everything
       player); a page that changes size while recording is fitted into the first size. Chrome sends a frame as
       the page draws, and a still page keeps its real length.
 
-      While a tab records, type sends keys at a pace the video can show (help type); fill still sets the whole
-      value at once, so use type for text the video should show being typed. record off also saves the steps
-      next to the video, as clip.steps.txt for clip.webm: one line for each command run on the tab while it
-      recorded, with when it began and ended in seconds into the video, the element or point it acted on in
-      the video's pixels, and the command with what it acts on, never what it types or chooses, the code it
-      runs or the URL it goes to. They are for editing the video afterwards, such as zooming in on a step.
-      After the page changes size, the steps leave out where they acted.
+      While a tab records, type sends keys at a pace the video can show (help type), and mousewheel scrolls in
+      small eased steps over up to 1s rather than at once; fill still sets the whole value at once, so use
+      type for text the video should show being typed. record off also saves the steps next to the video, as
+      clip.steps.txt for clip.webm: one line for each command run on the tab while it recorded, with when it
+      began and ended in seconds into the video, the element or point it acted on in the video's pixels, and
+      the command with what it acts on, never what it types or chooses, the code it runs or the URL it goes
+      to. A (page) line marks each new page, loaded or routed to by a single-page app. They are for editing
+      the video afterwards, such as zooming in on a step. After the page changes size, the steps leave out
+      where they acted.
 
       It needs ffmpeg: $PW_FFMPEG, and only it when it is set (the REPL's, not send's); otherwise Playwright's
       own (npx playwright-core install ffmpeg, in $PLAYWRIGHT_BROWSERS_PATH or ~/.cache/ms-playwright), then

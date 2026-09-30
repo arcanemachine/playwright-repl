@@ -1018,18 +1018,26 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await ok('click #go');
       await ok('mousemove 10 20');
       await ok('text #out');
+      const box = await ok('eval (r => [r.x, r.y, r.width, r.height].map(Math.round).join(" "))(document.querySelector("#go").getBoundingClientRect())');
+      // Scrolled in eased steps while recording, the whole distance.
+      await ok('eval document.body.style.height = "3000px"');
+      await ok('mousewheel 0 240');
+      assert.equal(await ok('eval scrollY'), '240');
+      // A new page is a step of its own, without its URL.
+      await ok('click text=Other');
+      await ok('wait load');
       const saved = await ok(`record off ${dir}/named.webm`);
-      assert.match(saved, new RegExp(`^Saved: \\S+named\\.webm \\([^)]+\\)\\nSteps: ${dir}/named\\.steps\\.txt \\(8; `), 'moved with the video');
+      assert.match(saved, new RegExp(`^Saved: \\S+named\\.webm \\([^)]+\\)\\nSteps: ${dir}/named\\.steps\\.txt \\(\\d+; `), 'moved with the video');
       const lines = fs.readFileSync(`${dir}/named.steps.txt`, 'utf8').trim().split('\n');
       assert.match(lines[0], /^# pw-repl record steps, for a video of \d+x\d+, \d+\.\d\ds long$/);
       // eval may change the page, so it is a step too, logged without its code; the ones here only read it.
       assert.ok(lines.some(l => / eval$/.test(l)), 'eval, and nothing of its code');
       assert.ok(!/abcd|efg|keys/.test(lines.join('\n')), 'no typed text, and no code');
       const steps = lines.filter(l => !l.startsWith('#') && !/ eval$/.test(l)).map(l => l.split(' '));
-      assert.deepEqual(steps.map(w => w.slice(6).join(' ')), ['type #name', 'type #name', 'type #name  # failed', 'click #go', 'mousemove 10 20'], 'text reads the page, and is left out');
+      assert.deepEqual(steps.map(w => w.slice(6).join(' ')), ['type #name', 'type #name', 'type #name  # failed', 'click #go', 'mousemove 10 20', 'mousewheel 0 240', 'click text=Other', '(page)'], 'text reads the page, and is left out');
+      assert.ok(!/\/other/.test(lines.join('\n')), 'no URL');
       for (const [t0, t1] of steps) assert.ok(Number(t0) <= Number(t1), `${t0} ${t1}`);
       assert.ok(Number(steps[3][0]) >= Number(steps[0][1]), 'in order, on the video\'s clock');
-      const box = await ok('eval (r => [r.x, r.y, r.width, r.height].map(Math.round).join(" "))(document.querySelector("#go").getBoundingClientRect())');
       assert.equal(steps[3].slice(2, 6).join(' '), box, 'the element it clicked');
       assert.equal(steps[4].slice(2, 6).join(' '), '10 20 0 0', 'a point');
       assert.equal(steps[2].slice(2, 6).join(' '), '- - - -');
