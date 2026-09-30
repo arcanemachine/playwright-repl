@@ -110,6 +110,10 @@ selectors with spaces. mousemove and the other mouse commands act at a point ins
 
   press <key> | press <selector> <key>  press a key (Enter, Escape, Control+A; any case), maybe on an element
   select <selector> <value>             choose an option in a select (the value is the rest of the line)
+      The value is an option's value or its label. With the cursor on (help cursor), select also draws the
+      select's list opening and the cursor choosing the option, since a native select's list opens outside the
+      page, where no screenshot or recording sees it; the page gets the same input either way.
+
   check <selector>                      check a checkbox
   uncheck <selector>                    uncheck a checkbox
   upload <selector> <file>...           choose files in a file input, as the file picker would
