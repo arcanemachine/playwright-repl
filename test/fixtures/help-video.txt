@@ -1,12 +1,12 @@
-A video of what you do in a tab, for someone to watch:
+A video of what you do in a tab, for someone to watch. Record it from a file of commands sent with
+pw-repl send --file, not command by command: the time between commands sent one by one is in the video.
 
 1. Set its size first: viewport 1280x720 (help viewport). Then try the flow without recording, and note
 the selectors it needs (#id, text=..., role=...), not snapshot refs: the take starts again from a fresh
 page, where the refs are stale.
 
-2. Write the take as a file, one command per line, and run it with pw-repl send --file take.txt (pw-repl
-help, outside the REPL, has the rest). Commands sent one by one leave the time between them in the
-video.
+2. Write the take, one command per line, then run it: pw-repl send --file take.txt (pw-repl help,
+outside the REPL, has the rest).
 
     goto https://shop.example/support/new
     record on clip.webm
@@ -20,8 +20,8 @@ video.
 3. While it records, pw-repl paces it for a viewer (help record): type types at a readable pace (use it,
 not fill, for text the viewer should see typed), each action is followed by a pause, an element out of
 view is scrolled to smoothly, and the video starts and ends on a still page. highlight <selector> draws
-a box to point at something. After a step that loads a page, wait for what it shows (wait text ...), not
-wait load: a single-page app loads nothing.
+a box to point at something. After a step that loads a page, wait for text only the result shows (wait
+text ...), not a heading the page always has, and not wait load: a single-page app loads nothing.
 
 record on --steps also saves when and where each step ran, in the video's seconds and pixels, for
 editing it afterwards.
