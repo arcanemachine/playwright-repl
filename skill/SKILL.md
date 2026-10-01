@@ -63,10 +63,15 @@ opens in a new tab.
   tmux send-keys -t playwright-repl Enter
   ```
 
-`serve` and `serve --background` take a socket path of your own instead of the default
-(`pw-repl serve --background /tmp/mine.sock`); `send`, `attach`, `stop` and `where` then need
-`-e /tmp/mine.sock`, or `PW_SOCKET=/tmp/mine.sock`; a socket file left by a REPL that died is replaced
-when the next one starts there. The log of a background REPL is next to its socket
+A REPL of your own goes on a socket of its own, named with `-e` on every command, `serve` included:
+
+```bash
+pw-repl serve --background --launch -e /tmp/mine.sock
+pw-repl send -e /tmp/mine.sock tab new http://localhost:3000
+pw-repl stop -e /tmp/mine.sock
+```
+
+A socket file left by a REPL that died is replaced when the next one starts there. The log of a background REPL is next to its socket
 (`/tmp/mine.log`), appended to run after run, with a line where each starts and stops (past 5 MB, a
 start moves it to `/tmp/mine.log.1`); `tail -f` on it follows along without a terminal to attach from.
 `serve <port>` listens on TCP 127.0.0.1 instead of a socket, with no access control.

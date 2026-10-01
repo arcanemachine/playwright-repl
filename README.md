@@ -78,8 +78,8 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 - For `send` to reach `run`, start it in tmux: `tmux new -s playwright-repl`, then `pw-repl run` there.
 - A URL after the command opens in a new tab: `pw-repl run http://localhost:3000`.
 - `--launch` works with each of them; flags after `--` go to that Chromium.
-- `serve` takes a socket of its own (`pw-repl serve --background /tmp/mine.sock`; then `-e /tmp/mine.sock`
-  for `send`, `attach`, `stop` and `where`), or `serve <port>` for TCP on 127.0.0.1.
+- A socket of its own: `-e /tmp/mine.sock` on every command, `serve` included (`pw-repl serve --background
+  -e /tmp/mine.sock`), or `PW_SOCKET`; `serve <port>` listens on TCP on 127.0.0.1.
 - A background REPL cannot be brought back like a Ctrl-Z job; `attach` is how you get back to it, from
   any terminal.
 
