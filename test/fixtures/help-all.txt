@@ -261,7 +261,7 @@ Output is capped; --all right after the command, or at the end, shows everything
       page loads, at the same spot, and shows in screenshots and recordings. Selectors, snapshot and text
       don't see it, it takes no clicks, and it points at elements inside frames too.
 
-  record [on [file] [seconds] [--steps] | off [file]]  record the selected tab's page to a video
+  record [on [file] [seconds] [options] | off [file]]  record the selected tab's page to a video
       record on starts recording the selected tab, and record off stops it and saves the file: its path,
       length, size and bytes. record on its own, or record off when nothing is recording, says whether the
       selected tab is recording, and how your last recording ended (record off, its seconds, its tab closing
@@ -290,6 +290,15 @@ Output is capped; --all right after the command, or at the end, shows everything
       the page draws, and a still page keeps its real length. Under viewport or emulate, a page the tab loads
       while recording holds the last frame until the new page's HTML is in, and is then recorded at the
       viewport's size.
+
+      While a tab records, each command that acts on the page (click, fill, type, select, mousemove and the
+      like) is followed by a pause, 750ms or --pause=<ms>, so the viewer sees what it did; with the cursor on,
+      it also rests 300ms on the element before acting. record on returns after 1s of the still page, or
+      --lead=<ms>, and record off records 1s more before stopping, or --tail=<ms>, so the video neither starts
+      nor ends on an action; the lead counts toward the seconds, and stopping at the seconds has no tail. 0
+      turns any of them off. Commands sent one by one leave the time spent between them in the video: work out
+      the selectors first, then send the take as a file of commands: pw-repl send --file take.txt (pw-repl
+      help, outside the REPL, has the rest).
 
       While a tab records, type sends keys at a pace the video can show (help type), and mousewheel scrolls in
       small eased steps over up to 1s rather than at once; an element a command acts on that is out of view is

@@ -234,7 +234,7 @@ exit 1
 
   it('ends it then, says so, and fails the next record off once', async () => {
     await ok('tab new about:blank');
-    assert.match(await ok(`record on ${dir}/lost.webm`), /^Recording the selected tab/);
+    assert.match(await ok(`record on ${dir}/lost.webm --pause=0 --lead=0 --tail=0`), /^Recording the selected tab/);
     fs.writeFileSync(`${dir}/fail`, '');
     await waitFor(async () => /not being recorded/.test(await ok('record')), 'the recording to end');
     assert.match(await ok('record'), /Your last recording, ended at \S+: ffmpeg exited while recording, which ended it\. Nothing was saved: ffmpeg wrote no video \(\d+ frames sent; it exited with 1: fake ffmpeg: failed\)\.$/);
@@ -246,7 +246,7 @@ exit 1
     // Cut short with a file: saved, and still a failure.
     fs.rmSync(`${dir}/fail`);
     fs.writeFileSync(`${dir}/partial`, '');
-    await ok(`record on ${dir}/cut.webm`);
+    await ok(`record on ${dir}/cut.webm --pause=0 --lead=0 --tail=0`);
     fs.writeFileSync(`${dir}/fail`, '');
     await waitFor(async () => /not being recorded/.test(await ok('record')), 'the recording to end');
     const cut = await repl.run('record off');

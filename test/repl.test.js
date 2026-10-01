@@ -1009,13 +1009,13 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.equal(await ok(gaps), 'false', 'at once, not recording');
       await ok('eval keys.length = 0; document.querySelector("#name").value = ""');
       // Steps are saved only when asked for.
-      await ok(`record on ${dir}/plain.webm`);
+      await ok(`record on ${dir}/plain.webm --pause=0 --lead=0 --tail=0`);
       await ok('click #go');
       assert.match((await repl.run('record off --steps')).output, /--steps goes on record on/);
       assert.doesNotMatch(await ok('record off'), /Steps/);
       assert.ok(!fs.existsSync(`${dir}/plain.steps.txt`));
-      assert.match(await ok(`record on ${dir}/clip.webm --steps`), /, with its steps; /);
-      assert.match(await ok('record'), /, with its steps; /);
+      assert.match(await ok(`record on ${dir}/clip.webm --steps --pause=0 --lead=0 --tail=0`), /, with its steps[,;] /);
+      assert.match(await ok('record'), /, with its steps[,;] /);
       await ok('type #name abcd');
       assert.equal(await ok(gaps), 'true');
       await ok('eval keys.length = 0');
@@ -1053,13 +1053,36 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('paces a recording: still page before and after, and a pause after each action', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
+    const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-pace-'));
+    try {
+      await ok(`record on ${dir}/clip.webm --steps`);
+      await ok('click #go');
+      await ok('click #go');
+      const saved = await ok('record off');
+      // On the video's own clock: a busy machine only makes these longer.
+      const length = Number(/\((\d+\.\d)s, /.exec(saved)[1]);
+      const steps = fs.readFileSync(`${dir}/clip.steps.txt`, 'utf8').split('\n').filter(l => / click #go$/.test(l)).map(l => l.split(' ').map(Number));
+      assert.ok(steps[0][0] >= 0.95, `the lead: first action at ${steps[0][0]}s`);
+      assert.ok(steps[1][0] - steps[0][1] >= 0.7, `the pause: ${steps[0][1]}s to ${steps[1][0]}s`);
+      assert.ok(length - steps[1][1] >= 1.6, `the pause and the tail: last action ended at ${steps[1][1]}s of ${length}s`);
+      assert.match(await ok(`record on ${dir}/two.webm --pause=0 --tail=250`), /, --pause=0 --tail=250; /, 'only what differs from the defaults');
+      assert.match(await ok('record'), /, --pause=0 --tail=250; /);
+      assert.match((await repl.run('record off --lead=0')).output, /--lead goes on record on/);
+      await ok('record off');
+      assert.match((await repl.run('record on --pause=fast')).output, /--pause=<ms> takes milliseconds, from 0 to 10000 \(default 750\)/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('scrolls smoothly to an element out of view while recording, and notes where it settled', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
     const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-scroll-'));
     try {
       await ok('eval document.body.style.height = "4000px"; const b = document.createElement("button"); b.id = "far"; b.textContent = "Far"; b.style.cssText = "position:absolute;top:2500px;left:40px"; document.body.append(b); scrollTo(0, 0)');
       // Every place the page scrolled through, as it went: one for a jump, many for a smooth scroll.
       await ok('eval window.ys = []; addEventListener("scroll", () => ys.push(scrollY))');
-      await ok(`record on ${dir}/clip.webm --steps`);
+      await ok(`record on ${dir}/clip.webm --steps --pause=0 --lead=0 --tail=0`);
       await ok('click #far');
       // A jump goes straight to the end; a smooth scroll passes somewhere between, however few frames it draws.
       assert.equal(await ok('eval ys.some(y => y > 0 && y < ys[ys.length - 1])'), 'true', `scrolled through ${await ok('eval ys.join(" ")')}`);
@@ -1085,7 +1108,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await ok('viewport 640x360');
       // A page that scrolls: its scrollbars are in the video, which is the viewport's size.
       await ok('eval document.body.style.height = "3000px"');
-      assert.match(await ok(`record on ${file}`), /^Recording the selected tab to \S+clip\.webm until record off/);
+      assert.match(await ok(`record on ${file} --pause=0 --lead=0 --tail=0`), /^Recording the selected tab to \S+clip\.webm until record off/);
       assert.match(await ok('modes'), /\(viewport:640x360 record\)/);
       assert.match((await repl.run(`record on ${file}`)).output, /already being recorded/);
       await ok('eval document.body.style.background = "red"');
@@ -1105,7 +1128,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.match((await repl.run(`record on ${dir}/clip.gif`)).output, /a \.webm or \.mp4 file/);
       // modes off saves it before it resets the size, which the recording would otherwise end with.
       await ok('viewport 640x360');
-      await ok(`record on ${dir}/second.webm`);
+      await ok(`record on ${dir}/second.webm --pause=0 --lead=0 --tail=0`);
       const off = await ok('modes off');
       assert.match(off, /record off \(Saved: \S+second\.webm \(\d+\.\ds, 640x360, \d+ KB\)\), viewport off/);
       assert.doesNotMatch(off, /changed size/);
@@ -1125,18 +1148,18 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       // A phone's size, taken from the page as it is shown, not from a frame drawn before it reloaded.
       await ok('viewport off');
       await ok('emulate mobile');
-      await ok(`record on ${dir}/phone.webm`);
+      await ok(`record on ${dir}/phone.webm --pause=0 --lead=0 --tail=0`);
       await ok('reload');
       assert.match(await ok('record off'), /^Saved: \S+\/phone\.webm \(\d+\.\ds, 412x838, /);
       await ok('emulate off');
       // Its tab closing ends it, and record says so with no tab selected.
       await ok('tab new about:blank');
-      await ok(`record on ${dir}/third.webm`);
+      await ok(`record on ${dir}/third.webm --pause=0 --lead=0 --tail=0`);
       assert.match(await ok('tab close'), /^Closed about:blank\nIts tab closed, which ended it\. Saved: \S+third\.webm \(/, 'tab close says so');
       assert.match(await ok('record'), /Your last recording, ended at \S+: Its tab closed, which ended it\. Saved: \S+third\.webm/);
       // Another client's record off stops it too, and both are told whose it was.
       assert.equal((await repl.runAs('rec-a', 'tab new data:text/html,owned')).status, 'ok');
-      assert.equal((await repl.runAs('rec-a', `record on ${dir}/owned.webm`)).status, 'ok');
+      assert.equal((await repl.runAs('rec-a', `record on ${dir}/owned.webm --pause=0 --lead=0 --tail=0`)).status, 'ok');
       assert.equal((await repl.runAs('rec-b', 'tab owned')).status, 'ok');
       assert.match((await repl.runAs('rec-b', 'record off')).output, /^rec-b's record off ended rec-a's recording\. Saved: \S+owned\.webm/);
       assert.match((await repl.runAs('rec-a', 'record')).output, /Your last recording, ended at \S+: rec-b's record off ended rec-a's recording/);
@@ -1146,7 +1169,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       // A quoted file, with a space in it.
       fs.mkdirSync(`${dir}/my dir`);
       assert.match((await repl.run(`record on ${dir}/my dir/kept.webm`)).output, /record takes one file, and "\S+\/my" and "dir\/kept\.webm" are two: quote a file name with spaces in it/);
-      await ok(`record on "${dir}/my dir/kept.webm"`);
+      await ok(`record on "${dir}/my dir/kept.webm" --pause=0 --lead=0 --tail=0`);
       assert.match((await repl.run(`record off ${dir}/ro/x.webm`)).output, /Cannot write in \S+\/ro to save x\.webm there; still recording to \S+\/my dir\/kept\.webm/);
       assert.match(await ok(`record off --filename='${dir}/my dir/renamed kept.webm'`), /^Saved: \S+\/my dir\/renamed kept\.webm \(/);
       const unselected = await repl.runAs('no-tab', 'record off');
@@ -1178,7 +1201,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       for (const [width, height] of [[640, 360], [1280, 720]]) {
         const capture = async (name, action, lastColour = 'red', checkFrame = null) => {
           const base = `${dir}/${width}-${name}`;
-          await ok(`record on ${base}.webm`);
+          await ok(`record on ${base}.webm --pause=0 --lead=0 --tail=0`);
           await action();
           // Let the browser draw several frames, without making the test depend on a time budget.
           await ok('eval new Promise(resolve => { let n = 0; const frame = () => ++n === 10 ? resolve() : requestAnimationFrame(frame); requestAnimationFrame(frame); })');
