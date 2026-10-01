@@ -1008,7 +1008,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await ok('type #name ab');
       assert.equal(await ok(gaps), 'false', 'at once, not recording');
       await ok('eval keys.length = 0; document.querySelector("#name").value = ""');
-      await ok(`record on ${dir}/clip.webm`);
+      // Steps are saved only when asked for.
+      await ok(`record on ${dir}/plain.webm`);
+      await ok('click #go');
+      assert.match((await repl.run('record off --steps')).output, /--steps goes on record on/);
+      assert.doesNotMatch(await ok('record off'), /Steps/);
+      assert.ok(!fs.existsSync(`${dir}/plain.steps.txt`));
+      assert.match(await ok(`record on ${dir}/clip.webm --steps`), /, with its steps; /);
+      assert.match(await ok('record'), /, with its steps; /);
       await ok('type #name abcd');
       assert.equal(await ok(gaps), 'true');
       await ok('eval keys.length = 0');
@@ -1060,7 +1067,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await ok('viewport 320x200');
       await waitFor(async () => /changed size at/.test(await ok('record')), 'a frame of the new size');
       const saved = await ok('record off');
-      const [, seconds] = /^Saved: \S+clip\.webm \((\d+\.\d)s, 640x360, \d+ KB\)\nthe page changed size at \d+\.\ds and was fitted into the first size\nSteps: /.exec(saved) || [];
+      const [, seconds] = /^Saved: \S+clip\.webm \((\d+\.\d)s, 640x360, \d+ KB\)\nthe page changed size at \d+\.\ds and was fitted into the first size$/.exec(saved) || [];
       assert.ok(seconds, saved);
       // The video's own length and size, as ffmpeg reads them back: the same as reported, to a frame.
       const probe = require('child_process').spawnSync(FFMPEG, ['-hide_banner', '-i', file], { encoding: 'utf8' }).stderr;
