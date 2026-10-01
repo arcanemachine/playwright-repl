@@ -6,7 +6,8 @@ the selectors it needs (#id, text=..., role=...), not snapshot refs: the take st
 page, where the refs are stale.
 
 2. Write the take, one command per line, then run it: pw-repl send --file take.txt (pw-repl help,
-outside the REPL, has the rest).
+outside the REPL, has the rest). Its first line puts the page back as it was before the rehearsal (goto
+<url>), so the take does not start from the rehearsal's end.
 
     goto https://shop.example/support/new
     record on clip.webm
