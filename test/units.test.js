@@ -343,6 +343,17 @@ describe('key names', () => {
   });
 });
 
+describe('step labels', () => {
+  it('name the command and what it acts on, its selector without the quotes it needed, and never a value', () => {
+    const { stepLabel } = require('../lib/record');
+    assert.equal(stepLabel('check', '"role=checkbox[name=\\"Email me news\\"]"'), 'check role=checkbox[name="Email me news"]');
+    assert.equal(stepLabel('click', '"text=Send ticket" right --modifiers=Shift'), 'click text=Send ticket right');
+    assert.equal(stepLabel('mousemove', '10 20'), 'mousemove 10 20');
+    assert.equal(stepLabel('fill', '"text=Your name" Ada'), 'fill text=Your name');
+    assert.equal(stepLabel('type', '--delay=0 #name secret'), 'type #name');
+  });
+});
+
 describe('playwright-cli names', () => {
   const { translate } = require('../lib/cli-names');
 
