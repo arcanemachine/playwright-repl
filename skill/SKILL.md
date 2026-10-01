@@ -161,7 +161,7 @@ blindly retry a change), `64` usage or the REPL is not reachable. `pw-repl --hel
 
 ## Learn the commands
 
-Run `pw-repl send help`. It lists six topics; `help <topic>` lists their commands, `help <command>`
+Run `pw-repl send help`. It lists seven topics; `help <topic>` lists their commands, `help <command>`
 gives usage and caveats, and `help --all` prints everything at once. pw-repl answers it itself: it needs
 no running REPL, and never reaches one. The
 help is the command reference; this file does not repeat it. If you know playwright-cli, its command
@@ -209,9 +209,9 @@ pw-repl send -c <name> close                        # your modes off; tab close 
 - To point something out, to the person or in a screenshot, `highlight <ref|selector>` draws a box over it
   without changing the page (`--style=<css>` restyles it; `highlight off` hides them). Its label can
   cover what is below it; `help highlight` says how to mark a screenshot without one.
-- For a video, `help video` says which way suits what you want: `record on` records a tab's page (`cursor
-  on` draws a pointer where you act, for the viewer), and a screen recorder on the person's machine records
-  what they see.
+- For a video, `help video` says how: a take written as a file and sent with `send --file`, `record on`
+  around it, `cursor on` for a pointer, and the pacing recording adds for the viewer; a screen recorder on
+  the user's machine records what they see.
 
 ## Environment
 

@@ -98,7 +98,7 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 | show an agent what I do              | `watch on`, click around in the browser, then `watch`                                 |
 | see each step as I click             | `watch on --live`                                                                     |
 | record requests and console together | `capture on`, then `capture off`                                                      |
-| record a video of the page           | `record on`, then `record off` (`help video` for the other ways)                      |
+| record a video of the page           | `record on`, then `record off` (`help video` for a take with a pointer)               |
 | show a pointer where the agent acts  | `cursor on`, then `cursor off` (in screenshots and videos)                            |
 | point something out on the page      | `highlight <ref>` (`--style=<css>` to restyle it), then `highlight off`               |
 | break the backend on purpose         | `route <glob> <status> <json>` (fake a response), `route <glob> abort`, `network off` |

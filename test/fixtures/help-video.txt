@@ -1,15 +1,34 @@
-There are three ways to record a video of a page, and each gives something up.
+A video of what you do in a tab, for someone to watch:
 
-record on (help record) records the selected tab's page from inside the browser: headless, hidden and
-background tabs too, with nothing to set up but ffmpeg. It has no pointer and no browser toolbars:
-cursor on draws a pointer that shows where the REPL clicks. For quick clips, and for an agent recording
-its own work.
+1. Set its size first: viewport 1280x720 (help viewport). Then try the flow without recording, and note
+the selectors it needs (#id, text=..., role=...), not snapshot refs: the take starts again from a fresh
+page, where the refs are stale.
 
-A screen recorder on the person's machine (OBS, ffmpeg -f x11grab, macOS screencapture -v) records their
-screen as they see it, pointer included, smooth and in real time. It records the screen or a window, not
-a tab: size the window, and crop off the toolbars, for just the page. Ask before starting one, or have
-them start it. It cannot see a headless browser: for a browser of the REPL's own, --launch --headed on a
-screen. For a polished video of a person's browser.
+2. Write the take as a file, one command per line, and run it with pw-repl send --file take.txt (pw-repl
+help, outside the REPL, has the rest). Commands sent one by one leave the time between them in the
+video.
 
-Microsoft's playwright-cli (the npm package @playwright/cli; video-start and video-stop) records a
-browser of its own, not this one, which starts logged out. For a scripted flow in a clean browser.
+    goto https://shop.example/support/new
+    record on clip.webm
+    cursor on #subject
+    type #subject Package arrived damaged
+    select #area Shipping
+    click #send
+    wait text Ticket filed
+    record off
+
+3. While it records, pw-repl paces it for a viewer (help record): type types at a readable pace (use it,
+not fill, for text the viewer should see typed), each action is followed by a pause, an element out of
+view is scrolled to smoothly, and the video starts and ends on a still page. highlight <selector> draws
+a box to point at something. After a step that loads a page, wait for what it shows (wait text ...), not
+wait load: a single-page app loads nothing.
+
+record on --steps also saves when and where each step ran, in the video's seconds and pixels, for
+editing it afterwards.
+
+The user's own screen, with their real pointer, takes a screen recorder they run (OBS, ffmpeg -f
+x11grab, macOS screencapture -v): ask first. playwright-cli itself is a separate tool that records a
+clean browser of its own (here, its video-start is record on).
+
+  record [on [file] [seconds] [options] | off [file]]  record the selected tab's page to a video
+  cursor [on [<selector> | <x> <y>] | off]             draw a pointer where the REPL acts, for videos

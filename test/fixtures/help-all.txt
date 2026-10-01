@@ -14,7 +14,7 @@ Common tasks:
   see each step as I click          watch on --live
   watch a tab someone will open     watch on --next-tab [url-part]
   requests and console together     capture on, then capture off
-  a video of the page               record on, then record off
+  a video of what I do              help video
   break the backend on purpose      route <glob> <status> <json>, route <glob> abort, network off
   change or slow an API response    route <glob> patch <json>, route <glob> delay <secs>
   slow the whole network            network slow
@@ -28,13 +28,12 @@ Topics (help <topic>):
   tabs      open, select, close, navigate        network   requests, bodies, console, fakes, network off
   interact  click, fill, type, press, select     devtools  eval, CDP commands, cookie and storage names
   inspect   snapshot, watch, text, screenshots   session   modes, markers, server, quitting
+  video     record a take, with a pointer
 
 help <command> for usage and caveats (e.g. help route); help --all for everything.
 
 Know playwright-cli? Its command names work here too (tab-list, go-back, set-color-scheme, route
 --status=...); help playwright-cli lists them.
-
-Recording video? help video says which way suits what you want.
 
 == tabs ==
 No tab is selected when the REPL starts: tab new opens one, tab <index|url-part> selects one. tab on its
@@ -241,25 +240,82 @@ Output is capped; --all right after the command, or at the end, shows everything
         eval document.querySelector("#rate-3").style.outline = "3px solid blue"
         eval document.querySelector("#rate-3").style.outline = ""
 
-  cursor [on [<selector> | <x> <y>] | off]             draw a pointer where the REPL acts, for videos
-      The REPL's clicks and typing don't move a pointer on screen, so a recording shows things happening with
-      nothing pointing at them. cursor on draws a pointer in the selected tab. After that, these commands move
-      it smoothly to their element or point before they act: click, dblclick, hover, fill, type <selector>,
-      press <selector>, select, check, uncheck, upload and mousemove. Each move takes 150 to 600ms, depending
-      on the distance (300 to 1000ms while the tab is recording), and the command waits for it. Clicks (click,
-      dblclick, check, uncheck, mousedown, and upload when it clicks a button) show a ring where they land.
+  viewport [WxH | off]                                 show, set or unset the viewport size
+      viewport 1280x720 sets the selected tab's page to that size, until viewport off, modes off or the REPL
+      exits. The window is not resized. viewport on its own shows the size, and whether it was set or is the
+      window's. emulate mobile sets a phone's size instead, and each refuses while the other is on.
 
-      It shows only the REPL's input, from every client, never the user's own mouse. Only the drawing moves:
-      no mouse events are sent along the way, so the page gets the same input as with the cursor off. fill,
-      select and the like move the drawing to their element but leave the real mouse where it was; mousedown,
-      mouseup and mousewheel act at the real mouse, so the pointer moves back there first.
+  emulate [<what> [off] | off]                         emulate a phone, dark mode, a locale or a timezone
+      emulate mobile [device]  a phone's screen, touch and user agent: a Pixel 7, or a device named as in
+                               Playwright's list, e.g. emulate mobile iPhone 13; a name that is not
+                               exact lists the devices it matches (emulate mobile galaxy)
+      emulate dark | light     the color scheme the page's CSS and matchMedia see
+      emulate locale <tag>     the language (Accept-Language, navigator.language) and date and number
+                               formats, e.g. fr-FR
+      emulate timezone <zone>  an IANA timezone, e.g. Asia/Tokyo
+      emulate <what> off       stop one (dark or light off stops the color scheme); emulate off stops all
 
-      cursor on fades it in where the mouse last went (or the middle), cursor on <selector> or <x> <y> fades
-      it in there instead (a video's first element, say, scrolled into view), and, when it is on already,
-      glides it there without moving the real mouse. cursor off fades it out, and cursor alone says whether it
-      is on and where. It is a mode of its tab: modes lists it and modes off turns it off. It stays on across
-      page loads, at the same spot, and shows in screenshots and recordings. Selectors, snapshot and text
-      don't see it, it takes no clicks, and it points at elements inside frames too.
+      Per tab, until turned off or the REPL exits; emulate mobile <device> while another is on switches to it.
+      emulate on its own shows what is on.
+
+      The page sees the user agent, touch and navigator.languages from its next load: reload after turning
+      mobile or locale on or off. Touch means the page sees a touch screen; click still clicks with the mouse,
+      and sends no touch events. Dark, light and timezone apply at once, but what the page already drew with
+      them (times, colors set by its script) changes only when it reloads.
+
+      While mobile is on, viewport refuses: the device sets the size.
+
+  wait [text|request] <what> [--gone] [secs]           wait for an element, text, a response or a load (10s)
+      wait <selector> waits for a matching element to be visible, and wait text <text> for text to be; wait
+      request <url-part|glob> waits for a matching response, counting one that finished since the previous
+      command began, or is still under way (so click, then wait request, does not miss it).
+
+      wait load waits for the page to finish loading (its load event). A navigation that began since the
+      previous command began counts, so click a link, then wait load, waits for the new page. A page that
+      changes its own URL without loading (an app's own routing) is not a load: wait for something on the new
+      view instead.
+
+      wait text matches any part of an element's text, in any case.
+
+      --gone waits instead until nothing matching is visible (removed or hidden): wait .spinner --gone. It is
+      done at once if nothing matches yet, so wait for it to appear first if it may not have.
+
+      Up to 120s. A wait that times out is an error; the REPL carries on.
+
+  sleep <ms>                                           wait a fixed time, in milliseconds (maximum 3600000)
+
+== video ==
+A video of what you do in a tab, for someone to watch:
+
+1. Set its size first: viewport 1280x720 (help viewport). Then try the flow without recording, and note
+the selectors it needs (#id, text=..., role=...), not snapshot refs: the take starts again from a fresh
+page, where the refs are stale.
+
+2. Write the take as a file, one command per line, and run it with pw-repl send --file take.txt (pw-repl
+help, outside the REPL, has the rest). Commands sent one by one leave the time between them in the
+video.
+
+    goto https://shop.example/support/new
+    record on clip.webm
+    cursor on #subject
+    type #subject Package arrived damaged
+    select #area Shipping
+    click #send
+    wait text Ticket filed
+    record off
+
+3. While it records, pw-repl paces it for a viewer (help record): type types at a readable pace (use it,
+not fill, for text the viewer should see typed), each action is followed by a pause, an element out of
+view is scrolled to smoothly, and the video starts and ends on a still page. highlight <selector> draws
+a box to point at something. After a step that loads a page, wait for what it shows (wait text ...), not
+wait load: a single-page app loads nothing.
+
+record on --steps also saves when and where each step ran, in the video's seconds and pixels, for
+editing it afterwards.
+
+The user's own screen, with their real pointer, takes a screen recorder they run (OBS, ffmpeg -f
+x11grab, macOS screencapture -v): ask first. playwright-cli itself is a separate tool that records a
+clean browser of its own (here, its video-start is record on).
 
   record [on [file] [seconds] [options] | off [file]]  record the selected tab's page to a video
       record on starts recording the selected tab, and record off stops it and saves the file: its path,
@@ -320,51 +376,27 @@ Output is capped; --all right after the command, or at the end, shows everything
       it. WebM plays in browsers, GitHub, GitLab and Slack; MP4 plays everywhere. It takes about 15 MB a
       minute.
 
-      For a video with the pointer, or of the person's screen, help video compares the other ways.
+      help video puts it together: the take, the pointer and the pacing.
 
-  viewport [WxH | off]                                 show, set or unset the viewport size
-      viewport 1280x720 sets the selected tab's page to that size, until viewport off, modes off or the REPL
-      exits. The window is not resized. viewport on its own shows the size, and whether it was set or is the
-      window's. emulate mobile sets a phone's size instead, and each refuses while the other is on.
+  cursor [on [<selector> | <x> <y>] | off]             draw a pointer where the REPL acts, for videos
+      The REPL's clicks and typing don't move a pointer on screen, so a recording shows things happening with
+      nothing pointing at them. cursor on draws a pointer in the selected tab. After that, these commands move
+      it smoothly to their element or point before they act: click, dblclick, hover, fill, type <selector>,
+      press <selector>, select, check, uncheck, upload and mousemove. Each move takes 150 to 600ms, depending
+      on the distance (300 to 1000ms while the tab is recording), and the command waits for it. Clicks (click,
+      dblclick, check, uncheck, mousedown, and upload when it clicks a button) show a ring where they land.
 
-  emulate [<what> [off] | off]                         emulate a phone, dark mode, a locale or a timezone
-      emulate mobile [device]  a phone's screen, touch and user agent: a Pixel 7, or a device named as in
-                               Playwright's list, e.g. emulate mobile iPhone 13; a name that is not
-                               exact lists the devices it matches (emulate mobile galaxy)
-      emulate dark | light     the color scheme the page's CSS and matchMedia see
-      emulate locale <tag>     the language (Accept-Language, navigator.language) and date and number
-                               formats, e.g. fr-FR
-      emulate timezone <zone>  an IANA timezone, e.g. Asia/Tokyo
-      emulate <what> off       stop one (dark or light off stops the color scheme); emulate off stops all
+      It shows only the REPL's input, from every client, never the user's own mouse. Only the drawing moves:
+      no mouse events are sent along the way, so the page gets the same input as with the cursor off. fill,
+      select and the like move the drawing to their element but leave the real mouse where it was; mousedown,
+      mouseup and mousewheel act at the real mouse, so the pointer moves back there first.
 
-      Per tab, until turned off or the REPL exits; emulate mobile <device> while another is on switches to it.
-      emulate on its own shows what is on.
-
-      The page sees the user agent, touch and navigator.languages from its next load: reload after turning
-      mobile or locale on or off. Touch means the page sees a touch screen; click still clicks with the mouse,
-      and sends no touch events. Dark, light and timezone apply at once, but what the page already drew with
-      them (times, colors set by its script) changes only when it reloads.
-
-      While mobile is on, viewport refuses: the device sets the size.
-
-  wait [text|request] <what> [--gone] [secs]           wait for an element, text, a response or a load (10s)
-      wait <selector> waits for a matching element to be visible, and wait text <text> for text to be; wait
-      request <url-part|glob> waits for a matching response, counting one that finished since the previous
-      command began, or is still under way (so click, then wait request, does not miss it).
-
-      wait load waits for the page to finish loading (its load event). A navigation that began since the
-      previous command began counts, so click a link, then wait load, waits for the new page. A page that
-      changes its own URL without loading (an app's own routing) is not a load: wait for something on the new
-      view instead.
-
-      wait text matches any part of an element's text, in any case.
-
-      --gone waits instead until nothing matching is visible (removed or hidden): wait .spinner --gone. It is
-      done at once if nothing matches yet, so wait for it to appear first if it may not have.
-
-      Up to 120s. A wait that times out is an error; the REPL carries on.
-
-  sleep <ms>                                           wait a fixed time, in milliseconds (maximum 3600000)
+      cursor on fades it in where the mouse last went (or the middle), cursor on <selector> or <x> <y> fades
+      it in there instead (a video's first element, say, scrolled into view), and, when it is on already,
+      glides it there without moving the real mouse. cursor off fades it out, and cursor alone says whether it
+      is on and where. It is a mode of its tab: modes lists it and modes off turns it off. It stays on across
+      page loads, at the same spot, and shows in screenshots and recordings. Selectors, snapshot and text
+      don't see it, it takes no clicks, and it points at elements inside frames too.
 
 == network ==
 requests and console record all the time; a capture records only while it runs.
