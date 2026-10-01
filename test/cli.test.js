@@ -131,6 +131,11 @@ describe('pw-repl send help', () => {
       assert.match(pwRepl(['send', '--file', take], { env, cwd: dir }).stderr, /record off was not reached, so the recording is still on/);
       assert.match(pwRepl(['send', 'record'], { env }).stdout, new RegExp(`to ${dir}/out/my take\\.webm `));
       assert.equal(pwRepl(['send', 'record off'], { env }).status, 0);
+      // More commands than Node allows listeners on one socket: each has a connection of its own.
+      fs.writeFileSync(take, Array.from({ length: 12 }, (_, n) => `eval ${n}`).join('\n'));
+      const many = pwRepl(['send', '--file', take], { env });
+      assert.equal(many.status, 0);
+      assert.doesNotMatch(many.stderr, /MaxListeners/);
       assert.equal(pwRepl(['send', '--file', path.join(dir, 'none.txt')], { env }).status, 64);
       assert.equal(pwRepl(['send', '--file', take, 'info'], { env }).status, 64, 'a file or a command, not both');
 
