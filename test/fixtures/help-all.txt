@@ -30,7 +30,8 @@ Topics (help <topic>):
   inspect   snapshot, watch, text, screenshots   session   modes, markers, server, quitting
   video     record a take, with a pointer
 
-help <command> for usage and caveats (e.g. help route); help --all for everything.
+help <command> for usage and caveats (e.g. help route), help <command> --all for all of it; help --all
+for everything.
 
 Know playwright-cli? Its command names work here too (tab-list, go-back, set-color-scheme, route
 --status=...); help playwright-cli lists them.
@@ -40,21 +41,23 @@ No tab is selected when the REPL starts: tab new opens one, tab <index|url-part>
 own lists them all.
 
   tab [<index>|<url-part>|new [url]|close [url-part]]  list tabs (* is selected); select, open or close one
-      tab <index> uses the numbers from your latest tab listing (each client has its own); they change when
-      tabs open or close.
-
-      tab <url-part> selects the one tab whose URL contains it, and refuses if none or several do.
-
-      tab new opens a tab behind the one in front, so it does not take the window from whoever is using it,
-      and selects it; tab shows who opened each tab opened this way. tab close closes the selected tab, or the
-      one matching url-part.
+      Arguments:
+        (none)              lists the tabs: * marks the selected one, and each says who opened it with tab
+                            new.
+        <index>             selects by the number in your latest listing (each client has its own); numbers
+                            change when tabs open or close.
+        <url-part>          selects the one tab whose URL contains it; refused if none or several do.
+        new [url]           opens a tab behind the one in front, so it does not take the window from whoever
+                            is using it, and selects it. The URL is read as goto reads it.
+        close [url-part]    closes the selected tab, or the one matching url-part.
 
       Closing the selected tab goes back to the previous tab if tab new opened it; otherwise no tab is
       selected, and commands that need one refuse until one is.
 
   goto <url>                                           navigate the selected tab
-      Without a scheme, http:// is assumed for localhost, 127.x and [::1], and https:// otherwise, as in the
-      address bar. tab new <url> reads its URL the same way.
+      Arguments:
+        <url>               without a scheme, http:// for localhost, 127.x and [::1], and https:// otherwise,
+                            as in the address bar.
 
       A page that does not load says why, as wait load does: a failed request, after which the tab shows
       Chrome's error page (info names the URL that failed), or an answer with no page (a 204), which leaves
@@ -76,13 +79,18 @@ the first match (click, dblclick and hover the first they can use: help click); 
 selectors with spaces. mousemove and the other mouse commands act at a point instead.
 
   click <selector> [button]             click the first match that can be clicked
-      After a ref or a quoted selector, a button (left, right, middle) may follow: click e5 right.
-      --modifiers=<key>[,<key>] holds keys down meanwhile (Alt, Control, ControlOrMeta, Meta, Shift).
+      Arguments:
+        <selector>          a Playwright selector or a snapshot ref (e5); quote one with spaces.
+        [button]            left, right or middle, after a ref or a quoted selector: click e5 right. Default:
+                            left.
+      Options:
+        --modifiers=<keys>  keys held down meanwhile, comma-separated: Alt, Control, ControlOrMeta, Meta,
+                            Shift.
 
-      When a selector matches several elements, hidden ones and ones covered by something else (a dialog's
-      overlay) are passed over, and it says which match it used: Clicked: text=Buy (match 3 of 4; ...). If
-      none can be clicked within 5s, it says why for each and does nothing. A ref, or a single match, is
-      clicked as it is, waiting up to 5s for it to be ready.
+      Several matches: hidden ones and ones covered by something else (a dialog's overlay) are passed over,
+      and it says which it used: Clicked: text=Buy (match 3 of 4; ...). If none can be clicked within 5s, it
+      says why for each and does nothing. A ref, or a single match, is clicked as it is, waiting up to 5s for
+      it to be ready.
 
       Timed out after it began acting, it says what stopped it (e.g. <div class="overlay"> intercepts pointer
       events) and that the outcome is unknown; Playwright's full call log goes to the REPL's pane or log.
@@ -90,41 +98,59 @@ selectors with spaces. mousemove and the other mouse commands act at a point ins
   dblclick <selector> [button]          double-click, choosing the match as click does
   hover <selector>                      hover, choosing the match as click does
   fill <selector> <value> [--submit]    clear an input and fill it
-      The selector is the first word; quote it if it has spaces. The rest of the line is the value, and quotes
-      around all of it are removed, so fill #name "" clears the field. --submit at the end presses Enter in it
-      afterwards.
+      Arguments:
+        <selector>          the first word; quote it if it has spaces: fill "text=Your name" Ada.
+        <value>             the rest of the line; quotes around all of it are removed, so fill #name "" clears
+                            it.
+      Options:
+        --submit            at the end: presses Enter in it afterwards.
 
-      Examples: fill #name Ada Lovelace, fill "text=Your name" Ada, fill e7 Ada
+      Examples: fill #name Ada Lovelace, fill "text=Your name" Ada, fill e7 Ada. It sets the whole value at
+      once, even while recording: type shows it being typed.
 
   type [<selector>] <text> [--submit]   type key by key after what the field holds; text as for fill
-      With one word, or one quoted, it is typed into the element that has focus: type "garden hose". --submit
-      at the end presses Enter afterwards.
+      Arguments:
+        [<selector>]        as for fill. Without it (one word, or one quoted), into what has focus: type
+                            "garden hose".
+        <text>              the rest of the line, as fill's value.
+      Options:
+        --delay=<ms>        right after type: the gap between keys. Default: none, or 60 while the tab
+                            records.
+        --submit            at the end: presses Enter afterwards.
 
-      Keys are sent all at once. While the tab is recording (help record), they are 60ms apart, so the video
-      shows the text being typed. type --delay=<ms> <selector> <text> sets the gap between keys yourself. The
-      whole text takes its length times the gap, and send waits 20s by default: about 300 characters at 60ms
-      need a longer send -t, or a shorter --delay. It is a gap between keys, not a wait before starting like
-      screenshot's --delay. A page that reacts to each key, such as search as you type, may react to each one.
+      While the tab is recording (help record), keys go 60ms apart, so the video shows the text being typed.
+      The whole text takes its length times the gap, and send waits 20s by default: about 300 characters at
+      60ms need a longer send -t, or a shorter --delay. --delay is a gap between keys, not a wait before
+      starting like screenshot's. A page that reacts to each key, such as search as you type, may react to
+      each one.
 
   press <key> | press <selector> <key>  press a key (Enter, Escape, Control+A; any case), maybe on an element
   select <selector> <value>             choose an option in a select (the value is the rest of the line)
-      The value is an option's value or its label. With the cursor on (help cursor), select also draws the
-      select's list opening and the cursor choosing the option, since a native select's list opens outside the
-      page, where no screenshot or recording sees it; the page gets the same input either way.
+      Arguments:
+        <value>             an option's value or its label.
+
+      With the cursor on (help cursor), it also draws the select's list opening and the cursor choosing the
+      option, since a native select's list opens outside the page, where no screenshot or recording sees it;
+      the page gets the same input either way.
 
   check <selector>                      check a checkbox
   uncheck <selector>                    uncheck a checkbox
   upload <selector> <file>...           choose files in a file input, as the file picker would
-      The selector is a file input (even a hidden one), its label, or a button that opens the file picker. The
-      page then does what it does with a chosen file; often that is the upload itself.
+      Arguments:
+        <selector>          a file input (even a hidden one), its label, or a button that opens the file
+                            picker.
+        <file>...           one or more; quote one with spaces. Relative to the REPL's folder; through pw-repl
+                            send, the sender's.
 
-      The REPL reads the files and hands the page their contents, so they need not be where the browser runs;
-      up to 50MB in all. Relative paths are from the folder pw-repl send runs in, or the REPL's own for a
-      command typed at its prompt. Quote a path with spaces.
+      The page then does what it does with a chosen file; often that is the upload itself. The REPL reads the
+      files and hands the page their contents, so they need not be where the browser runs; up to 50MB in all.
 
   mousemove <x> <y>                     move the mouse to a point in the viewport
-      x and y are CSS pixels from the top left of the tab's viewport (not the page), as mouse events
-      have them. A snapshot has no coordinates; eval of getBoundingClientRect gives an element's centre:
+      Arguments:
+        <x> <y>             CSS pixels from the top left of the tab's viewport (not the page), as mouse events
+                            have them.
+
+      A snapshot has no coordinates; eval of getBoundingClientRect gives an element's centre:
       eval (r => [r.x + r.width / 2, r.y + r.height / 2])(document.querySelector("#map")
         .getBoundingClientRect())
 
@@ -134,155 +160,186 @@ selectors with spaces. mousemove and the other mouse commands act at a point ins
   mousedown [button]                    press a mouse button where the mouse is (left, right or middle)
   mouseup [button]                      release a mouse button where the mouse is
   mousewheel <dx> <dy>                  turn the wheel where the mouse is
-      Wheel events at the mouse's point (mousemove puts it there), in CSS pixels: positive dy scrolls down. A
-      map zooms around that point: mousemove 400 300, then mousewheel 0 -300 zooms in. It returns once the
-      events are sent, not once the page has scrolled or redrawn.
+      Arguments:
+        <dx> <dy>           CSS pixels; positive dy scrolls down.
+
+      The events go to the mouse's point (mousemove puts it there): a map zooms around it, so mousemove 400
+      300, then mousewheel 0 -300 zooms in. It returns once the events are sent, not once the page has
+      scrolled or redrawn. While recording, it scrolls in eased steps over up to 1s (help record).
 
 == inspect ==
 Output is capped; --all right after the command, or at the end, shows everything (text --all body).
 
   snapshot [--full] [--grep <text> | <eN> | selector]  outline by role and name, with [ref=eN] labels
-      Playwright's accessibility snapshot, with unnamed layout wrappers (generic) and cursor hints left out;
-      --full shows it unchanged.
+      Arguments:
+        (none)              the whole page: Playwright's accessibility snapshot, with unnamed layout wrappers
+                            (generic), cursor hints and elements with no role or name of their own (a card
+                            that is only a div) left out.
+        <eN>                outlines one element; the refs of the last snapshot keep working.
+        <selector>          outlines the first match, with new refs: those from before stop working.
+      Options:
+        --full              Playwright's snapshot unchanged.
+        --grep <text>       only the lines containing text (role, name or a flag such as [disabled], any
+                            case), each with the named elements around it.
+        --regex <pattern>   --grep by a regular expression: snapshot --regex "Total: \d+".
 
-      --grep <text> prints only the lines containing text (role, name or flag such as [disabled], any case),
-      each with the named elements around it. A hit with no named element around it prints without a path. A
-      hit on text (a label) keeps the ref of the element holding it, so snapshot <that ref> shows what sits
-      beside it, such as the value next to the label. --regex <pattern> is --grep by a regular expression:
-      snapshot --regex "Total: \d+". Refs belong to the tab whose snapshot gave them.
+      Refs: a ref (e3, or f1e3 in newer Playwright) works as a selector in any command: click e3. It belongs
+      to the tab whose snapshot gave it, and can change when the page changes (e102 may become f4e98): take a
+      new snapshot after it does.
 
-      An element with no role or name of its own (a card that is only a div) is left out, with its ref;
-      snapshot --full keeps it.
-
-      snapshot e3 outlines one element, and the refs of the last snapshot keep working. A ref (e3, or f1e3 in
-      newer Playwright) works as a selector in any command: click e3. Refs can change when the page changes
-      (e102 may become f4e98), so take a new snapshot after it does. snapshot <selector> (not a ref) gives new
-      refs, and those from before stop working.
+      --grep: a hit with no named element around it prints without a path. A hit on text (a label) keeps the
+      ref of the element holding it, so snapshot <that ref> shows what sits beside it, such as the value next
+      to the label.
 
       Output over 60 lines ends with a line count.
 
   watch on [--changes] [--live] | off | [n|new]        record what happens in the tab; show the last n steps
-      Off until watch on; a watch on after watch off starts a new recording. Records clicks, typing (once it
-      pauses), Enter and Escape, form changes, submits and navigations, each described by role and name like
-      snapshot, with up to 5 of the requests it caused underneath, each with its status as in requests (body
-      <#> for one), leaving out scripts and what requests hides. The REPL's own fill is recorded as type. A
-      double-click shows as two clicks; hovering and moving the mouse are not recorded.
+      Arguments:
+        on                  starts recording the tab's steps; after watch off, a new recording.
+        off                 stops it; anyone's watch off stops it, since a watch belongs to the tab.
+        (none) | <n>        says whether it is on, and shows the last 20 steps, or the last n.
+        new                 only the steps not shown yet, and requests that have since arrived for the last
+                            one.
+      Options (watch on):
+        --changes           also what each step changed on the page once it settled, in up to 5 lines: +
+                            added, - removed, ~ changed.
+        --live              also prints each step in the REPL window once it settles (never in a command's
+                            answer), marked [watch], or [watch <url>] for a tab that is not the selected one.
+        --next-tab [part]   returns at once, then watches the next tab someone opens, or the next whose URL
+                            contains part, from its first page, and selects it for you. tab new, a client's
+                            own, does not count.
+
+      What a step is: a click, typing (once it pauses), Enter or Escape, a form change, a submit or a
+      navigation, described by role and name as in snapshot, with up to 5 of the requests it caused under it,
+      each with its status as in requests (body <#> for one), leaving out scripts and what requests hides. The
+      REPL's own fill shows as type. A double-click shows as two clicks; hovering and moving the mouse are not
+      recorded.
+
+      Privacy: typed values are not recorded, and password fields not at all; --changes leaves out field
+      values, but what the page itself shows (e.g. "Hello <name>") is shown. Nothing is replayed.
+
+      Shared: every client sees the same steps, and watch new's place is shared.
 
       From its first watch on, a tab keeps response bodies of up to 100 KB, so body <#> still shows one after
       the tab navigates, even when the page navigates as soon as the request answers.
 
-      watch on --next-tab [url-part] returns at once, then waits for the next tab someone opens (tab new, a
-      client's own, does not count), or the next whose URL contains url-part, and watches it from its first
-      page and selects it for the client that asked: for a tab someone is about to open. It takes --changes
-      and --live too; watch off stops waiting, and modes lists it. One tab is waited for at a time: while one
-      client waits, another's watch on --next-tab is refused, and its watch off leaves the wait on.
+      --live: a step cut short by the next one, or by watch off, prints at once; changes it made then show
+      under the next step.
 
-      watch on its own says whether it is on and shows the last 20 steps; watch <n> shows the last n. watch
-      new shows only the steps it has not shown yet, and requests that have since arrived for the last one.
+      --changes: each element once, with the first names inside it. Not for navigations: what a page changes
+      on its own after a step settles (data arriving later) shows under the next step.
 
-      --live also prints each step in the REPL window (never in the server's answer to a command) once it
-      settles, with its requests and changes, marked [watch], or [watch <url>] for a tab that is not the
-      selected one. A step cut short by the next one, or by watch off, prints at once; changes it made then
-      show under the next step.
-
-      --changes also shows what each step changed on the page once it settles, in up to 5 lines: + added,
-      - removed, ~ changed, each element once with the first names inside it. Not for navigations: what a
-      page changes on its own after a step settles (data arriving later) shows under the next step.
-
-      A watch belongs to the tab, not to a client: every client sees the same steps, watch new's place is
-      shared, and anyone's watch off stops it.
-
-      Typed values are not recorded, and password fields not at all; --changes leaves out field values, but
-      what the page itself shows (e.g. "Hello <name>") is shown. Nothing is replayed.
+      --next-tab: it takes --changes and --live too; watch off stops waiting, and modes lists it. One tab is
+      waited for at a time: while one client waits, another's watch on --next-tab is refused, and its watch
+      off leaves the wait on.
 
   text [--all] <selector>                              visible text of the first match
   html [--all] <selector>                              outer HTML of the first match
   attrs [--all] <selector>                             attributes of the first match
   listeners <selector>|document|window                 the page's event listeners on an element
+      Options:
+        --all               each handler whole, as written.
+
       For the first match, one line each: the event, how it was added (capture, once, passive), the start of
-      the handler, where ↵ marks a line break, and its line in its script. --all shows each handler whole, as
-      written. Listeners added on a parent (e.g. document, for delegation) are not the element's own: check
-      listeners document too. Those Playwright adds to window as it acts are left out, and it says how many.
+      the handler, where ↵ marks a line break, and its line in its script. Listeners added on a parent (e.g.
+      document, for delegation) are not the element's own: check listeners document too. Those Playwright adds
+      to window as it acts are left out, and it says how many.
 
   count <selector>                                     number of matches
   visible <selector>                                   whether the first match is visible
   links [--all]                                        links on the page (text and href)
   inputs [--all]                                       form controls on the page; values are omitted
   screenshot [<ref>] [--full] [-d <secs>] [name]       save a PNG of the viewport, --full page or an element
-      Saved as screenshot-<name or timestamp>.png in $PW_SCREENSHOT_DIR; without it, next to the REPL's socket
-      when it serves on one of its own, or else in /tmp. --filename=<file> saves it there instead (a JPEG if
-      it ends in .jpg), relative to the folder pw-repl send runs in; it never replaces a file.
+      Arguments:
+        [<ref>]             only that element, from a snapshot ref: screenshot e5.
+        [name]              saved as screenshot-<name>.png; letters, digits, underscores and hyphens. Default:
+                            a timestamp.
+      Options:
+        --full              the whole page, not only the viewport; --full-page too.
+        -d, --delay <secs>  counts down out loud first, up to 60, so someone can hold a hover or open a menu.
+        --filename=<file>   saves it there instead (a JPEG if it ends in .jpg). Relative to the REPL's folder;
+                            through pw-repl send, the sender's. It never replaces a file.
 
-      screenshot e5 saves only that element, from a snapshot ref. --full-page is --full.
+      Where: $PW_SCREENSHOT_DIR; without it, next to the REPL's socket when it serves on one of its own, or
+      else in /tmp.
 
       It brings the tab to the front of its window first: Chrome draws only the tab in front. The image is at
       CSS pixel size, one image pixel per CSS pixel. While emulate mobile is on, it is what the phone shows: a
       page laid out wider than the phone (no viewport meta tag) comes out shrunk to fit.
 
-      --delay counts down out loud first (maximum 60s), so someone can hold a hover or open a menu.
+  highlight [<selector> [--style=<css>] | off]         draw a box over elements, for the user or a screenshot
+      Arguments:
+        <selector>          draws Playwright's highlight over every match, as playwright-cli's does: a tinted
+                            box labelled with its locator, that follows the element as the page scrolls or
+                            changes, and is in screenshots.
+        (none)              lists the selected tab's highlights.
+        off                 hides them all, as highlight --hide does.
+      Options:
+        --style=<css>       CSS added to the box, quoted if it has spaces: highlight e5 --style="outline: 3px
+                            solid blue; border-radius: 50%" circles e5 in blue.
+        --hide <selector>   hides one.
 
-  highlight [<selector> [--style=<css>] | off]         draw a box over elements, for a person or a screenshot
-      highlight <selector> draws Playwright's highlight over every match, as playwright-cli's does: a
-      tinted box, labelled with its locator, that follows the element as the page scrolls or changes, and is
-      in screenshots. --style=<css> adds CSS to the box, quoted if it has spaces; this circles e5 in blue:
-        highlight e5 --style="outline: 3px solid blue; border-radius: 50%"
-
-      highlight on its own lists the selected tab's highlights. highlight --hide <selector> hides one, and
-      highlight --hide or highlight off hides them all. A highlight is a mode of its tab: modes shows it,
-      modes off hides it, and the REPL hides every one as it stops. Loading a new page drops them; a page that
-      changes its route without loading keeps them.
+      A highlight is a mode of its tab: modes shows it, modes off hides it, and the REPL hides every one as it
+      stops. Loading a new page drops them; a page that changes its route without loading keeps them.
 
       The box is drawn over the page, in an element of Playwright's own added to it (x-pw-glass); the page's
       own elements are not changed, and clicks and typing reach them as before. Playwright always labels the
-      box, and the label can cover what is just below it. For a screenshot without one, eval can outline
-      the element itself (with border-radius: 50% for a circle). That changes the page, so put it back
-      afterwards, as it was if it had a style of its own:
+      box, and the label can cover what is just below it.
+
+      For a screenshot without the label, eval can outline the element itself (with border-radius: 50% for
+      a circle). That changes the page, so put it back afterwards, as it was if it had a style of its own:
         eval document.querySelector("#rate-3").style.outline = "3px solid blue"
         eval document.querySelector("#rate-3").style.outline = ""
 
   viewport [WxH | off]                                 show, set or unset the viewport size
-      viewport 1280x720 sets the selected tab's page to that size, until viewport off, modes off or the REPL
-      exits. The window is not resized. viewport on its own shows the size, and whether it was set or is the
-      window's. emulate mobile sets a phone's size instead, and each refuses while the other is on.
+      Arguments:
+        <W>x<H>             sets the selected tab's page to that size, until viewport off, modes off or the
+                            REPL exits. The window is not resized.
+        off                 back to the window's size.
+        (none)              shows the size, and whether it was set or is the window's.
+
+      emulate mobile sets a phone's size instead, and each refuses while the other is on.
 
   emulate [<what> [off] | off]                         emulate a phone, dark mode, a locale or a timezone
-      emulate mobile [device]  a phone's screen, touch and user agent: a Pixel 7, or a device named as in
-                               Playwright's list, e.g. emulate mobile iPhone 13; a name that is not
-                               exact lists the devices it matches (emulate mobile galaxy)
-      emulate dark | light     the color scheme the page's CSS and matchMedia see
-      emulate locale <tag>     the language (Accept-Language, navigator.language) and date and number
-                               formats, e.g. fr-FR
-      emulate timezone <zone>  an IANA timezone, e.g. Asia/Tokyo
-      emulate <what> off       stop one (dark or light off stops the color scheme); emulate off stops all
+      Arguments:
+        mobile [device]     a phone's screen, touch and user agent: a Pixel 7, or a device named as in
+                            Playwright's list, e.g. emulate mobile iPhone 13. A name that is not exact lists
+                            the devices it matches (emulate mobile galaxy).
+        dark | light        the color scheme the page's CSS and matchMedia see.
+        locale <tag>        the language (Accept-Language, navigator.language) and date and number formats,
+                            e.g. fr-FR.
+        timezone <zone>     an IANA timezone, e.g. Asia/Tokyo.
+        <what> off          stops one (dark or light off stops the color scheme).
+        off                 stops all.
+        (none)              shows what is on.
 
       Per tab, until turned off or the REPL exits; emulate mobile <device> while another is on switches to it.
-      emulate on its own shows what is on.
+      While mobile is on, viewport refuses: the device sets the size.
 
       The page sees the user agent, touch and navigator.languages from its next load: reload after turning
       mobile or locale on or off. Touch means the page sees a touch screen; click still clicks with the mouse,
       and sends no touch events. Dark, light and timezone apply at once, but what the page already drew with
       them (times, colors set by its script) changes only when it reloads.
 
-      While mobile is on, viewport refuses: the device sets the size.
-
   wait [text|request] <what> [--gone] [secs]           wait for an element, text, a response or a load (10s)
-      wait <selector> waits for a matching element to be visible, and wait text <text> for text to be; wait
-      request <url-part|glob> waits for a matching response, counting one that finished since the previous
-      command began, or is still under way (so click, then wait request, does not miss it).
+      Arguments:
+        <selector>          for a matching element to be visible.
+        text <text>         for text to be visible: any part of an element's text, any case.
+        request <part>      for a matching response (a URL part or a glob), counting one that finished since
+                            the previous command began, or is still under way: click, then wait request, does
+                            not miss it.
+        load                for the page to finish loading (its load event), counting a navigation that began
+                            since the previous command began: click a link, then wait load.
+        [secs]              how long, up to 120. Default: 10.
+      Options:
+        --gone              until nothing matching is visible (removed or hidden): wait .spinner --gone. Done
+                            at once if nothing matches yet, so wait for it to appear first if it may not have.
 
-      wait load waits for the page to finish loading (its load event). A navigation that began since the
-      previous command began counts, so click a link, then wait load, waits for the new page. A page that
-      changes its own URL without loading (an app's own routing) is not a load: wait for something on the new
-      view instead.
-
-      wait text matches any part of an element's text, in any case.
-
-      --gone waits instead until nothing matching is visible (removed or hidden): wait .spinner --gone. It is
-      done at once if nothing matches yet, so wait for it to appear first if it may not have.
-
-      Up to 120s. A wait that times out is an error; the REPL carries on.
+      A page that changes its own URL without loading (an app's own routing) is not a load: wait for something
+      on the new view instead. A wait that times out is an error; the REPL carries on.
 
   sleep <ms>                                           wait a fixed time, in milliseconds (maximum 3600000)
+      While recording, each action is already followed by a pause (help record): a sleep adds to it.
 
 == video ==
 A video of what you do in a tab, for someone to watch:
@@ -318,194 +375,226 @@ x11grab, macOS screencapture -v): ask first. playwright-cli itself is a separate
 clean browser of its own (here, its video-start is record on).
 
   record [on [file] [seconds] [options] | off [file]]  record the selected tab's page to a video
-      record on starts recording the selected tab, and record off stops it and saves the file: its path,
-      length, size and bytes. record on its own, or record off when nothing is recording, says whether the
-      selected tab is recording, and how your last recording ended (record off, its seconds, its tab closing
-      or the REPL stopping) with what record off would have said. tab close says what became of a recording it
-      ended. A REPL stopped with pw-repl stop cannot be asked: stop prints what became of each recording it
-      ended, and of one that ended by itself that record has not shown since.
+      Arguments:
+        on | off            on starts recording the selected tab; off stops it, saves the file and says its
+                            path, length, size and bytes. Neither: says whether it is recording, and how your
+                            last recording ended.
+        [file]              clip.webm or clip.mp4; its ending picks the format. Relative to the REPL's folder;
+                            through pw-repl send, the sender's. Default: recording-<timestamp>.webm where
+                            screenshot saves. On record off: saves it under that name instead.
+        [seconds]           stops by itself after them, 1 to 3600. Default: 3600.
+      Options (record on):
+        --steps             also save clip.steps.txt next to clip.webm: when and where each command ran
+                            (Steps, below). Default: off.
+        --pause=<ms>        a pause after each action, so the viewer sees what it did. Default: 750; 0 none.
+        --lead=<ms>         still page recorded before record on returns. Default: 1000; counts toward the
+                            seconds.
+        --tail=<ms>         still page recorded after record off, before it stops. Default: 1000; none when it
+                            stops at its seconds.
+        --filename=<file>   the file, as playwright-cli writes it.
 
-      record off <file> saves it under that name instead. The format is set by record on: a name that does not
-      end as its file does, or cannot be used, is refused, and it goes on recording. --filename=<file> is file
-      too, as playwright-cli writes it.
+      What it records: the page only, from inside the browser, at the viewport's size in CSS pixels (set it
+      first: viewport 1280x720 fills a 16:9 player), with no pointer (cursor on draws one) and no toolbars. A
+      hidden, background or headless tab keeps recording. It brings the tab to the front first, as screenshot
+      does. The file is owner-only, as a screenshot is, and never replaces one. One recording per tab; another
+      client with the tab selected can stop it, and both are told whose it was.
 
-      The file's ending picks the format: record on clip.mp4 records an MP4, and record on clip.webm, or
-      record on with no file, a WebM (there is no --mp4 or --webm). The file is absolute or relative to the
-      folder pw-repl send runs in, quoted if it has spaces, and owner-only, as a screenshot is; it never
-      replaces a file. Without one, it is recording-<timestamp>.webm where screenshot saves. With seconds, it
-      stops by itself after them (at most 3600, which is also the default); commands run meanwhile. One
-      recording per tab. Another client with the tab selected can stop it too, as it can any mode; both are
-      then told whose it was.
+      While recording: type types at a pace the video can show (help type), mousewheel scrolls in eased steps,
+      an element out of view is scrolled to smoothly, each action is followed by --pause, and with the cursor
+      on it rests 300ms on the element before acting. fill still sets a value at once: use type for text the
+      viewer should see typed. Send the take as a file of commands (pw-repl send --file take.txt), or the time
+      between commands is in the video. help video has the whole way through.
 
-      It brings the tab to the front of its window first, as screenshot does. It records the page only, from
-      inside the browser, at the viewport's size in CSS pixels, scrollbars included, made even (an odd width
-      or height loses a pixel), a phone's too under emulate mobile: a Pixel 7's is 412 wide, less sharp than
-      the phone draws it. It has no pointer (cursor on draws one) and no browser toolbars, and a tab behind
-      another, hidden or headless keeps recording. Set the size first with viewport (1280x720 fills a 16:9
-      player); a page that changes size while recording is fitted into the first size. Chrome sends a frame as
-      the page draws, and a still page keeps its real length. Under viewport or emulate, a page the tab loads
-      while recording holds the last frame until the new page's HTML is in, and is then recorded at the
-      viewport's size.
+      Steps (--steps): one line per command run on the tab while it recorded: when it began and ended, in
+      seconds into the video, and the element or point it acted on, in the video's pixels. Use it to find a
+      moment in the video ("at 0:12 it clicked Save"), to add captions or cuts in an editor, or to check what
+      ran. It names the command and what it acted on, never what it typed or chose, the code it ran or a URL.
+      A (page) line marks each new page, loaded or routed to by a single-page app. It is renamed with the
+      video.
 
-      While a tab records, each command that acts on the page (click, fill, type, select, mousemove and the
-      like) is followed by a pause, 750ms or --pause=<ms>, so the viewer sees what it did; with the cursor on,
-      it also rests 300ms on the element before acting. record on returns after 1s of the still page, or
-      --lead=<ms>, and record off records 1s more before stopping, or --tail=<ms>, so the video neither starts
-      nor ends on an action; the lead counts toward the seconds, and stopping at the seconds has no tail. 0
-      turns any of them off. Commands sent one by one leave the time spent between them in the video: work out
-      the selectors first, then send the take as a file of commands: pw-repl send --file take.txt (pw-repl
-      help, outside the REPL, has the rest).
+      ffmpeg: $PW_FFMPEG, and only it when it is set (the REPL's, not send's); otherwise Playwright's own (npx
+      playwright-core install ffmpeg, in $PLAYWRIGHT_BROWSERS_PATH or ~/.cache/ms-playwright), then one on the
+      PATH. Playwright's writes only WebM; an MP4 needs a system ffmpeg with H.264. Without one that can write
+      the format, record on fails at once, recording nothing. WebM plays in browsers, GitHub, GitLab and
+      Slack; MP4 everywhere. About 15 MB a minute.
 
-      While a tab records, type sends keys at a pace the video can show (help type), and mousewheel scrolls in
-      small eased steps over up to 1s rather than at once; an element a command acts on that is out of view is
-      scrolled to smoothly, to the middle, rather than jumped to; fill still sets the whole value at once, so
-      use type for text the video should show being typed. With --steps, record off also saves the steps next
-      to the video, as clip.steps.txt for clip.webm (renamed with it): one line for each command run on the
-      tab while it recorded, with when it began and ended in seconds into the video, the element or point it
-      acted on in the video's pixels, and the command with what it acts on, never what it types or chooses,
-      the code it runs or the URL it goes to. A (page) line marks each new page, loaded or routed to by a
-      single-page app. They are for editing the video afterwards, such as zooming in on a step. After the page
-      changes size, the steps leave out where they acted.
+      An ffmpeg that exits mid-recording ends the recording then; the pane says what was saved, and the next
+      record off fails with it. ffmpeg writes in blocks, so what it has not written yet is lost: the last
+      seconds, or at first all of it.
 
-      It needs ffmpeg: $PW_FFMPEG, and only it when it is set (the REPL's, not send's); otherwise Playwright's
-      own (npx playwright-core install ffmpeg, in $PLAYWRIGHT_BROWSERS_PATH or ~/.cache/ms-playwright), then
-      one on the PATH. Playwright's writes only WebM; an .mp4 needs a system ffmpeg, with H.264. record on
-      fails at once, recording nothing, without an ffmpeg that can write its format. If ffmpeg exits while
-      recording, the recording ends then, the pane says what was saved, and the next record off fails with it.
-      ffmpeg writes in blocks, so what it has not written yet is lost: the last seconds, or at first all of
-      it. WebM plays in browsers, GitHub, GitLab and Slack; MP4 plays everywhere. It takes about 15 MB a
-      minute.
+      A page that changes size while recording is fitted into the first size, and the steps after it leave out
+      where they acted. Under viewport or emulate, a page the tab loads while recording holds the last frame
+      until the new page's HTML is in, and is then recorded at the viewport's size. Chrome sends a frame as
+      the page draws, and a still page keeps its real length. The size is made even (an odd width or height
+      loses a pixel), scrollbars included; a phone's under emulate mobile is its CSS size: a Pixel 7's is 412
+      wide, less sharp than the phone draws it.
 
-      help video puts it together: the take, the pointer and the pacing.
+      How it ended: record on its own, or record off when nothing is recording, says how your last recording
+      ended (record off, its seconds, its tab closing or the REPL stopping) with what record off would have
+      said. tab close says what became of a recording it ended. A REPL stopped with pw-repl stop cannot be
+      asked: stop prints what became of each recording it ended, and of one that ended by itself that record
+      has not shown since.
+
+      A name given to record off that does not end as its file does, or cannot be used, is refused, and it
+      goes on recording. There is no --mp4 or --webm: the file's ending picks the format.
 
   cursor [on [<selector> | <x> <y>] | off]             draw a pointer where the REPL acts, for videos
+      Arguments:
+        on                  fades it in where the mouse last went, or the middle.
+        on <selector>       fades it in on the element (a video's first, say), scrolled into view; when it is
+                            on already, glides it there.
+        on <x> <y>          the same, at a point in the viewport.
+        off                 fades it out.
+        (none)              says whether it is on, and where.
+
       The REPL's clicks and typing don't move a pointer on screen, so a recording shows things happening with
-      nothing pointing at them. cursor on draws a pointer in the selected tab. After that, these commands move
-      it smoothly to their element or point before they act: click, dblclick, hover, fill, type <selector>,
-      press <selector>, select, check, uncheck, upload and mousemove. Each move takes 150 to 600ms, depending
-      on the distance (300 to 1000ms while the tab is recording), and the command waits for it. Clicks (click,
-      dblclick, check, uncheck, mousedown, and upload when it clicks a button) show a ring where they land.
+      nothing pointing at them. With the cursor on, these commands move it smoothly to their element or point
+      before they act: click, dblclick, hover, fill, type <selector>, press <selector>, select, check,
+      uncheck, upload and mousemove. Each move takes 150 to 600ms by distance (300 to 1000ms while the tab
+      records), and the command waits for it. Clicks (click, dblclick, check, uncheck, mousedown, and upload
+      when it clicks a button) show a ring where they land.
 
-      It shows only the REPL's input, from every client, never the user's own mouse. Only the drawing moves:
-      no mouse events are sent along the way, so the page gets the same input as with the cursor off. fill,
-      select and the like move the drawing to their element but leave the real mouse where it was; mousedown,
-      mouseup and mousewheel act at the real mouse, so the pointer moves back there first.
+      Only the drawing moves: no mouse events are sent along the way, so the page gets the same input as with
+      the cursor off. It shows only the REPL's input, from every client, never the user's own mouse. fill,
+      select and the like move the drawing but leave the real mouse where it was; mousedown, mouseup and
+      mousewheel act at the real mouse, so the pointer moves back there first.
 
-      cursor on fades it in where the mouse last went (or the middle), cursor on <selector> or <x> <y> fades
-      it in there instead (a video's first element, say, scrolled into view), and, when it is on already,
-      glides it there without moving the real mouse. cursor off fades it out, and cursor alone says whether it
-      is on and where. It is a mode of its tab: modes lists it and modes off turns it off. It stays on across
-      page loads, at the same spot, and shows in screenshots and recordings. Selectors, snapshot and text
-      don't see it, it takes no clicks, and it points at elements inside frames too.
+      It is a mode of its tab: modes lists it and modes off turns it off. It stays on across page loads, at
+      the same spot, and shows in screenshots and recordings. Selectors, snapshot and text don't see it, it
+      takes no clicks, and it points at elements inside frames too.
 
 == network ==
 requests and console record all the time; a capture records only while it runs.
 
   requests [--all] [n] [url-filter]           the selected tab's last n requests (default 20)
-      Recording starts when the REPL connects, and a tab opened since is recorded from its first page (one a
-      link opens included); the last 200 per tab are kept, of every kind the page requests (not the browser's
-      own, such as the favicon). Each line: #number, time, method, status (HTTP code, pending, no response,
-      failed: <reason>, <code>, then failed: <reason> when its body was cut off, or <code> faked), duration,
-      kind (document, fetch, xhr, script, image, ...), URL. A request that finished a moment ago can still
-      show pending.
+      Arguments:
+        [n]                 how many of the latest to show. Default: 20. When more match, a first line says
+                            so: (last 20 of 112 kept; requests 112 shows them all).
+        [url-filter]        a part of the URL: requests 20 /api/ shows API calls only.
+      Options:
+        --all               also images, fonts, stylesheets, media and extension requests, hidden otherwise.
+        --regex <pattern>   at the end: matches URLs by a regular expression instead.
 
-      n is how many of the latest to show (default 20). When more match, a first line says so: (last 20 of 112
-      kept; requests 112 shows them all). A page often makes more than 20 in one load. A line "--- the page
-      loads <url>" marks where each page load starts, even when a filter hides that request.
+      Each line: #number, time, method, status (HTTP code, pending, no response, failed: <reason>, <code> then
+      failed: <reason> when its body was cut off, or <code> faked), duration, kind (document, fetch, xhr,
+      script, image, ...), URL. A line "--- the page loads <url>" marks where each page load starts, even when
+      a filter hides that request. body <#> shows what a request got back.
 
-      body <#> shows what a request got back.
-
-      Images, fonts, stylesheets, media and extension requests are hidden unless --all is given.
-
-      url-filter is a substring: requests 20 /api/ shows API calls only, e.g. when dev-server scripts crowd
-      the list. --regex <pattern>, at the end, matches URLs by a regular expression instead.
+      Kept: from when the REPL connects, and a tab opened since from its first page (one a link opens
+      included); the last 200 per tab, of every kind the page requests (not the browser's own, such as the
+      favicon). A page often makes more than 20 in one load. One that finished a moment ago can still show
+      pending.
 
   body [--all] <#>|<url-part>                 the response body of request <#>, or of the latest one matching
-      body <url-part> shows the latest finished request whose URL contains url-part (body slots.json).
+      Arguments:
+        <#>                 a request's number, from requests.
+        <url-part>          the latest finished request whose URL contains it: body slots.json.
+      Options:
+        --all               the whole body, not capped.
 
-      Read from the browser on demand: JSON is pretty-printed, binary is not shown, output is capped. The
-      browser may drop a body (e.g. after the tab navigates); then body reports not available, unless a watch
-      kept it (help watch).
-
-      Bodies can contain sensitive data.
+      Read from the browser on demand: JSON is pretty-printed, binary is not shown. The browser may drop a
+      body (e.g. after the tab navigates); then body reports not available, unless a watch kept it (help
+      watch). Bodies can contain sensitive data.
 
   console [--all] [n] [level|filter]          the last n console messages and page errors
-      Recording starts when the REPL connects; the last 200 per tab are kept. Each line: time, [type], text.
-      Types are console levels (log, warning, error, ...) and pageerror for uncaught exceptions. A "--- the
-      page loaded <url>" line marks each load after the first message shown.
+      Arguments:
+        [n]                 how many of the latest to show. Default: 20; when more match, a first line says
+                            so.
+        [level]             error, warning, info or debug: that level and those above it. console warning
+                            shows warnings and errors, page errors among them. info, which leaves out debug,
+                            is playwright-cli's default.
+        [filter]            anything else: matches part of the type or the text.
+      Options:
+        --all               each message whole, not capped.
 
-      A level (error, warning, info, debug) shows that level and those above it: console warning shows
-      warnings and errors, page errors among them. info, which leaves out debug, is what playwright-cli shows
-      by default. Anything else is a filter, matching part of the type or the text.
-
-      n is how many of the latest to show (default 20); when more match, a first line says so.
+      Each line: time, [type], text. Types are console levels (log, warning, error, ...) and pageerror for
+      uncaught exceptions. A "--- the page loaded <url>" line marks each load after the first message shown.
+      Kept from when the REPL connects; the last 200 per tab.
 
       A page brought back from the back/forward cache (back, forward) reports its earlier messages again, at
       the time it comes back, though nothing loaded again.
 
   capture on [requests|console] [secs] | off  record requests and console together, in time order
-      capture on records both until capture off, which prints them; requests or console records only one. With
-      secs (1-3600 seconds) it records that long, then prints. Other commands wait until a timed capture ends,
-      so it suits recording what someone does in the browser; around your own commands, use capture on and
-      capture off.
+      Arguments:
+        on                  records both until capture off, which prints them.
+        requests | console  records only one.
+        [secs]              records that long (1 to 3600), then prints. Other commands wait until it ends.
+        (none)              says whether one is running, or shows the last one.
 
-      One capture runs at a time, on the tab selected when it started. Unlike requests and console it keeps
-      more than the last 200 and lists both together.
-
-      capture on its own says whether one is running, or shows the last one.
+      A timed capture suits recording what someone does in the browser; around your own commands, use capture
+      on and capture off. One runs at a time, on the tab selected when it started. Unlike requests and console
+      it keeps more than the last 200, and lists both together.
 
   route <glob> <how> | off <glob>|--all       fake, patch, delay or fail the selected tab's matching requests
-      route <glob> <status> <json>  answer with this status (200-599) and JSON, or no body; it never
-                                    reaches the network, so it still answers while the network is off.
-                                    The body is the rest of the line. Another kind needs its type:
-                                    route <glob> 200 --content-type=text/plain hello
-      route <glob> patch <json>     let it through, then change its JSON response: a JSON Merge Patch, where
-                                    objects merge, null removes a key and anything else replaces; a
-                                    patch that is not an object (an array) replaces the whole body
-      route <glob> delay <secs>     hold it for up to 120 seconds, then let it through
-      route <glob> abort            fail it as if the connection broke
+      Arguments:
+        <glob> <status> <json>
+                            answers with this status (200-599) and JSON (the rest of the line), or no body. It
+                            never reaches the network, so it still answers while the network is off.
+        <glob> patch <json>
+                            lets it through, then changes its JSON response: a JSON Merge Patch, where objects
+                            merge, null removes a key and anything else replaces; one that is not an object
+                            (an array) replaces the whole body.
+        <glob> delay <secs>
+                            holds it for up to 120 seconds, then lets it through.
+        <glob> abort        fails it as if the connection broke.
+        off <glob> | --all  removes one route, or all.
+        (none)              lists the selected tab's routes.
+      Options:
+        --content-type=<t>  the type of a body that is not JSON: route <glob> 200 --content-type=text/plain
+                            hello.
 
-      Each matching request prints a line (Faked:, Patched:, Delayed:, Aborted:) in the REPL window, and in
-      the answer to a command running then if that command's client has the tab selected, with its number as
-      in requests (one the page makes after reload or a click has answered shows only in the window: wait
-      request <glob> waits for it); requests shows a fake as <status> faked and a patch as <status> patched.
-      If a route fails it prints "Route failed" and aborts the request.
+      Each matching request prints a line (Faked:, Patched:, Delayed:, Aborted:) with its number as in
+      requests: in the REPL window, and in the answer to a command running then if that command's client has
+      the tab selected. One the page makes after reload or a click has answered shows only in the window (wait
+      request <glob> waits for it). requests shows a fake as <status> faked and a patch as <status> patched. A
+      route that fails prints "Route failed" and aborts the request.
 
-      Routes belong to the tab and last until route off <glob> (or route off --all) or the REPL exits. Routing
-      the same glob again replaces it. route on its own lists the selected tab's routes. A glob may be quoted.
-
-      Example: route **/api/cart patch {"total": 0}
+      Routes belong to the tab and last until route off or the REPL exits. Routing the same glob again
+      replaces it. A glob may be quoted. Example: route **/api/cart patch {"total": 0}
 
   network [on|off|slow [<ms> [<kbps>]]]       cut, slow or restore the tab's network
-      network off cuts it, like dropped wifi. Stopping a service is not the same: a dev proxy in front of it
-      usually holds the request open, so the page spins instead of failing.
+      Arguments:
+        off                 cuts it, like dropped wifi.
+        slow [<ms> [<kbps>]]
+                            each request takes at least <ms> (a minimum, not added to a slow server's own
+                            time), at <kbps> both ways. Default: DevTools' Slow 4G: 563ms, 1440 kbps down, 675
+                            up.
+        on                  restores it.
 
-      network slow makes each request take at least <ms> (Chrome's latency is a minimum, not added to a slow
-      server's own time) and limits its speed: by default as DevTools' Slow 4G (563ms, 1440 kbps down, 675
-      up); network slow <ms> [<kbps>] sets them, kbps both ways (left out, it stays Slow 4G's). To slow one
-      API, use route <glob> delay <secs>.
-
-      Per tab; lasts until network on or the REPL exits. Routes still answer while it is off or slow.
+      Per tab; lasts until network on or the REPL exits. Routes still answer while it is off or slow. To slow
+      one API, use route <glob> delay <secs>. Stopping a service is not the same as network off: a dev proxy
+      in front of it usually holds the request open, so the page spins instead of failing.
 
 == devtools ==
 Cookie and storage listings omit values. eval, cdp, html, screenshots, recordings and URLs can still
 show sensitive data (cdp Network.getCookies shows cookie values).
 
   eval [--all] <JavaScript>           evaluate JavaScript in the selected tab and print the result
-      Promises are awaited, await works at the top level, and a function (() => document.title) is called.
-      eval <function> <ref> calls it with that element: eval "el => el.textContent" e5.
+      Arguments:
+        <JavaScript>        the rest of the line. Promises are awaited, await works at the top level, and a
+                            function (() => document.title) is called.
+        <function> <ref>    calls it with that element: eval "el => el.textContent" e5.
+      Options:
+        --all               the whole result, not capped.
 
       eval fetch(...) sends a new request, which can change state on the server; it cannot read one that
       already happened (requests lists those).
 
   cdp [--all] <method> <JSON object>  send one CDP command through a temporary session
-      The session is detached afterwards, so subscriptions and settings do not persist.
+      Arguments:
+        <method>            a CDP method: Network.getCookies.
+        <JSON object>       its parameters: {} for none.
+      Options:
+        --all               the whole result, not capped.
 
-      Browser.close and Target.closeTarget are refused, and so is Page.handleJavaScriptDialog: dialog answers
-      one.
+      The session is detached afterwards, so subscriptions and settings do not persist. Browser.close and
+      Target.closeTarget are refused, and so is Page.handleJavaScriptDialog: dialog answers one.
 
   cookies [--all]                     cookie names, domains and flags; values are omitted
+      --all lists every cookie, not capped. cdp Network.getCookies {} shows the values.
+
   storage [--all]                     localStorage keys; values are omitted
+      --all lists every key, not capped. eval localStorage.getItem("<key>") shows a value.
 
 == session ==
 Completion: @<id> <command> makes the REPL print [[pw-done:<id>:ok|error]] when it finishes.
@@ -532,26 +621,41 @@ Dialogs are reported and never answered on their own; dialog accept or dismiss a
 client, whoever opened it.
 
   modes [off [--mine]]              the modes on in every tab; modes off turns them all off
-      The modes are watch, network off or slow, route, capture, record, emulate, viewport, highlight and
-      cursor. Each is turned on and off with its own command: watch on|off, network off|slow|on, route <glob>
+      Arguments:
+        (none)              lists the modes on in every tab, and with clients (help session), which client
+                            turned each on.
+        off                 turns off every one in every tab; a capture it stops is kept for capture to show,
+                            and a recording it stops is saved, as record off would.
+      Options:
+        --mine              after off: only the sender's own.
+
+      The modes, each turned on and off with its own command: watch on|off, network off|slow|on, route <glob>
       ... | route off <glob>|--all, capture on|off, record on|off, emulate ... | emulate off, viewport <WxH> |
       viewport off, highlight <selector> | highlight off, cursor on|off.
 
-      modes off turns off every one in every tab; a capture it stops is kept for capture to show, and a
-      recording it stops is saved, as record off would. With clients (help session), modes says which client
-      turned each on, and modes off --mine turns off only the sender's own.
-
   dialog [accept [text] | dismiss]  show, accept or dismiss an open alert, confirm or prompt
+      Arguments:
+        (none)              lists the open dialogs; * marks the selected tab's.
+        accept [text]       answers OK: text answers a prompt, and accept alone keeps its default, as OK in
+                            the browser does.
+        dismiss             answers Cancel.
+
+      It answers the selected tab's dialog, or the only one open, and runs at once, ahead of other commands.
       While a dialog is open, its page and the commands that read it wait, a click that opened it included,
       until it is answered. Commands run one at a time, so every client's commands behind that one wait too,
-      in any tab: in a shared REPL, answer a dialog you open. dialog runs at once, ahead of them; it answers
-      the selected tab's dialog (marked *), or the only one open. accept text answers a prompt, and accept
-      alone keeps its default, as OK in the browser does.
+      in any tab: in a shared REPL, answer a dialog you open.
 
-      An agent can answer any dialog, one it opened included; one the person answers in the browser is gone
-      from dialog then. cdp cannot answer one: Chrome lets only a session that saw it open do so. With nobody
-      at the browser (e.g. headless), it is the only way to answer one.
+      An agent can answer any dialog, one it opened included; one the user answers in the browser is gone from
+      dialog then. cdp cannot answer one: Chrome lets only a session that saw it open do so. With nobody at
+      the browser (e.g. headless), it is the only way to answer one.
 
   help [topic | command | --all]    this help; --all prints every topic and command in full
+      Arguments:
+        (none)              what this is, and the topics.
+        <topic>             the topic, and one line per command in it.
+        <command>           its usage, arguments, options and what most need to know.
+        <command> --all     all of it, with what only goes wrong now and then.
+        --all               every topic and command in full.
+
   quit                              disconnect, leaving Chromium running (one --launch started stops too)
       Runs immediately, even while another command is waiting. Only available at the prompt.

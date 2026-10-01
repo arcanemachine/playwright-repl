@@ -237,7 +237,7 @@ exit 1
     assert.match(await ok(`record on ${dir}/lost.webm --pause=0 --lead=0 --tail=0`), /^Recording the selected tab/);
     fs.writeFileSync(`${dir}/fail`, '');
     await waitFor(async () => /not being recorded/.test(await ok('record')), 'the recording to end');
-    assert.match(await ok('record'), /Your last recording, ended at \S+: ffmpeg exited while recording, which ended it\. Nothing was saved: ffmpeg wrote no video \(\d+ frames sent; it exited with 1: fake ffmpeg: failed\)\.$/);
+    assert.match(await ok('record'), /Your last recording, ended at \S+: ffmpeg exited while recording, which ended it \(help record --all\)\. Nothing was saved: ffmpeg wrote no video \(\d+ frames sent; it exited with 1: fake ffmpeg: failed\)\.$/);
     assert.ok(!fs.existsSync(`${dir}/lost.webm`));
     const off = await repl.run('record off');
     assert.equal(off.status, 'error', 'record off fails with it');
@@ -251,7 +251,7 @@ exit 1
     await waitFor(async () => /not being recorded/.test(await ok('record')), 'the recording to end');
     const cut = await repl.run('record off');
     assert.equal(cut.status, 'error', cut.output);
-    assert.match(cut.output, /ffmpeg exited while recording, which ended it\. Saved: \S+cut\.webm \(\d+x\d+, 1 KB\)\nffmpeg exited with 1 \(fake ffmpeg: failed\), so the file holds only what it had written, short of the [\d.]+s recorded/);
+    assert.match(cut.output, /ffmpeg exited while recording, which ended it \(help record --all\)\. Saved: \S+cut\.webm \(\d+x\d+, 1 KB\)\nffmpeg exited with 1 \(fake ffmpeg: failed\), so the file holds only what it had written, short of the [\d.]+s recorded/);
     assert.ok(fs.existsSync(`${dir}/cut.webm`));
   });
 });

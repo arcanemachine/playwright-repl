@@ -1115,7 +1115,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await ok('viewport 320x200');
       await waitFor(async () => /changed size at/.test(await ok('record')), 'a frame of the new size');
       const saved = await ok('record off');
-      const [, seconds] = /^Saved: \S+clip\.webm \((\d+\.\d)s, 640x360, \d+ KB\)\nthe page changed size at \d+\.\ds and was fitted into the first size$/.exec(saved) || [];
+      const [, seconds] = /^Saved: \S+clip\.webm \((\d+\.\d)s, 640x360, \d+ KB\)\nthe page changed size at \d+\.\ds and was fitted into the first size \(help record --all\)$/.exec(saved) || [];
       assert.ok(seconds, saved);
       // The video's own length and size, as ffmpeg reads them back: the same as reported, to a frame.
       const probe = require('child_process').spawnSync(FFMPEG, ['-hide_banner', '-i', file], { encoding: 'utf8' }).stderr;

@@ -41,9 +41,14 @@ If you hit a limitation or write a workaround, consider adding the capability to
   command or behaviour. In `test/repl.test.js` each test starts in a fresh tab of its own, and every mode
   is turned off after it; a test whose REPL quits, times out or is killed goes in
   `test/repl-alone.test.js`, with a Chromium of its own.
-- Help entries (`lib/help.js`) are plain paragraphs: `wrap()` lays each out at 104 columns, and keeps as
-  written a paragraph with a bullet, a table or an indented example. `test/fixtures` holds the rendered
-  help; after an intended change to it, save it again (the command is in `test/units.test.js`).
+- A command's help (`lib/help.js`) follows playwright-cli's layout: `usage` and `summary`; `args` and
+  `options`, one `[name, text]` each, with the default in its text (`Default: 750; 0 none.`); `detail`,
+  short paragraphs on what most callers need, a paragraph on one theme starting with a label (`Steps
+  (--steps):`); and `more`, with `moreAbout` naming what is in it, for what only goes wrong now and then,
+  shown by `help <command> --all` and `help --all`. An error about something in `more` ends by naming it
+  (`help record --all`). Paragraphs are plain: `wrap()` lays each out at 104 columns, and keeps as written
+  a paragraph with a bullet, a table or an indented example. `test/fixtures` holds the rendered help;
+  after an intended change to it, save it again (the command is in `test/units.test.js`).
 - Time each full run, and put the result in the body of the commit it tests (`npm test: 151 tests, 79s`).
   Compare with the last commit that has one (`git log --grep='npm test:'`): a run that grew by more than
   a few seconds means a slow test crept in, usually one waiting out a real timeout (5s for a click).

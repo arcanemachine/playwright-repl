@@ -56,8 +56,8 @@ In a tmux session named playwright-repl, pw-repl send reaches pw-repl run withou
 
 const REPL_HELP = `The REPL's own commands: help at the pw> prompt, or pw-repl send help here (no REPL needed).
 
-pw-repl help <topic | command | --all> shows one part of it; pw-repl help video and pw-repl help
-playwright-cli are guides.`;
+pw-repl help <topic | command [--all] | --all> shows one part of it; pw-repl help video and pw-repl
+help playwright-cli are guides.`;
 
 function usage() {
   console.error(USAGE);
