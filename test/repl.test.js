@@ -1053,6 +1053,31 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('scrolls smoothly to an element out of view while recording, and notes where it settled', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
+    const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-scroll-'));
+    try {
+      await ok('eval document.body.style.height = "4000px"; const b = document.createElement("button"); b.id = "far"; b.textContent = "Far"; b.style.cssText = "position:absolute;top:2500px;left:40px"; document.body.append(b); scrollTo(0, 0)');
+      // Every place the page scrolled through, as it went: one for a jump, many for a smooth scroll.
+      await ok('eval window.ys = []; addEventListener("scroll", () => ys.push(scrollY))');
+      await ok(`record on ${dir}/clip.webm --steps`);
+      await ok('click #far');
+      // A jump goes straight to the end; a smooth scroll passes somewhere between, however few frames it draws.
+      assert.equal(await ok('eval ys.some(y => y > 0 && y < ys[ys.length - 1])'), 'true', `scrolled through ${await ok('eval ys.join(" ")')}`);
+      const rect = 'eval (r => [r.x, r.y, r.width, r.height].map(Math.round).join(" "))(document.querySelector("#far").getBoundingClientRect())';
+      const box = await ok(rect);
+      assert.equal(await ok('eval (r => Math.abs(r.y + r.height / 2 - innerHeight / 2) <= 1)(document.querySelector("#far").getBoundingClientRect())'), 'true', 'in the middle');
+      // In view already: no scroll.
+      await ok('eval ys.length = 0');
+      await ok('click #far');
+      assert.equal(await ok('eval ys.length'), '0');
+      await ok('record off');
+      const steps = fs.readFileSync(`${dir}/clip.steps.txt`, 'utf8').trim().split('\n').filter(l => / click #far$/.test(l));
+      assert.equal(steps[0].split(' ').slice(2, 6).join(' '), box, 'where it settled');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('records the page to a video of its size and its real length, and fits a size change into it', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
     const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-record-'));
     const file = require('path').join(dir, 'clip.webm');
