@@ -1774,6 +1774,12 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('cursor on #go'), /^The cursor is on, at \d+, \d+: /);
     const at = await ok('eval (r => Math.round(r.x + r.width / 2) + "," + Math.round(r.y + r.height / 2))(document.querySelector("#go").getBoundingClientRect())');
     assert.equal(await ok(drawn), `true ${at}`);
+    // On already: asked for a place, it glides there, and the page gets no mouse events.
+    assert.match(await ok('cursor on'), /^The cursor is already on in the selected tab, at \d+, \d+; /);
+    await ok('eval window.moves = 0; addEventListener("mousemove", () => moves++)');
+    assert.equal(await ok('cursor on 50 60'), 'The cursor moved to 50, 60');
+    await waitFor(async () => await ok(drawn) === 'true 50,60', 'the cursor at its new place');
+    assert.equal(await ok('eval moves'), '0');
     assert.equal(await ok('cursor off'), 'The cursor is off');
     await ok('cursor on');
     assert.equal(await ok('cursor off'), 'The cursor is off');
