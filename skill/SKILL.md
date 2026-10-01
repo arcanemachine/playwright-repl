@@ -114,6 +114,10 @@ spaces and all: `pw-repl send click "text=Your name"`. It works however the REPL
 `pw-repl where` says which one a command would reach (the server, or the tmux pane running the
 REPL), or why neither is reachable, without running anything.
 
+`send --file take.txt` runs a file of commands, one per line, as typed at the prompt (no shell quoting;
+files relative to your folder, as on `send`'s command line; `#` comments), and stops at the first that fails, saying which line.
+It is the way to record a video without gaps (`help record`), and to keep a repro to run again.
+
 `send` takes one command; chain several in your shell. Use `&&` when a step only makes sense if the one
 before it worked: it stops at any exit status but 0, a failure and an outcome not confirmed included.
 Use `;` when the steps do not depend on each other. `-t` is each command's own limit. Write each

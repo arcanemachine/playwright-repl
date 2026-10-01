@@ -116,6 +116,24 @@ describe('pw-repl send help', () => {
       assert.equal(pwRepl(['send', 'tab new about:blank'], { env }).status, 0);
       assert.match(pwRepl(['where'], { env }).stdout, /--background\)\nbackground: pid \d+/);
 
+      // A file of commands, each line as typed at the prompt: its quotes are the REPL's, not a shell's.
+      const take = path.join(dir, 'take.txt');
+      fs.writeFileSync(take, `# a comment, and a blank line\n\neval document.body.innerHTML = '<input placeholder="Your name">'\nfill "[placeholder='Your name']" Ada Lovelace\neval document.querySelector("input").value\nbogus\neval "not reached"\n`);
+      const ran = pwRepl(['send', '--file', take], { env });
+      assert.equal(ran.status, 1);
+      assert.match(ran.stdout, /^> eval [^\n]+\n[^\n]*\n> fill "\[placeholder='Your name'\]" Ada Lovelace\nFilled[^\n]*\n> eval [^\n]+\nAda Lovelace\n> bogus\nUnknown command: bogus/);
+      assert.doesNotMatch(ran.stdout, /not reached/);
+      assert.match(ran.stderr, /stopped at line 6 of \S+take\.txt \(bogus\), exit status 1/);
+      assert.doesNotMatch(ran.stderr, /still on/);
+      // A file it records is the sender's, relative to its folder, not the REPL's.
+      fs.mkdirSync(path.join(dir, 'out'));
+      fs.writeFileSync(take, `record on "out/my take.webm" --lead=0\nbogus\n`);
+      assert.match(pwRepl(['send', '--file', take], { env, cwd: dir }).stderr, /record off was not reached, so the recording is still on/);
+      assert.match(pwRepl(['send', 'record'], { env }).stdout, new RegExp(`to ${dir}/out/my take\\.webm `));
+      assert.equal(pwRepl(['send', 'record off'], { env }).status, 0);
+      assert.equal(pwRepl(['send', '--file', path.join(dir, 'none.txt')], { env }).status, 64);
+      assert.equal(pwRepl(['send', '--file', take, 'info'], { env }).status, 64, 'a file or a command, not both');
+
       const attached = spawn(process.execPath, [BIN, 'attach', '-e', socket], { env });
       let seen = '';
       attached.stdout.on('data', d => { seen += d; });

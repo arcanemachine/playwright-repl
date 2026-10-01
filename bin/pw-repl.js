@@ -17,8 +17,8 @@ const USAGE = `Usage:
   pw-repl stop [-e endpoint]
       stop a background REPL, and say what became of each recording it ended
 
-  pw-repl send [-e endpoint | -s session] [-c client] [-t seconds] <command...>
-      run one command in a running REPL and print its output
+  pw-repl send [-e endpoint | -s session] [-c client] [-t seconds] <command...> | --file <file>
+      run one command in a running REPL and print its output; --file runs a file of them, one per line
 
   pw-repl where [-e endpoint | -s session]
       say which REPL send would reach
@@ -37,6 +37,12 @@ send -c <client> (or $PW_CLIENT) sends as a client of the REPL's with a selected
 several agents can share one REPL; pw-repl help session has the rest.
 
 send exit status: 0 ok, 1 command error, 2 completion not confirmed, 64 usage or unreachable.
+
+send --file <file> runs each line of a file as a command, in order, as if typed at the REPL's prompt:
+quoted as the prompt reads it (no shell), with a file it records, uploads or saves relative to this
+folder, as on send's command line, and # comments and blank lines skipped. It stops at the first
+command that fails, saying its line, with its exit status. -t is each command's own limit. Other
+clients' commands can run between its lines, on their own tabs.
 
 The browser must be running with --remote-debugging-port (default http://localhost:9222; set $PW_CDP_URL).
 
@@ -60,7 +66,7 @@ function usage() {
 
 // -e, -s, -c and -t, then the command words (unquoted words are one command).
 function parseSendArgs(args, allowCommand) {
-  const options = { endpoint: null, session: null, client: null, timeout: 20, command: '' };
+  const options = { endpoint: null, session: null, client: null, timeout: 20, command: '', file: null };
   let i = 0;
   for (; i < args.length; i++) {
     const arg = args[i];
@@ -72,6 +78,13 @@ function parseSendArgs(args, allowCommand) {
       console.error('the nearest to a session is a client: -c <name> (or PW_CLIENT), with a selected tab of its own, in a');
       console.error('browser it shares, cookies, storage and modes and all.');
       process.exit(64);
+    }
+    // A file of commands, one per line, as typed at the prompt.
+    if (arg.startsWith('--file=') && arg.length > 7) { options.file = require('path').resolve(arg.slice(7)); continue; }
+    if (arg === '--file') {
+      if (args[i + 1] === undefined) usage();
+      options.file = require('path').resolve(args[++i]);
+      continue;
     }
     if (arg === '-e' || arg === '-s' || arg === '-c' || arg === '-t') {
       const value = args[++i];
@@ -96,39 +109,9 @@ function parseSendArgs(args, allowCommand) {
     }
   }
   const words = args.slice(i);
-  if (!allowCommand && words.length) usage();
-  // For a command that reads a quoted selector (fill "text=Your name" Ada), a
-  // word the shell kept whole is quoted again so it stays one word. Any other
-  // command takes the rest of its line as it is (eval, route's JSON), so its
-  // words are joined as they are.
-  const { SELECTOR_FIRST } = require('../lib/syntax');
-  // So does playwright-cli's storage key (localstorage-set "my key" v).
-  // And record's file, which may have spaces in it.
-  const requote = words.length > 1 && (SELECTOR_FIRST.has(words[0]) || /^(?:local|session)storage-/.test(words[0]) || words[0] === 'record' || /^video-(?:start|stop)$/.test(words[0]));
-  // An empty word (fill #name "") is the empty value.
-  // upload's files are read by the REPL, whose folder may not be this one.
-  // So are the files upload reads and screenshot --filename writes.
-  const resolve = require('path').resolve;
-  let resolved = words[0] === 'upload' ? words.map((w, n) => (n > 1 ? resolve(w) : w)) : words;
-  // record on <file> writes it too.
-  if (words[0] === 'record' || /^video-(?:start|stop)$/.test(words[0])) {
-    resolved = words.map((w, n) => {
-      if (n < (words[0] === 'record' ? 2 : 1)) return w;
-      if (w.startsWith('--filename=') && w.length > 11) return `--filename=${resolve(w.slice(11))}`;
-      return words[n - 1] === '--filename' || !/^(?:\d+|-.*)$/.test(w) ? resolve(w) : w;
-    });
-  }
-  if (words[0] === 'screenshot') {
-    resolved = words.map((w, n) => (w.startsWith('--filename=') && w.length > 11 ? `--filename=${resolve(w.slice(11))}` : words[n - 1] === '--filename' ? resolve(w) : w));
-  }
-  const quoted = requote ? resolved.map(w => (w === '' || /[\s"']/.test(w) ? JSON.stringify(w) : w)) : resolved;
-  // An option's value the shell kept whole stays whole too: --device='iPhone 15'.
-  // Single quotes escape nothing, so a backslash (a regexp's \d) reaches it as typed.
-  for (const [n, w] of quoted.entries()) {
-    const option = /^(--[A-Za-z][\w-]*=)([\s\S]*\s[\s\S]*)$/.exec(w);
-    if (n && option && !requote) quoted[n] = `${option[1]}${option[2].includes("'") ? JSON.stringify(option[2]) : `'${option[2]}'`}`;
-  }
-  options.command = quoted.join(' ').trim();
+  if (!allowCommand && (words.length || options.file)) usage();
+  if (options.file && words.length) usage();
+  options.command = require('../lib/send').commandLine(words);
   return options;
 }
 
