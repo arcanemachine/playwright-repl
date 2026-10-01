@@ -7,7 +7,7 @@ const USAGE = `Usage:
   pw-repl run [--launch [--headed]] [start-url] [-- <chromium flags>]
       connect to the browser and open the prompt
 
-  pw-repl serve [--background] [--launch [--headed]] [endpoint] [start-url] [-- <chromium flags>]
+  pw-repl serve [--background] [--launch [--headed]] [[-e] endpoint] [start-url] [-- <chromium flags>]
       the same, plus a command server (socket, port, or 127.0.0.1:port; default /tmp/playwright-repl.sock);
       --background runs it detached, with its output in a log next to the socket
 
@@ -31,7 +31,8 @@ const USAGE = `Usage:
 
 send uses the server when -e, $PW_ENDPOINT, or the socket ($PW_SOCKET, default /tmp/playwright-repl.sock)
 is there, and the tmux session (-s, $PW_TMUX_SESSION, default playwright-repl) otherwise. If the socket
-exists but nothing answers, send fails rather than fall back.
+exists but nothing answers, send fails rather than fall back. serve without an endpoint serves on that
+same one: $PW_ENDPOINT, then $PW_SOCKET, then the default.
 
 send -c <client> (or $PW_CLIENT) sends as a client of the REPL's with a selected tab of its own, so
 several agents can share one REPL; pw-repl help session has the rest.
@@ -126,7 +127,15 @@ function startOptions(args, serve) {
   options.launch = flag('--launch');
   options.headed = flag('--headed');
   if ((options.headed || options.chromeArgs.length) && !options.launch) usage();
-  if (serve && rest[0] && looksLikeEndpoint(rest[0])) options.endpoint = rest.shift();
+  // -e <endpoint>, as send, attach, stop and where take it, or the endpoint as the first word.
+  const e = rest.indexOf('-e');
+  if (serve && e !== -1 && rest[e + 1] && looksLikeEndpoint(rest[e + 1])) {
+    options.endpoint = rest.splice(e, 2)[1];
+    // Two endpoints, one with -e: neither silently wins.
+    if (rest[0] && looksLikeEndpoint(rest[0])) usage();
+  } else if (serve && rest[0] && looksLikeEndpoint(rest[0])) options.endpoint = rest.shift();
+  // Otherwise the socket send would look for: PW_ENDPOINT, then PW_SOCKET, then the default.
+  if (serve && !options.endpoint) options.endpoint = process.env.PW_ENDPOINT || process.env.PW_SOCKET || null;
   if (rest.length > 1 || (rest[0] && rest[0].startsWith('-'))) usage();
   options.startUrl = rest[0] || null;
   return options;

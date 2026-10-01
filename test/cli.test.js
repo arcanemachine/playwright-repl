@@ -103,11 +103,13 @@ describe('pw-repl send help', () => {
     fs.writeFileSync(ffmpeg, '#!/bin/sh\ncase "$*" in *-encoders*) echo " V....D libvpx  VP8"; exit 0;; esac\nfor out; do :; done\ncat >/dev/null\nprintf webm > "$out"\n', { mode: 0o755 });
     const env = { ...process.env, PW_CDP_URL: chrome.cdpUrl, PW_SOCKET: socket, PW_ENDPOINT: '', PW_FFMPEG: ffmpeg };
     try {
-      const started = pwRepl(['serve', '--background', socket], { env, timeout: 30000 });
+      // No endpoint given: the socket send looks for, PW_SOCKET here, not the default.
+      const started = pwRepl(['serve', '--background'], { env, timeout: 30000 });
       assert.equal(started.status, 0, started.stderr);
       assert.match(started.stdout, /^Serving in the background \(pid \d+\) on \S+repl\.sock\nLog: \S+repl\.log\n/);
       assert.equal(fs.statSync(path.join(dir, 'repl.log')).mode & 0o777, 0o600);
       assert.match(pwRepl(['serve', '--background', socket], { env }).stderr, /already serving on \S+ \(pid \d+\)/, 'one per socket');
+      assert.equal(pwRepl(['serve', '-e', socket, path.join(dir, 'other.sock')], { env }).status, 64, 'two endpoints, one with -e');
       assert.match(pwRepl(['send', 'tab'], { env }).stdout, /\[0\]/, 'send reaches it');
       const unselected = pwRepl(['send', 'info'], { env });
       assert.equal(unselected.status, 1);
@@ -180,7 +182,8 @@ describe('pw-repl send help', () => {
     const socket = path.join(dir, 'repl.sock');
     const env = { ...process.env, PW_SOCKET: socket, PW_ENDPOINT: '', PW_CDP_URL: 'http://127.0.0.1:9' };
     try {
-      assert.equal(pwRepl(['serve', '--background', '--launch', socket, '--', '--window-size=900,700'], { env, timeout: 40000 }).status, 0);
+      // -e names the socket, as send, attach, stop and where take it.
+      assert.equal(pwRepl(['serve', '--background', '--launch', '-e', socket, '--', '--window-size=900,700'], { env, timeout: 40000 }).status, 0);
       const log = fs.readFileSync(path.join(dir, 'repl.log'), 'utf8');
       const command = /^  (\S+ .*--user-data-dir=(\S+).*--window-size=900,700 about:blank)$/m.exec(log);
       assert.ok(command, `the command it ran:\n${log}`);
