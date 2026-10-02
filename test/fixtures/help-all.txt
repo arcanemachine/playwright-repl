@@ -329,7 +329,8 @@ Output is capped; --all right after the command, or at the end, shows everything
         (none)              shows what is on.
 
       Per tab, until turned off or the REPL exits; emulate mobile <device> while another is on switches to it.
-      While mobile is on, viewport refuses: the device sets the size.
+      Mobile and viewport both set the screen size, so each refuses while the other is on: viewport off before
+      emulate mobile, and emulate mobile off before viewport.
 
       The page sees the user agent, touch and navigator.languages from its next load: reload after turning
       mobile or locale on or off. Touch means the page sees a touch screen; click still clicks with the mouse,
