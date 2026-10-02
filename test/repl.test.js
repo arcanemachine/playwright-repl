@@ -1037,6 +1037,20 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('screenshots an element taller than the viewport where it is, beside the page\'s scrollbar', async () => {
+    const { PNG } = require('playwright-core/lib/utilsBundle');
+    // Taller than the window, at the right of a page that scrolls: its whole width is blue.
+    await ok('goto data:text/html,<body style="margin:0;height:3000px"><button style="position:absolute;right:0;top:0;width:200px;height:2000px;background:blue;border:0">Tall</button>');
+    const ref = /button "Tall" \[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot'))[1];
+    const file = /Saved: (\S+)/.exec(await ok(`screenshot ${ref}`))[1];
+    const image = PNG.sync.read(fs.readFileSync(file));
+    fs.unlinkSync(file);
+    const blue = x => { const i = (100 * image.width + x) * 4; return image.data[i] < 50 && image.data[i + 2] > 200; };
+    assert.deepEqual([image.width, blue(2), blue(image.width - 3)], [200, true, true], 'not shifted by the scrollbar\'s width');
+    assert.equal(await ok('eval document.adoptedStyleSheets.length'), '0', 'the page is left as it was');
+    await ok(`goto ${site.url}/`);
+  });
+
   it('types at a pace a video can show while recording, and saves when each step ran and where', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
     const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-steps-'));
     try {
