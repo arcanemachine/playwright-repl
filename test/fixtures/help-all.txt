@@ -457,8 +457,10 @@ clean browser of its own (here, its video-start is record on).
   cursor [on [<selector> | <x> <y>] | off]             draw a pointer where the REPL acts, for videos
       Arguments:
         on                  fades it in where the mouse last went, or the middle.
-        on <selector>       fades it in on the element (a video's first, say), scrolled into view; when it is
-                            on already, glides it there.
+        on <selector>       fades it in on the element (a video's first, say); when it is on already, glides
+                            it there. An element partly in view is pointed at where it shows, without
+                            scrolling, so one the page cuts off still looks cut off; one out of view is
+                            scrolled to.
         on <x> <y>          the same, at a point in the viewport.
         off                 fades it out.
         (none)              says whether it is on, and where.

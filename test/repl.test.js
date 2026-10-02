@@ -1884,6 +1884,24 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('points the cursor at the part of an element in view, and scrolls only to one out of view', async () => {
+    const drawn = 'eval (c => new DOMMatrix(getComputedStyle(c.arrow).transform).e + "," + new DOMMatrix(getComputedStyle(c.arrow).transform).f)(document[Symbol.for("pw-repl-cursor")])';
+    // Cut off by the right edge, as a bug would have it; and one far below.
+    await ok('goto data:text/html,<body style="margin:0"><button id=cut style="position:absolute;left:calc(100vw - 40px);top:50px;width:120px;height:30px">Cut</button><button id=far style="position:absolute;left:10px;top:3000px">Far</button>');
+    try {
+      await ok('cursor on #cut');
+      assert.equal(await ok('eval scrollX + "," + scrollY'), '0,0', 'not scrolled into view');
+      const [x, y] = (await ok(drawn)).split(',').map(Number);
+      const left = Number(await ok('eval innerWidth - 40'));
+      assert.ok(x > left && x < left + 40 && y === 65, `on the part in view (${x},${y})`);
+      await ok('cursor on #far');
+      assert.ok(Number(await ok('eval scrollY')) > 0, 'scrolled to one out of view');
+    } finally {
+      await ok('cursor off');
+      await ok(`goto ${site.url}/`);
+    }
+  });
+
   it('draws a cursor that goes where the REPL acts and shows its clicks, as a mode of the tab', async () => {
     const drawn = 'eval (c => c ? c.host.isConnected + " " + new DOMMatrix(getComputedStyle(c.arrow).transform).e + "," + new DOMMatrix(getComputedStyle(c.arrow).transform).f : "none")(document[Symbol.for("pw-repl-cursor")])';
     assert.equal(await ok('cursor'), 'The cursor is off in the selected tab; cursor on shows it');
