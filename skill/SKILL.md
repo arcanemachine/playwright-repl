@@ -214,8 +214,8 @@ pw-repl send -c <name> close                        # your modes off; tab close 
   `modes off` turns off every mode in every tab.
 - Someone may be attached to the REPL's tmux session; killing the session ends it for them too.
 - To point something out, to the person or in a screenshot, `highlight <ref|selector>` draws a box over it
-  without changing the page (`--style=<css>` restyles it; `highlight off` hides them). Its label can
-  cover what is below it; `help highlight` says how to mark a screenshot without one.
+  without changing the page (`--style=<css>` restyles it; `highlight off` hides them), without
+  Playwright's locator label unless `highlight --labels on`.
 - For a video, `help video` says how: a take written as a file and sent with `send --file`, `record on`
   around it, `cursor on` for a pointer, and the pacing recording adds for the viewer; a screen recorder on
   the user's machine records what they see.
