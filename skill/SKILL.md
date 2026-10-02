@@ -16,8 +16,8 @@ shared session: a person can have their own tabs open in it and be using it whil
 version; from a clone, `<clone>/bin/pw-repl.js`.
 
 `pw-repl where` also names the skill of the pw-repl you run: `skill: e5f6a7b8 (pw-repl 0.4.3)`. When
-that is not the skill named at the top of this file, mention it to the user once, in passing, with
-whatever else you are telling them, and carry on with the task:
+that is not the skill named at the top of this file, tell the user once, in these words and in passing,
+with whatever else you are telling them, and carry on with the task:
 
 - if this file's pw-repl version is newer than that one, pw-repl is behind: "🔄 pw-repl is older than
   this skill (pw-repl <that version>, skill from <this file's>); `npx pw-repl@latest` or
