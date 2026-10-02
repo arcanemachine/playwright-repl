@@ -999,6 +999,44 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok('viewport'), `${windowSize} (the window's size)`);
   });
 
+  it('screenshots a viewport wider than the window at its size after a navigation', async () => {
+    const [windowWidth] = /^(\d+)x\d+ \(the window's size\)$/.exec(await ok('viewport'))[1].split('x').map(Number);
+    assert.ok(windowWidth < 1200, `the window (${windowWidth} wide) is narrower than the viewport`);
+    const { PNG } = require('playwright-core/lib/utilsBundle');
+    // Blue where it is drawn, white where Chrome left the shot blank.
+    const blueAt = (file, x, y) => {
+      const image = PNG.sync.read(fs.readFileSync(file));
+      fs.unlinkSync(file);
+      const i = (y * image.width + (x < 0 ? image.width + x : x)) * 4;
+      const [r, g, b] = image.data.slice(i, i + 3);
+      return r < 50 && g < 50 && b > 200;
+    };
+    const shot = async command => /Saved: (\S+)/.exec(await ok(command))[1];
+    // Added after each load: a data: URL's navigation did not show the crop; a page from a server does.
+    const mark = () => ok('eval document.body.insertAdjacentHTML("beforeend", \'<div style="position:fixed;right:0;top:0;width:40px;height:40px;background:blue"></div><button style="position:fixed;left:1150px;top:100px;width:40px;height:40px;background:blue;border:0">far</button>\')');
+    await ok(`goto ${site.url}/other`);
+    await ok('viewport 1280x720');
+    try {
+      await mark();
+      // The first shot brings the tab to the front, after which a navigation used to leave Chrome
+      // drawing it at the window's size.
+      assert.ok(blueAt(await shot('screenshot'), -10, 10), 'before the navigation');
+      await ok(`goto ${site.url}/other?again`);
+      await mark();
+      assert.ok(blueAt(await shot('screenshot'), -10, 10), 'after it');
+      await ok('reload');
+      await mark();
+      assert.ok(blueAt(await shot('screenshot --full'), -10, 10), '--full');
+      await ok('reload');
+      await mark();
+      const ref = /button "far" \[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot'))[1];
+      assert.ok(blueAt(await shot(`screenshot ${ref}`), 20, 20), 'an element beyond the window\'s width');
+    } finally {
+      await ok('viewport off');
+      await ok(`goto ${site.url}/`);
+    }
+  });
+
   it('types at a pace a video can show while recording, and saves when each step ran and where', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
     const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-steps-'));
     try {
