@@ -36,11 +36,12 @@ the sections below are how to carry it out. With no args, get a REPL running and
 
 ## Start it
 
-`pw-repl where` says whether a REPL is running and how `send` reaches it, or that one is still starting
-(retry shortly; it exits 64 until the REPL serves, as when none is running). Right after you start one,
-for a moment before its process is up, it can still say none is there: retry for a few seconds before
-taking that as a failed start. There are three ways to run one; each takes an optional start URL, which
-opens in a new tab.
+Run `pw-repl where` first, before anything else (with `-e <socket>` for a REPL you were told is on one),
+and check the skill it names against the top of this file. It says whether a REPL is running and how
+`send` reaches it, or that one is still starting (retry shortly; it exits 64 until the REPL serves, as
+when none is running). Right after you start one, for a moment before its process is up, it can still
+say none is there: retry for a few seconds before taking that as a failed start. There are three ways to
+run one; each takes an optional start URL, which opens in a new tab.
 
 - `pw-repl serve --background` runs it detached, with a command server on `/tmp/playwright-repl.sock`
   (owner-only) and its output in `/tmp/playwright-repl.log`. `pw-repl attach` shows everything it does
