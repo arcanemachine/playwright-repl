@@ -15,16 +15,18 @@ shared session: a person can have their own tabs open in it and be using it whil
 `npx pw-repl@latest` in its place, in that same form for every command, so each one runs the same
 version; from a clone, `<clone>/bin/pw-repl.js`.
 
-`pw-repl where` also names the skill of the pw-repl you run: `skill: e5f6a7b8 (pw-repl 0.4.3)`. When that
-is not the skill named at the top of this file, tell the user before going on:
+`pw-repl where` also names the skill of the pw-repl you run: `skill: e5f6a7b8 (pw-repl 0.4.3)`. When
+that is not the skill named at the top of this file, mention it to the user once, in passing, with
+whatever else you are telling them, and carry on with the task:
 
-- if this file's pw-repl version is newer than that one, pw-repl is behind: say "⚠️ pw-repl is older
-  than this skill (pw-repl <that version>, skill from <this file's>); `npx pw-repl@latest` or
+- if this file's pw-repl version is newer than that one, pw-repl is behind: "🔄 pw-repl is older than
+  this skill (pw-repl <that version>, skill from <this file's>); `npx pw-repl@latest` or
   `npm install -g pw-repl` updates it."
-- otherwise, the skill is: ask "⚠️ This pw-repl skill is out of date (from pw-repl <this file's
-  version>; <that version> has a newer one). Update it? Everything but its Custom rules section will be
-  replaced." On a yes, save what `pw-repl skill` prints over this file, with this file's Custom rules
-  section in place of the new one's.
+- otherwise, the skill is: "🔄 This pw-repl skill is out of date (from pw-repl <this file's version>;
+  <that version> has a newer one). If you'd like me to update it, just ask: everything but its Custom
+  rules section would be replaced." Update it only when the user asks for that; a yes to something else
+  is not one. To update it, save what `pw-repl skill` prints over this file, with this file's Custom
+  rules section in place of the new one's.
 
 ## Arguments
 
