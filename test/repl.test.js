@@ -1828,6 +1828,49 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('highlight'), /^Nothing is highlighted/);
   });
 
+  it('draws highlights without their labels unless they are on, under a strict CSP, as a mode of the tab', async () => {
+    // Black, with a button at the top left: Playwright's label is a light box just below it.
+    const server = require('http').createServer((req, res) => {
+      if (req.url === '/s.css') { res.writeHead(200, { 'Content-Type': 'text/css' }); return res.end('html,body{margin:0;height:100%;background:#000}button{position:absolute;left:20px;top:20px;width:80px;height:30px}'); }
+      res.writeHead(200, { 'Content-Type': 'text/html', 'Content-Security-Policy': "default-src 'self'; style-src 'self'" });
+      res.end('<!doctype html><link rel=stylesheet href=/s.css><button id=pay>Pay</button>');
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const { PNG } = require('playwright-core/lib/utilsBundle');
+    // Light pixels below the button, where the label is drawn.
+    const label = async () => {
+      const file = /Saved: (\S+)/.exec(await ok('screenshot'))[1];
+      const image = PNG.sync.read(fs.readFileSync(file));
+      fs.unlinkSync(file);
+      let light = 0;
+      for (let y = 55; y < 120; y++) for (let x = 0; x < 300; x++) if (image.data[(y * image.width + x) * 4] > 150) light += 1;
+      return light;
+    };
+    try {
+      await ok(`goto http://127.0.0.1:${server.address().port}/`);
+      await ok('highlight #pay');
+      assert.equal(await label(), 0, 'no label by default');
+      assert.equal(await ok('highlight --labels on'), 'Labels on in the selected tab: each highlight is labelled with its locator; highlight --labels off hides them');
+      assert.ok(await label() > 100, 'the label is drawn once they are on');
+      assert.match(await ok('highlight'), /^#pay\nLabels are on\./);
+      assert.match(await ok('modes'), /\(highlight:1 labels\)/);
+      assert.equal(await ok('highlight --labels off'), 'Labels off in the selected tab');
+      assert.equal(await label(), 0, 'hidden again');
+      await ok('highlight --labels on');
+      assert.match(await ok('modes off'), /1 highlight hidden, labels off/);
+      // Playwright made its overlay again, with this highlight.
+      await ok('highlight #pay');
+      assert.equal(await label(), 0, 'modes off puts the default back');
+      for (const bad of ['highlight --labels', 'highlight --labels maybe', 'highlight #pay --labels on']) {
+        assert.match((await repl.run(bad)).output, /^Error: Usage: highlight/, bad);
+      }
+    } finally {
+      await ok('highlight off');
+      await ok(`goto ${site.url}/`);
+      server.close();
+    }
+  });
+
   it('draws a cursor that goes where the REPL acts and shows its clicks, as a mode of the tab', async () => {
     const drawn = 'eval (c => c ? c.host.isConnected + " " + new DOMMatrix(getComputedStyle(c.arrow).transform).e + "," + new DOMMatrix(getComputedStyle(c.arrow).transform).f : "none")(document[Symbol.for("pw-repl-cursor")])';
     assert.equal(await ok('cursor'), 'The cursor is off in the selected tab; cursor on shows it');
