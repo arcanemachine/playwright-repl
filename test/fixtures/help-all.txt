@@ -1,5 +1,5 @@
 playwright-repl drives Chromium over CDP. Commands act on the selected tab (`tab` shows which). The
-browser may be a shared session, with other people's tabs open in it.
+browser may be a shared session, with other users' tabs open in it.
 
 Common tasks:
   where am I?                       tab, info
@@ -123,6 +123,10 @@ selectors with spaces. mousemove and the other mouse commands act at a point ins
       60ms need a longer send -t, or a shorter --delay. --delay is a gap between keys, not a wait before
       starting like screenshot's. A page that reacts to each key, such as search as you type, may react to
       each one.
+
+      Date and time inputs: they take keys part by part, in the order they show them (10/02/2026 in en-US),
+      from the first part with a selector, or from the part a click landed on. type says what the input then
+      holds. Their ISO form (2026-10-02) is refused, since typed it comes out mangled: fill sets it.
 
   press <key> | press <selector> <key>  press a key (Enter, Escape, Control+A; any case), maybe on an element
   select <selector> <value>             choose an option in a select (the value is the rest of the line)

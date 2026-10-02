@@ -77,7 +77,7 @@ Names both have (goto, click, fill, snapshot, eval, ...) take playwright-cli's f
 Its other options are refused, never read as part of a selector or a value.
 
 Different on purpose, since the browser may be someone else's too:
-  routes, network and emulation     per tab, not the whole browser, so other people's tabs are untouched
+  routes, network and emulation     per tab, not the whole browser, so other users' tabs are untouched
   close                             turns off your modes; tabs stay open (tab close <url-part> closes one)
   upload <selector> <file>          names the input: file pickers are not caught, as the user's would be
   no snapshot after each command    the user reads the pane too; snapshot when you need one

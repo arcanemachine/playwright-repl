@@ -200,6 +200,25 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('fill #name ""');
   });
 
+  it('types into a date or time input as the user would, and says what it holds, or how fill sets it', async () => {
+    await ok('eval document.body.insertAdjacentHTML("beforeend", "<input type=date id=when><input type=time id=at>"); 0');
+    const iso = await repl.run('type #when 2026-10-02');
+    assert.equal(iso.status, 'error', iso.output);
+    assert.match(iso.output, /^Error: #when is a date input: typed, 2026-10-02 comes out mangled, .* fill #when 2026-10-02 sets it$/);
+    assert.equal(await ok('eval document.querySelector("#when").value'), '""', 'nothing was typed');
+    assert.equal(await ok('type #at 0230P'), 'Typed into: #at, a time input, which now holds 14:30');
+    await ok('fill #at ""');
+    await ok('click #at');
+    assert.match((await repl.run('type 9')).output, /The focused input#at, a time input, is still empty: .* fill <selector> 14:30$/);
+    await ok('fill #when 2026-10-02');
+    assert.equal(await ok('eval document.querySelector("#when").value'), '2026-10-02');
+    // Inside a shadow root, as a component library wraps one: its value is read from the input, not the host.
+    await ok('eval const host = document.createElement("x-d"); host.attachShadow({ mode: "open" }).innerHTML = "<input type=time id=inner>"; document.body.append(host); 0');
+    assert.equal(await ok('type #inner 0230P'), 'Typed into: #inner, a time input, which now holds 14:30');
+    assert.equal(await ok('type #inner 0315P'), 'Typed into: #inner, a time input, which now holds 15:15', 'from its first part again');
+    assert.match((await repl.run('type 14:30')).output, /^Error: The focused input#inner is a time input: .* fill <selector> 14:30 sets it$/);
+  });
+
   it('selects a tab by a number in its URL when it is not a tab index', async () => {
     const port = new URL(site.url).port;
     await ok('tab');
@@ -1975,7 +1994,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('forgets a dialog answered in the browser', async () => {
-    // Answered as the person at the browser would, on a connection of its own: one that saw it open.
+    // Answered as the user at the browser would, on a connection of its own: one that saw it open.
     const targets = await (await fetch(`${chrome.cdpUrl}/json`)).json();
     const target = targets.find(t => t.type === 'page' && t.url === `${site.url}/`);
     const socket = new WebSocket(target.webSocketDebuggerUrl);

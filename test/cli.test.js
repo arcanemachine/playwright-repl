@@ -106,9 +106,11 @@ describe('pw-repl send help', () => {
       // No endpoint given: the socket send looks for, PW_SOCKET here, not the default.
       const started = pwRepl(['serve', '--background'], { env, timeout: 30000 });
       assert.equal(started.status, 0, started.stderr);
+      assert.match(fs.readFileSync(path.join(dir, 'repl.log'), 'utf8'), /^--- \S+ started\npw-repl \d+\.\d+\.\d+ \(skill [0-9a-f]{8}\)\n/, 'the log says which pw-repl ran');
       assert.match(started.stdout, /^Serving in the background \(pid \d+\) on \S+repl\.sock\nLog: \S+repl\.log\n/);
       assert.equal(fs.statSync(path.join(dir, 'repl.log')).mode & 0o777, 0o600);
-      assert.match(pwRepl(['serve', '--background', socket], { env }).stderr, /already serving on \S+ \(pid \d+\)/, 'one per socket');
+      assert.match(pwRepl(['serve', '--background', socket], { env }).stderr, /already serving on \S+ \(pid \d+\): pw-repl attach uses it, pw-repl stop stops it; to start another, give it a socket of its own: -e \/tmp\/<name>\.sock$/m, 'one per socket');
+      assert.match(pwRepl(['serve', socket], { env, timeout: 10000 }).stderr, /^A background REPL is already serving on \S+ \(pid \d+\): pw-repl attach/m, 'in a terminal too');
       assert.equal(pwRepl(['serve', '-e', socket, path.join(dir, 'other.sock')], { env }).status, 64, 'two endpoints, one with -e');
       assert.match(pwRepl(['send', 'tab'], { env }).stdout, /\[0\]/, 'send reaches it');
       const unselected = pwRepl(['send', 'info'], { env });

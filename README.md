@@ -1,7 +1,7 @@
 # playwright-repl
 
 A command REPL for a Chromium you are already using, shared by you and your agents. It connects over CDP
-through Playwright; people click in the browser and type at the prompt, agents send the same commands,
+through Playwright; users click in the browser and type at the prompt, agents send the same commands,
 and every command shows in the REPL, so each sees what the other does.
 
 ## Why use it
@@ -123,16 +123,16 @@ their own show their state and what you can run next.
 ## How it differs from playwright-cli
 
 [playwright-cli](https://github.com/microsoft/playwright-cli) is Microsoft's command line for agents. It
-gives each agent a browser session of its own; pw-repl shares one browser between a person and agents.
+gives each agent a browser session of its own; pw-repl shares one browser between users and agents.
 Its command names and most of their options work here too (`help playwright-cli` lists them), and where
 pw-repl differs, it is mostly because someone else may be using the browser:
 
 - `open` and `close` open a tab and turn off your modes; they never start, close or wipe a browser.
 - Routes, network and emulation apply to one tab, not the whole browser.
-- File pickers are not caught, since they may be the person's: `upload` names the input instead.
-- There is no snapshot after every command, since a person reads the REPL too; `snapshot` shows one.
+- File pickers are not caught, since they may be the user's: `upload` names the input instead.
+- There is no snapshot after every command, since the user reads the REPL too; `snapshot` shows one.
 - Instead of `-s=<session>`, an agent is a client of its own (`send -c <name>`).
-- `watch` records what a person does as steps with their requests, not as generated code.
+- `watch` records what the user does as steps with their requests, not as generated code.
 - `highlight` draws its box without Playwright's locator label, which covers what is below it and puts
   selectors in screenshots and videos; `highlight --labels on` shows it.
 
@@ -146,7 +146,7 @@ agent acts; for the shared browser as you see it, use a screen recorder (`ffmpeg
 ### A skill for agents
 
 `pw-repl skill` prints an agent skill (`SKILL.md`) that teaches an agent to use the REPL: how to start
-it, send commands, and share the browser with a person. Save it as `pw-repl/SKILL.md` in the folder
+it, send commands, and share the browser with the user. Save it as `pw-repl/SKILL.md` in the folder
 your agent reads skills from:
 
 ```bash
