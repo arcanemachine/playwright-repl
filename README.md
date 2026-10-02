@@ -100,7 +100,7 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 | record requests and console together | `capture on`, then `capture off`                                                      |
 | record a video of the page           | `record on`, then `record off` (`help video` for a take with a pointer)               |
 | show a pointer where the agent acts  | `cursor on`, then `cursor off` (in screenshots and videos)                            |
-| point something out on the page      | `highlight <ref>` (`--style=<css>` to restyle it), then `highlight off`               |
+| point something out on the page      | `highlight <ref>`: a box, unlabelled unless `--labels on`; `highlight off` hides it   |
 | break the backend on purpose         | `route <glob> <status> <json>` (fake a response), `route <glob> abort`, `network off` |
 | change or slow an API response       | `route <glob> patch <json>`, `route <glob> delay <secs>`                              |
 | slow the whole network               | `network slow`                                                                        |
@@ -112,8 +112,8 @@ Everything else is in `help <topic>`; `help <command>` has usage and caveats.
 
 `watch`, `capture`, `route`, `network off` or `slow`, `emulate`, `viewport`, `record`, `highlight` and `cursor`
 stay on until you turn them off: `watch on|off`, `capture on|off`, `route ...|route off`, `network off|slow|on`,
-`emulate ...|emulate off`, `viewport <WxH>|viewport off`, `record on|off`, `highlight <selector>|highlight off`,
-`cursor on|off`.
+`emulate ...|emulate off`, `viewport <WxH>|viewport off`, `record on|off`, `highlight <selector>|highlight off`
+(and `highlight --labels on|off`), `cursor on|off`.
 While any are on in the selected tab, the prompt shows them: `(watch network:off routes:2) pw>`. `modes`
 lists them for every tab, and `modes off` turns them all off.
 
@@ -125,7 +125,7 @@ their own show their state and what you can run next.
 [playwright-cli](https://github.com/microsoft/playwright-cli) is Microsoft's command line for agents. It
 gives each agent a browser session of its own; pw-repl shares one browser between a person and agents.
 Its command names and most of their options work here too (`help playwright-cli` lists them), and where
-pw-repl differs, it is because someone else may be using the browser:
+pw-repl differs, it is mostly because someone else may be using the browser:
 
 - `open` and `close` open a tab and turn off your modes; they never start, close or wipe a browser.
 - Routes, network and emulation apply to one tab, not the whole browser.
@@ -133,6 +133,8 @@ pw-repl differs, it is because someone else may be using the browser:
 - There is no snapshot after every command, since a person reads the REPL too; `snapshot` shows one.
 - Instead of `-s=<session>`, an agent is a client of its own (`send -c <name>`).
 - `watch` records what a person does as steps with their requests, not as generated code.
+- `highlight` draws its box without Playwright's locator label, which covers what is below it and puts
+  selectors in screenshots and videos; `highlight --labels on` shows it.
 
 For a browser of its own per agent, isolated sessions, traces, video, PDFs or generated test code,
 playwright-cli is the better fit. `record on` records a tab's page, and `cursor on` draws a pointer where the
