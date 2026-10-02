@@ -1865,6 +1865,15 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.equal(await ok('highlight #pay --labels on'), 'Labels on in the selected tab: each highlight is labelled with its locator; highlight --labels off hides them\nHighlighted #pay; highlight --hide #pay hides it');
       assert.ok(await label() > 100, 'labelled with a selector');
       await ok('highlight --labels off');
+      // A snapshot ref's locator finds nothing in the page's code: it is drawn with one that does.
+      await ok('highlight off');
+      const ref = /button "Pay" \[ref=((?:f\d+)?e\d+)\]/.exec(await ok('snapshot'))[1];
+      await ok(`highlight ${ref} --labels on`);
+      assert.ok(await label() > 100, 'a ref\'s highlight is labelled');
+      assert.match(await ok('highlight'), /^aria-ref=\S+ {2}as getByRole\('button', \{ name: 'Pay' \}\)\n/);
+      assert.equal(await ok(`highlight --hide ${ref}`), `Hid the highlight on ${ref}`);
+      assert.match(await ok('highlight'), /^Nothing is highlighted/);
+      await ok('highlight --labels off');
       for (const bad of ['highlight --labels', 'highlight --labels maybe', 'highlight --hide #pay --labels on', 'highlight off --labels on']) {
         assert.match((await repl.run(bad)).output, /^Error: Usage: highlight/, bad);
       }
