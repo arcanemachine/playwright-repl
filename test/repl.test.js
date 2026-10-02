@@ -1861,7 +1861,11 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       // Playwright made its overlay again, with this highlight.
       await ok('highlight #pay');
       assert.equal(await label(), 0, 'modes off puts the default back');
-      for (const bad of ['highlight --labels', 'highlight --labels maybe', 'highlight #pay --labels on']) {
+      // With a selector, for the whole tab.
+      assert.equal(await ok('highlight #pay --labels on'), 'Labels on in the selected tab: each highlight is labelled with its locator; highlight --labels off hides them\nHighlighted #pay; highlight --hide #pay hides it');
+      assert.ok(await label() > 100, 'labelled with a selector');
+      await ok('highlight --labels off');
+      for (const bad of ['highlight --labels', 'highlight --labels maybe', 'highlight --hide #pay --labels on', 'highlight off --labels on']) {
         assert.match((await repl.run(bad)).output, /^Error: Usage: highlight/, bad);
       }
     } finally {

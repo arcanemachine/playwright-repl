@@ -279,7 +279,8 @@ Output is capped; --all right after the command, or at the end, shows everything
         --style=<css>       CSS added to the box, quoted if it has spaces: highlight e5 --style="outline: 3px
                             solid blue; border-radius: 50%" circles e5 in blue.
         --hide <selector>   hides one.
-        --labels on|off     labels each box in the selected tab with its locator, as Playwright does, or not.
+        --labels on|off     labels every box in the selected tab with its locator, as Playwright does, or not:
+                            those drawn already too. With a selector or on its own (highlight --labels on).
                             Default: off.
 
       A highlight is a mode of its tab: modes shows it, modes off hides it, and the REPL hides every one as it
