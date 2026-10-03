@@ -87,7 +87,7 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 
 | I want to…                           | Commands                                                                              |
 | ------------------------------------ | ------------------------------------------------------------------------------------- |
-| see where I am                       | `tab`, `info`                                                                         |
+| see where I am                       | `tab` (it marks the tab you are looking at `(in front)`), `info`                      |
 | see what is on the page              | `snapshot`, `screenshot`                                                              |
 | do something on it                   | `click`, `fill`, `press`                                                              |
 | wait for a page or element           | `wait load`, `wait <selector>`, `wait <selector> --gone`                              |
@@ -100,6 +100,7 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 | record requests and console together | `capture on`, then `capture off`                                                      |
 | record a video of the page           | `record on`, then `record off` (`help video` for a take with a pointer)               |
 | show a pointer where the agent acts  | `cursor on`, then `cursor off` (in screenshots and videos)                            |
+| say what is happening on screen      | `toast <text>`, then `toast off` (`--duration=3s` hides it by itself)                 |
 | point something out on the page      | `highlight <ref>`: a box, unlabelled unless `--labels on`; `highlight off` hides it   |
 | break the backend on purpose         | `route <glob> <status> <json>` (fake a response), `route <glob> abort`, `network off` |
 | change or slow an API response       | `route <glob> patch <json>`, `route <glob> delay <secs>`                              |
@@ -110,15 +111,16 @@ Everything else is in `help <topic>`; `help <command>` has usage and caveats.
 
 ### Modes
 
-`watch`, `capture`, `route`, `network off` or `slow`, `emulate`, `viewport`, `record`, `highlight` and `cursor`
-stay on until you turn them off: `watch on|off`, `capture on|off`, `route ...|route off`, `network off|slow|on`,
-`emulate ...|emulate off`, `viewport <WxH>|viewport off`, `record on|off`, `highlight <selector>|highlight off`
-(and `highlight --labels on|off`), `cursor on|off`.
+`watch`, `capture`, `route`, `network off` or `slow`, `emulate`, `viewport`, `record`, `highlight`, `cursor`
+and `toast` stay on until you turn them off: `watch on|off`, `capture on|off`, `route ...|route off`,
+`network off|slow|on`, `emulate ...|emulate off`, `viewport <WxH>|viewport off`, `record on|off`,
+`highlight <selector>|highlight off` (and `highlight --labels on|off`), `cursor on|off`,
+`toast <text>|toast off`.
 While any are on in the selected tab, the prompt shows them: `(watch network:off routes:2) pw>`. `modes`
 lists them for every tab, and `modes off` turns them all off.
 
-`tab`, `watch`, `capture`, `route`, `network`, `emulate`, `viewport`, `record`, `highlight`, `cursor` and `modes` on
-their own show their state and what you can run next.
+`tab`, `watch`, `capture`, `route`, `network`, `emulate`, `viewport`, `record`, `highlight`, `cursor`, `toast`
+and `modes` on their own show their state and what you can run next.
 
 ## How it differs from playwright-cli
 
