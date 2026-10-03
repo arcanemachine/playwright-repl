@@ -522,6 +522,47 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(repl.stdout.slice(start).match(/Dialog \[confirm\]: sure\?/g).length, 1, 'one notice for one dialog');
   });
 
+  it('marks the tab in front, as the user\'s tabs say, and never one a client uses', async () => {
+    const { chromium } = require('playwright-core');
+    // The user, at the browser: a connection that tells no tab it is in front, as pw-repl's own does not.
+    const user = await chromium.connectOverCDP(chrome.cdpUrl, { noDefaults: true });
+    try {
+      const a = await user.contexts()[0].newPage();
+      await a.goto(`${site.url}/?user-a`);
+      const b = await user.contexts()[0].newPage();
+      await b.goto(`${site.url}/?user-b`);
+      const marked = async () => (await ok('tab')).split('\n').filter(l => /\(in front/.test(l)).map(l => (/\?user-[\w-]+/.exec(l) || [l.trim()])[0]);
+      await a.bringToFront();
+      assert.deepEqual(await marked(), ['?user-a']);
+      await b.bringToFront();
+      assert.deepEqual(await marked(), ['?user-b'], 'it follows the tab the browser shows');
+      // An incognito window, opened as the user would (not through Playwright, which would tell its tabs
+      // they are in front): its front tab is marked as well, and the one behind it is not.
+      const browser = await user.newBrowserCDPSession();
+      try {
+        const { browserContextId } = await browser.send('Target.createBrowserContext');
+        await browser.send('Target.createTarget', { url: `${site.url}/?user-incognito-back`, browserContextId });
+        await browser.send('Target.createTarget', { url: `${site.url}/?user-incognito-front`, browserContextId });
+        await waitFor(async () => (await marked()).includes('?user-incognito-front'), 'the incognito window\'s front tab');
+        assert.deepEqual((await marked()).sort(), ['?user-b', '?user-incognito-front'], 'one in front in each window');
+        await browser.send('Target.disposeBrowserContext', { browserContextId });
+      } finally {
+        await browser.detach();
+      }
+      // A tab a client uses is told it is in front, so that clicks in it work behind another: it is not asked.
+      await ok('tab ?user-a');
+      await ok('click #go');
+      await b.bringToFront();
+      await ok('click #go');
+      assert.deepEqual(await marked(), ['?user-b']);
+      await ok('tab ?user-b');
+      assert.deepEqual(await marked(), [], 'selected, it is not asked');
+    } finally {
+      await user.close();
+      await ok('tab 1');
+    }
+  });
+
   it('watches the next tab someone opens, from its first page', async () => {
     const { chromium } = require('playwright-core');
     const person = await chromium.connectOverCDP(chrome.cdpUrl);
