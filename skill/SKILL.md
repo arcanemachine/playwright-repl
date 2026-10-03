@@ -155,7 +155,9 @@ clicks made (`body <#>` for what one returned), `console` for console messages a
 `watch on` records each step someone takes in a tab, with the requests it caused (`watch on --changes`
 adds what each step changed on the page); `watch` reads it back, and `watch new` only what it has not
 shown yet. For a tab they have not opened yet, `watch on --next-tab [url-part]` waits for it and
-watches it from its first page.
+watches it from its first page. `watch save <file>` writes the steps as commands that `send --file`
+runs again, a repro to keep. What is typed is recorded, except in password fields; `watch on
+--no-values` leaves it out.
 
 When watching someone:
 

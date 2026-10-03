@@ -13,7 +13,8 @@ For working on a web page together with an agent, in the browser you already use
 - **One session, seen by everyone.** You and any number of agents drive the same browser, each with a
   selected tab of its own, and every command shows in the REPL, whoever sent it.
 - **What you did, for an agent to read.** `watch` records each step you take in a tab, with the requests
-  it caused, so you can reproduce a bug by hand and the agent can see exactly what happened.
+  it caused, so you can reproduce a bug by hand and the agent can see exactly what happened; `watch save`
+  keeps the steps as a file of commands that runs them again.
 - **Breaking things on purpose.** Fake, patch, delay or fail responses, cut or slow the network, emulate a
   phone, a locale or a timezone, all per tab, so your other tabs are left alone.
 
@@ -97,6 +98,7 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 | see console messages and errors      | `console`                                                                             |
 | show an agent what I do              | `watch on`, click around in the browser, then `watch`                                 |
 | see each step as I click             | `watch on --live`                                                                     |
+| replay what I clicked through        | `watch on`, click around, `watch save flow.txt`, then `pw-repl send --file flow.txt`  |
 | record requests and console together | `capture on`, then `capture off`                                                      |
 | record a video of the page           | `record on`, then `record off` (`help video` for a take with a pointer)               |
 | show a pointer where the agent acts  | `cursor on`, then `cursor off` (in screenshots and videos)                            |
@@ -134,7 +136,8 @@ pw-repl differs, it is mostly because someone else may be using the browser:
 - File pickers are not caught, since they may be the user's: `upload` names the input instead.
 - There is no snapshot after every command, since the user reads the REPL too; `snapshot` shows one.
 - Instead of `-s=<session>`, an agent is a client of its own (`send -c <name>`).
-- `watch` records what the user does as steps with their requests, not as generated code.
+- `watch` records what the user does as steps with their requests, and `watch save` writes them as
+  pw-repl commands to run again, not as Playwright code.
 - `highlight` draws its box without Playwright's locator label, which covers what is below it and puts
   selectors in screenshots and videos; `highlight --labels on` shows it.
 

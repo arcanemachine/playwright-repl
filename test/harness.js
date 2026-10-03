@@ -71,6 +71,32 @@ const PAGE = `<!doctype html><title>Fixture</title>
 <button id="alerter" onclick="document.querySelector('#out').textContent = 'answered ' + confirm('sure?')">Confirm</button>
 <button id="noisy" onclick="console.log('hello-log'); console.error('bad-thing'); setTimeout(() => { throw new Error('boom-uncaught'); })">Noisy</button>`;
 
+// A form to watch and save as commands: two buttons with one text, a secret field a button shows as text,
+// a one-time code, an id each component reuses in its shadow root, an option with a long label, an
+// element whose place in its shadow root matches one in its host's children too, an app route and a link.
+const FLOW_PAGE = `<!doctype html><title>Flow</title>
+<div class="row"><span>Trowel</span> <button onclick="add('Trowel')">Add</button></div>
+<div class="row"><span>Hose</span> <button onclick="add('Hose')">Add</button></div>
+<label>Name <input name="who"></label>
+<label>Note <textarea id="note"></textarea></label>
+<label>Area <select id="area"><option>Billing</option><option>Shipping</option></select></label>
+<label><input type="checkbox" id="gift"> Gift</label>
+<label>Password <input type="password" id="pw"></label> <button id="show" onclick="pw.type = pw.type === 'password' ? 'text' : 'password'">Show</button>
+<label>Code <input id="otp" autocomplete="one-time-code"></label>
+<x-card></x-card><x-card></x-card>
+<label>Plan <select id="plan"><option value="basic">Basic</option><option value="pro-yearly">Pro, billed yearly, with priority support and the extended warranty on every order</option></select></label>
+<x-pair><div></div><div><i>+</i></div></x-pair>
+<button id="route" onclick="history.pushState({}, '', '/flow/routed')">Route</button>
+<a id="next" href="/other">Next</a>
+<p id="out"></p>
+<script>
+const items = [];
+function add(name) { items.push(name); out.textContent = items.join(','); }
+customElements.define('x-card', class extends HTMLElement { constructor() { super(); this.attachShadow({ mode: 'open' }).innerHTML = '<input id="qty">'; } });
+customElements.define('x-pair', class extends HTMLElement { constructor() { super(); this.attachShadow({ mode: 'open' }).innerHTML = '<div><i>+</i></div><div><i class="target">+</i></div><slot></slot>'; } });
+document.querySelector('[name=who]').addEventListener('keydown', e => { if (e.key === 'Enter') out.textContent += '|entered:' + e.target.value; });
+</script>`;
+
 async function startSite() {
   const server = http.createServer((req, res) => {
     req.url = new URL(req.url, 'http://fixture').pathname;
@@ -101,6 +127,7 @@ redraw();
 pad.addEventListener('wheel', e => { e.preventDefault(); log.textContent += 'wheel:' + e.deltaY + '@' + e.clientX + ',' + e.clientY + ' '; });
 </script>`);
     }
+    if (req.url === '/flow') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(FLOW_PAGE); }
     if (req.url === '/other') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><title>Other</title><h1>Other</h1>'); }
     // Loads for a moment, for wait load.
     if (req.url === '/slow-load') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><title>Slow</title><img src="/slow-image">'); }

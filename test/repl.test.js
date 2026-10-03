@@ -563,6 +563,98 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('saves what was watched as commands that send --file runs again, values and all, but no password', async () => {
+    const { spawn } = require('child_process');
+    const path = require('path');
+    const os = require('os');
+    // Not spawnSync: the test site is served from this process, and the file's goto needs it.
+    const sendFile = name => new Promise(resolve => {
+      const child = spawn(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, '--file', name], { stdio: ['ignore', 'pipe', 'pipe'] });
+      let output = '';
+      child.stdout.on('data', d => { output += d; });
+      child.stderr.on('data', d => { output += d; });
+      child.on('close', status => resolve({ status, output }));
+    });
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-repl-flow-'));
+    const file = path.join(dir, 'flow.txt');
+    try {
+      await ok(`goto ${site.url}/flow`);
+      assert.match(await ok('watch on'), /What is typed is recorded, except in password fields; --no-values leaves it out\./);
+      await ok('click ".row:nth-of-type(2) button"');
+      await ok('click ".row:nth-of-type(1) button"');
+      await ok('fill [name=who] "-Ada  "');
+      await ok('press [name=who] Enter');
+      await ok('select #area Shipping');
+      await ok('check #gift');
+      await ok('fill #pw hunter2');
+      await ok('click #show');
+      await ok('fill #pw hunter3');
+      await ok('fill #otp 424242');
+      await ok('fill "x-card:nth-of-type(2) #qty" 3');
+      await ok('select #plan pro-yearly');
+      await ok('click "x-pair .target"');
+      await ok('eval note.value = "two\\nlines"; note.dispatchEvent(new Event("change", { bubbles: true })); 0');
+      await ok('click #route');
+      await ok('click #next');
+      await ok('wait load');
+      await waitFor(async () => /navigate \S+\/other/.test(await ok('watch')), 'the last step');
+      const steps = await ok('watch');
+      assert.match(steps, /type textbox "Name" "-Ada  "/, 'what was typed, shown');
+      assert.match(steps, /type textbox "Password" \(a password: not recorded\)/);
+      assert.doesNotMatch(steps, /hunter|424242/, 'no secret, even once shown as text');
+      assert.match(await ok(`watch save ${file}`), /^Saved \d+ steps to \S+flow\.txt; 5 could not be written as commands/);
+      const saved = fs.readFileSync(file, 'utf8');
+      assert.equal(fs.statSync(file).mode & 0o777, 0o600, 'only the user reads what they typed');
+      assert.doesNotMatch(saved, /hunter|424242/);
+      const commands = saved.split('\n').filter(l => l && !l.startsWith('#'));
+      assert.deepEqual(commands, [
+        `goto ${site.url}/flow`,
+        "click 'body > div:nth-of-type(2) > button'",
+        "click 'body > div:nth-of-type(1) > button'",
+        `fill 'input[name="who"]' "-Ada  "`,
+        `press 'input[name="who"]' Enter`,
+        `select '#area' "Shipping"`,
+        `check '#gift'`,
+        `click '#show'`,
+        `fill 'body > x-card:nth-of-type(2) #qty' "3"`,
+        `select '#plan' "pro-yearly"`,
+        `click '#route'`,
+        `click '#next'`,
+        'wait load',
+      ]);
+      assert.match(saved, /^# type textbox "Password": a password, not recorded: fill '#pw' "<password>" types it$/m);
+      assert.match(saved, /^# type textbox "Code": a password, not recorded/m, 'a one-time code is one too');
+      assert.match(saved, /^# fill textbox "Note": what was typed has a line break/m);
+      assert.match(saved, /^# select combobox "Plan" "Pro, billed yearly, [^"]*"\n/m, 'the label, for the reader');
+      assert.match(saved, /^# click i "\+": no selector finds it alone/m, 'its place in its shadow root matches one in the host\'s children too');
+      assert.match(saved, /^# the app went to \S+\/flow\/routed without loading a page$/m);
+      assert.match((await repl.run(`watch save ${file}`)).output, /exists already/);
+      // Run again on a fresh page, it ends where the watched steps did, the cart and form as they were.
+      await ok(`goto ${site.url}/flow`);
+      const lines = saved.split('\n');
+      const beforeLeaving = path.join(dir, 'stay.txt');
+      fs.writeFileSync(beforeLeaving, lines.slice(0, lines.findIndex(l => l === "click '#next'")).join('\n'));
+      const run = await sendFile(beforeLeaving);
+      assert.equal(run.status, 0, run.output);
+      assert.equal(await ok('eval JSON.stringify(out.textContent)'), '"Hose,Trowel|entered:-Ada  "', 'the spaces typed too');
+      assert.equal(await ok('eval [area.value, gift.checked, document.querySelectorAll("x-card")[1].shadowRoot.querySelector("#qty").value, plan.value, location.pathname].join()'), 'Shipping,true,3,pro-yearly,/flow/routed');
+      const all = await sendFile(file);
+      assert.equal(all.status, 0, all.output);
+      assert.match(await ok('info'), /\/other/);
+      // --no-values: the step, not what was typed.
+      await ok('watch off');
+      await ok(`goto ${site.url}/flow`);
+      await ok('watch on --no-values');
+      await ok('fill [name=who] Grace');
+      await waitFor(async () => /type textbox "Name"/.test(await ok('watch')), 'the typing');
+      assert.doesNotMatch(await ok('watch'), /Grace/);
+      await ok(`watch save ${path.join(dir, 'none.txt')}`);
+      assert.match(fs.readFileSync(path.join(dir, 'none.txt'), 'utf8'), /^# type textbox "Name": what was typed was not recorded \(--no-values\)/m);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('watches the next tab someone opens, from its first page', async () => {
     const { chromium } = require('playwright-core');
     const person = await chromium.connectOverCDP(chrome.cdpUrl);
@@ -647,9 +739,11 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('click #load');
     let trail = '';
     await waitFor(async () => /#\d+ GET 200 \S+\/api\/data/.test(trail = await ok('watch')), 'the click and its request');
-    assert.match(trail, /type textbox "Name"/);
+    assert.match(trail, /type textbox "Name" "secret-value"\n/, 'what was typed');
+    assert.match(trail, /type textbox "Password" \(a password: not recorded\)\n/);
     assert.match(trail, /click button "Load"\n +#\d+ GET 200 \S+\/api\/data/);
-    assert.doesNotMatch(trail, /secret-value|hunter2|Password/);
+    assert.match(trail, /watch save <file> +save them as commands/);
+    assert.doesNotMatch(trail, /hunter2/);
     await ok(`goto ${site.url}/`);
     await waitFor(async () => /navigate http/.test(await ok('watch')), 'the navigation');
     await ok('click #go');
@@ -659,7 +753,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('eval window.__pwReplWatch(JSON.stringify({ action: "navigate", target: "forged-navigation" }))');
     await ok('eval window.__pwReplWatch(JSON.stringify({ action: "click", target: "forged-click", t: 0 }))');
     await waitFor(async () => /forged-click/.test(trail = await ok('watch 50')), 'the page-sent click');
-    assert.doesNotMatch(trail, /Password|my private draft|forged-navigation/);
+    assert.doesNotMatch(trail, /click textbox "Password"|my private draft|forged-navigation/);
     assert.match(trail, /click p\n/, 'an editable area is named by role only');
     assert.doesNotMatch(trail, /00:00:00\.000/, 'the page cannot set the time');
     await ok('watch off');
@@ -669,7 +763,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('watch 50'), /\[watch is off\]/);
     const bare = await ok('watch');
     assert.match(bare, /^Not watching the selected tab; \d+ steps recorded before watch off:\n/);
-    assert.match(bare, /click button "Load"[\s\S]*\n\n +watch <n> [^\n]*\n +watch on \[--changes\] \[--live\] +record again$/);
+    assert.match(bare, /click button "Load"[\s\S]*\n\n +watch <n> [^\n]*\n +watch save <file> [^\n]*\n +watch on \[--changes\] \[--live\] +record again$/);
   });
 
   it('keeps the bodies of what a watch shows, after the tab navigates', async () => {
@@ -708,11 +802,11 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('select #color Blue');
     let trail = '';
     await waitFor(async () => /select combobox/.test(trail = await ok('watch')), 'the select');
-    assert.match(trail, /type textbox "Name"\n\S+ select combobox "Color" "Blue"/);
+    assert.match(trail, /type textbox "Name" "Ada"\n\S+ select combobox "Color" "Blue"/);
     await ok('watch off');
   });
 
-  it('records typing once it pauses, and Enter and Escape, without the values', async () => {
+  it('records typing once it pauses, and Enter and Escape, with what was typed but no password', async () => {
     await ok('watch on');
     assert.match(await ok('watch'), /: nothing has happened yet\n/, 'watch on after watch off starts a new recording');
     assert.equal(await ok('watch new'), 'Watching; nothing has happened yet');
@@ -730,9 +824,11 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await new Promise(r => setTimeout(r, 900));
     trail += '\n' + await ok('watch new');
     assert.equal(trail.match(/type textbox "Name"/g).length, 2, trail);
-    assert.match(trail, /type textbox "Name"\n\S+ press textbox "Name" Enter/, 'typing is recorded before the Enter that ends it');
+    assert.match(trail, /type textbox "Name" "abc"\n/);
+    assert.match(trail, /type textbox "Name" "abcdef"\n\S+ press textbox "Name" Enter/, 'typing is recorded before the Enter that ends it, with the whole value');
     assert.match(trail, /press \S+.* Escape/);
-    assert.doesNotMatch(trail, /abc|def|hunter2|Password|fill textbox "Name"/);
+    assert.match(trail, /type textbox "Password" \(a password: not recorded\)\n\S+ press textbox "Password" Enter/);
+    assert.doesNotMatch(trail, /hunter2|fill textbox "Name"/);
     assert.doesNotMatch(trail, /press button/, 'Enter on a button is left to the click it causes');
     await ok('watch off');
   });
@@ -755,15 +851,15 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('watch off');
   });
 
-  it('adds what each step changed on screen with watch on --changes, without typed values', async () => {
+  it('adds what each step changed on screen with watch on --changes, without field values', async () => {
     await ok('reload');
     await ok('watch on --changes');
     await ok('watch new');
     await ok('type #name zzz-typed');
     await new Promise(r => setTimeout(r, 2000));
     const typed = await ok('watch new');
-    assert.match(typed, /type textbox "Name"/);
-    assert.doesNotMatch(typed, /zzz-typed/);
+    assert.match(typed, /type textbox "Name" "zzz-typed"/);
+    assert.doesNotMatch(typed, /^ +[+~-] .*zzz-typed/m, 'a field\'s value is not a change');
     await ok('click #go');
     let trail = '';
     await waitFor(async () => /Hello/.test(trail += '\n' + await ok('watch new')), 'the change the click made', 6000);
@@ -800,8 +896,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok('click #go');
     let trail = '';
     await waitFor(async () => /Hello Kim/.test(trail += '\n' + await ok('watch new')), 'the change the click made', 6000);
-    assert.match(trail, /type div\n/, `the typing is recorded:\n${trail}`);
-    assert.doesNotMatch(trail, /CESECRET|my private draft/);
+    assert.match(trail, /type div "my private draftCESECRET"\n/, `the typing is recorded:\n${trail}`);
+    assert.doesNotMatch(trail, /^ +[+~-] .*(?:CESECRET|my private draft)/m, 'nor is what an editable area holds');
     await ok('watch off');
   });
 
