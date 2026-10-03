@@ -6,8 +6,10 @@ the selectors it needs (#id, text=..., role=...), not snapshot refs: the take st
 page, where the refs are stale.
 
 2. Write the take, one command per line, then run it: pw-repl send --file take.txt (pw-repl help,
-outside the REPL, has the rest). Its first line puts the page back as it was before the rehearsal (goto
-<url>), so the take does not start from the rehearsal's end.
+outside the REPL, has the rest). Its first lines put the page back as it was before the rehearsal (goto
+<url>), so the take does not start from the rehearsal's end. A toast, the cursor and highlights stay up
+across page loads: turn off any the rehearsal left (toast off, cursor off, highlight off) before record
+on.
 
     goto https://shop.example/support/new
     record on clip.webm
@@ -21,7 +23,8 @@ outside the REPL, has the rest). Its first line puts the page back as it was bef
 3. While it records, pw-repl paces it for a viewer (help record): type types at a readable pace (use it,
 not fill, for text the viewer should see typed), each action is followed by a pause, an element out of
 view is scrolled to smoothly, and the video starts and ends on a still page. highlight <selector> draws
-a box to point at something. After a step that loads a page, wait for text only the result shows (wait
+a box to point at something, and toast <text> a line of text saying what is happening, up for as long as
+the viewer needs to read it. After a step that loads a page, wait for text only the result shows (wait
 text ...), not a heading the page always has, and not wait load: a single-page app loads nothing.
 
 record on --steps also saves when and where each step ran, in the video's seconds and pixels, for
@@ -33,3 +36,4 @@ clean browser of its own (here, its video-start is record on).
 
   record [on [file] [seconds] [options] | off [file]]  record the selected tab's page to a video
   cursor [on [<selector> | <x> <y>] | off]             draw a pointer where the REPL acts, for videos
+  toast <text> [options] | toast off                   show a line of text over the page, to narrate a video

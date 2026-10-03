@@ -14,7 +14,8 @@ If you hit a limitation or write a workaround, consider adding the capability to
   `READ_ONLY` or `INSPECTION`, and one that takes fixed words in `complete` (`lib/commands.js`).
 - The modules, one per facility, each with its commands: `lib/tabs.js` (tabs, navigating),
   `lib/elements.js` (choosing a match; the interact and mouse commands; highlight), `lib/cursor.js` (the pointer
-  drawn over the page, which the element and mouse commands glide first), `lib/inspect.js` (reading the
+  drawn over the page, which the element and mouse commands glide first), `lib/toast.js` (a line of text
+  over the page), `lib/overlay.js` (the element the cursor and toast are drawn in, one layer each), `lib/inspect.js` (reading the
   page, screenshots, eval, CDP, waits), `lib/watch.js`, `lib/requestlog.js` (requests, bodies, console),
   `lib/routes.js`, `lib/network.js`, `lib/emulation.js` (and viewport), `lib/capture.js`, `lib/record.js`
   (video, through ffmpeg, and the steps file saved with it), `lib/dialogs.js` and `lib/modes.js`. Beneath them, `lib/tabstate.js` is the one record kept per tab, `lib/cdp.js` the CDP

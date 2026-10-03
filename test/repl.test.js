@@ -170,6 +170,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.equal(await ok(`eval (el) => el.id ${ref}`), 'go');
     assert.equal(await ok('eval 1 + 1'), '2', 'an expression is evaluated as before');
     assert.equal(await ok('eval ""'), '""', 'an empty string is shown as one');
+    assert.equal(await ok('eval "document.title"'), 'document.title\n(That is a string: the JavaScript was in quotes, which eval keeps. Without them, it runs: eval document.title)', 'quotes around all of it, said');
+    assert.equal(await ok('eval `${document.title}-x`'), 'Fixture-x', 'a template that ran is no string as typed');
+    assert.equal(await ok('eval "a" + document.title + "b"'), 'aFixtureb', 'nor strings joined');
     assert.equal(await ok('eval (await fetch("/api/data")).status'), '200', 'await at the top level');
     assert.equal(await ok('eval const r = await fetch("/api/data"); await r.json()'), '{\n  "real": true\n}', 'statements with await give the last one\'s value');
     assert.match((await repl.run('eval await Promise.reject(new Error("nope")); 1')).output, /Error: nope/);
@@ -1904,7 +1907,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('points the cursor at the part of an element in view, and scrolls only to one out of view', async () => {
-    const drawn = 'eval (c => new DOMMatrix(getComputedStyle(c.arrow).transform).e + "," + new DOMMatrix(getComputedStyle(c.arrow).transform).f)(document[Symbol.for("pw-repl-cursor")])';
+    const drawn = 'eval (c => new DOMMatrix(getComputedStyle(c.arrow).transform).e + "," + new DOMMatrix(getComputedStyle(c.arrow).transform).f)(document[Symbol.for("pw-repl-overlay")].cursor)';
     // Cut off by the right edge, as a bug would have it; and one far below.
     await ok('goto data:text/html,<body style="margin:0"><button id=cut style="position:absolute;left:calc(100vw - 40px);top:50px;width:120px;height:30px">Cut</button><button id=far style="position:absolute;left:10px;top:3000px">Far</button>');
     try {
@@ -1921,18 +1924,72 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('shows a toast over the page as a mode of the tab, replaced by the next, and gone with toast off', async () => {
+    const shown = 'eval (o => o?.toast ? o.host.isConnected + " " + o.toast.textContent + " " + getComputedStyle(o.toast).opacity : "none")(document[Symbol.for("pw-repl-overlay")])';
+    assert.equal(await ok('toast'), 'No toast is up in the selected tab; toast <text> shows one');
+    assert.equal(await ok('toast Filing a ticket for a damaged package'), 'Showing the toast until toast off. Read time: 2.1s (7 words; 300ms a word, at least 1.5s), which a recording waits out before the next toast, toast off or record off.');
+    assert.equal(await ok(shown), 'true Filing a ticket for a damaged package 1', 'faded in by the time it returns');
+    assert.match(await ok('modes'), /\(toast\)/);
+    assert.match(await ok('toast'), /^A toast is up in the selected tab: "Filing a ticket for a damaged package"; toast off hides it$/);
+    // Out of sight of selectors, the snapshot and text, and the page is used through it as before.
+    assert.doesNotMatch(await ok('snapshot'), /Filing a ticket/);
+    assert.doesNotMatch(await ok('text body'), /Filing a ticket/);
+    await ok('fill #name Ada');
+    await ok('click #go');
+    assert.equal(await ok('text #out'), 'Hello Ada');
+    assert.match(await ok('toast "Two words" --position=top --size=30 --opacity=.5 --read-time=4s'), /Read time: 4s \(--read-time\)/);
+    assert.match(await ok('toast "Two words" --position=top --size=30 --opacity=.5 --read-time=25s'), /Read time: 25s \(--read-time\), .* While recording, that one can wait up to 25s: send it with -t 35\.$/);
+    assert.match(await ok('toast "Two words" --position=top --size=30 --opacity=.5 --read-time=4s'), /or record off\.$/, 'no warning at 4s');
+    assert.equal(await ok(shown), 'true Two words 0.5', 'the new one, replacing the old');
+    assert.equal(await ok('eval document[Symbol.for("pw-repl-overlay")].toast.parentNode.childElementCount'), '1', 'one at a time');
+    // A new page draws it again.
+    await ok('click text=Other');
+    await ok('wait load');
+    await waitFor(async () => (await ok(shown)).startsWith('true Two words'), 'the toast on the new page');
+    assert.match(await ok('modes off'), /toast off/);
+    assert.equal(await ok(shown), 'none');
+    assert.equal(await ok('count pw-repl-overlay'), '0 element(s)', 'gone with its last layer');
+    // One with a duration goes by itself.
+    assert.equal(await ok('toast Soon gone --duration=300ms'), 'Showing the toast for 0.3s');
+    await waitFor(async () => (await ok(shown)) === 'none', 'the toast to go by itself');
+    assert.equal(await ok('toast off'), 'No toast was up in the selected tab');
+    for (const [bad, said] of [['toast --position=left x', /--position is top, center or bottom/], ['toast x --duration=soon', /--duration is a time/], ['toast x --size=2', /--size is the text's size in pixels/], ['toast x --duration=1s --read-time=2s', /do not go together/], ['toast --size=20', /^Error: Usage: toast <text>/]]) {
+      const result = await repl.run(bad);
+      assert.equal(result.status, 'error', bad);
+      assert.match(result.output, said, bad);
+    }
+  });
+
+  it('keeps a toast up for its read time while the tab records', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
+    const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-toast-'));
+    try {
+      await ok(`record on ${dir}/clip.webm --steps --lead=0 --tail=0 --pause=0`);
+      await ok('toast One --read-time=1s');
+      assert.match(await ok('toast Two --read-time=1s'), /^Waited \d\.\ds for the toast's read time \(the tab is recording\)\n/);
+      assert.match(await ok('toast off'), /^Waited \d\.\ds for the toast's read time/);
+      await ok('toast Three --read-time=1s');
+      assert.match(await ok('record off'), /^Waited \d\.\ds for the toast's read time[\s\S]*Saved: /);
+      // On the video's own clock: a busy machine only makes these longer.
+      const steps = fs.readFileSync(`${dir}/clip.steps.txt`, 'utf8').split('\n').filter(l => / toast/.test(l)).map(l => [Number(l.split(' ')[0]), Number(l.split(' ')[1]), l.replace(/^(\S+ ){6}/, '')]);
+      assert.deepEqual(steps.map(([, , command]) => command), ['toast One --read-time=1s', 'toast Two --read-time=1s', 'toast off', 'toast Three --read-time=1s']);
+      assert.ok(steps[1][1] - steps[0][1] >= 0.95, `the second waited for the first: ${steps[0][1]}s to ${steps[1][1]}s`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('draws a cursor that goes where the REPL acts and shows its clicks, as a mode of the tab', async () => {
-    const drawn = 'eval (c => c ? c.host.isConnected + " " + new DOMMatrix(getComputedStyle(c.arrow).transform).e + "," + new DOMMatrix(getComputedStyle(c.arrow).transform).f : "none")(document[Symbol.for("pw-repl-cursor")])';
+    const drawn = 'eval (o => o?.cursor ? o.host.isConnected + " " + new DOMMatrix(getComputedStyle(o.cursor.arrow).transform).e + "," + new DOMMatrix(getComputedStyle(o.cursor.arrow).transform).f : "none")(document[Symbol.for("pw-repl-overlay")])';
     assert.equal(await ok('cursor'), 'The cursor is off in the selected tab; cursor on shows it');
     await ok('mousemove 30 40');
     assert.match(await ok('cursor on'), /^The cursor is on, at 30, 40: /, 'where the mouse is');
     assert.equal(await ok(drawn), 'true 30,40');
     assert.match(await ok('modes'), /\(cursor\)/);
     // Out of sight of selectors, the snapshot and text, and the page is used through it as before.
-    assert.doesNotMatch(await ok('snapshot'), /pw-repl-cursor|svg/);
+    assert.doesNotMatch(await ok('snapshot'), /pw-repl-overlay|svg/);
     await ok('fill #name Ada');
     // Its rings counted as they are added: they fade, so looking for one afterwards would race it.
-    await ok('eval window.rings = 0; new MutationObserver(ms => { for (const m of ms) window.rings += m.addedNodes.length; }).observe(document[Symbol.for("pw-repl-cursor")].root, { childList: true })');
+    await ok('eval window.rings = 0; new MutationObserver(ms => { for (const m of ms) window.rings += m.addedNodes.length; }).observe(document[Symbol.for("pw-repl-overlay")].cursor.root, { childList: true })');
     await ok('click #go');
     assert.equal(await ok('text #out'), 'Hello Ada');
     const centre = await ok('eval (r => Math.round(r.x + r.width / 2) + "," + Math.round(r.y + r.height / 2))(document.querySelector("#go").getBoundingClientRect())');
@@ -1949,11 +2006,11 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match((await repl.run('fill #missing x')).output, /^Error: No element matches #missing \(waited 5s\)/);
     // A select's list, drawn over the page (a native one is not in recordings), and gone afterwards.
     await ok('eval document.body.insertAdjacentHTML("beforeend", "<select id=pick><option>One</option><option value=2>Two</option></select>")');
-    await ok('eval window.rows = []; new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.childElementCount) rows.push([...n.children].map(c => c.textContent).join(",")); }).observe(document[Symbol.for("pw-repl-cursor")].root, { childList: true })');
+    await ok('eval window.rows = []; new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.childElementCount) rows.push([...n.children].map(c => c.textContent).join(",")); }).observe(document[Symbol.for("pw-repl-overlay")].cursor.root, { childList: true })');
     await ok('select #pick 2');
     assert.equal(await ok('eval document.querySelector("#pick").value'), '2');
     assert.equal(await ok('eval rows.join("|")'), 'One,Two');
-    assert.equal(await ok('eval [...document[Symbol.for("pw-repl-cursor")].root.children].filter(c => c.tagName === "DIV" && c.childElementCount).length'), '0', 'the list is gone (a click\'s ring may still be fading)');
+    assert.equal(await ok('eval [...document[Symbol.for("pw-repl-overlay")].cursor.root.children].filter(c => c.tagName === "DIV" && c.childElementCount).length'), '0', 'the list is gone (a click\'s ring may still be fading)');
     await ok('eval document.querySelector("#pick").remove()');
     // A new page draws it again where it was.
     await ok('click text=Other');
@@ -1961,7 +2018,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await waitFor(async () => /^true /.test(await ok(drawn)), 'the cursor on the new page');
     assert.match(await ok('modes off'), /cursor off/);
     assert.equal(await ok(drawn), 'none');
-    assert.equal(await ok('count pw-repl-cursor'), '0 element(s)');
+    assert.equal(await ok('count pw-repl-overlay'), '0 element(s)');
     // It fades in on an element asked for, as a video's first.
     await ok('goto ' + site.url + '/');
     assert.match(await ok('cursor on #go'), /^The cursor is on, at \d+, \d+: /);

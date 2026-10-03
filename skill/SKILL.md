@@ -1,6 +1,6 @@
 ---
 name: pw-repl
-description: Inspect and drive a Chromium browser, possibly one the user is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, the mouse at a point (moves, buttons, wheel), requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, recording what the user does, and recording a video of a tab. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
+description: Inspect and drive a Chromium browser, possibly one the user is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, the mouse at a point (moves, buttons, wheel), requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, recording what the user does, and recording a video of a tab, with a pointer and on-screen captions. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
 allowed-tools: Bash(pw-repl:*) Bash(npx pw-repl@latest:*)
 ---
 
@@ -222,8 +222,8 @@ pw-repl send -c <name> close                        # your modes off; tab close 
   without changing the page (`--style=<css>` restyles it; `highlight off` hides them), without
   Playwright's locator label unless `highlight --labels on`.
 - For a video, `help video` says how: a take written as a file and sent with `send --file`, `record on`
-  around it, `cursor on` for a pointer, and the pacing recording adds for the viewer; a screen recorder
-  on the user's machine records what they see.
+  around it, `cursor on` for a pointer, `toast` to say what is happening, and the pacing recording adds
+  for the viewer; a screen recorder on the user's machine records what they see.
 
 ## Environment
 

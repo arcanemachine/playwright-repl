@@ -65,7 +65,7 @@ Not here as such:
   set-reduced-motion, clear-reduced-motion, set-forced-colors, clear-forced-colors, set-contrast,
       clear-contrast, set-media, clear-media: not here yet; emulate dark|light sets the color scheme
   request-headers, response-headers, request-body: not here yet; body <#> shows the response body
-  video-chapter: not here: record on|off records a video, without chapters
+  video-chapter: not here: toast <text> --duration=3s shows a title over the page instead, in the video
   video-show-actions: not here; cursor on draws a pointer that moves to each action, without labels
   video-hide-actions: not here; cursor off hides the pointer cursor on draws
   pause-at, resume, step-over: not here: they step through a Playwright test
