@@ -17,7 +17,7 @@ const USAGE = `Usage:
   pw-repl stop [-e endpoint]
       stop a background REPL, and say what became of each recording it ended
 
-  pw-repl send [-e endpoint | -s session] [-c client] [-t seconds] <command...> | --file <file>
+  pw-repl send [-e endpoint | -s session] [-c client] [-t seconds] <command...> | --file <file> [--no-vars]
       run one command in a running REPL and print its output; --file runs a file of them, one per line
 
   pw-repl where [-e endpoint | -s session]
@@ -44,6 +44,14 @@ quoted as the prompt reads it (no shell), with a file it records, uploads or sav
 folder, as on send's command line, and # comments and blank lines skipped. It stops at the first
 command that fails, saying its line, with its exit status. -t is each command's own limit. Other
 clients' commands can run between its lines, on their own tabs.
+
+A {{ NAME }} in a line of the file is the variable NAME from send's environment, e.g. a password kept
+out of the file: PASSWORD=... pw-repl send --file login.txt, for fill '#password' "{{ PASSWORD }}".
+Put it in double quotes: there its value is escaped as they read it (in single quotes, which escape
+nothing, a value with a ' is refused). The REPL fills it in as it runs
+the line, and its pane and log show the line as written. A variable that is not set stops the file at
+that line, before it is sent. --no-vars sends {{ NAME }} as it is. Variables need the command server
+(pw-repl serve), not the tmux pane.
 
 The browser must be running with --remote-debugging-port (default http://localhost:9222; set $PW_CDP_URL).
 
@@ -87,6 +95,7 @@ function parseSendArgs(args, allowCommand) {
       options.file = require('path').resolve(args[++i]);
       continue;
     }
+    if (arg === '--no-vars') { options.noVars = true; continue; }
     if (arg === '-e' || arg === '-s' || arg === '-c' || arg === '-t') {
       const value = args[++i];
       if (value === undefined) usage();
@@ -112,6 +121,7 @@ function parseSendArgs(args, allowCommand) {
   const words = args.slice(i);
   if (!allowCommand && (words.length || options.file)) usage();
   if (options.file && words.length) usage();
+  if (options.noVars && !options.file) usage();
   options.command = require('../lib/send').commandLine(words);
   return options;
 }

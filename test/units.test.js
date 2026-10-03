@@ -343,6 +343,25 @@ describe('key names', () => {
   });
 });
 
+describe('send --file variables', () => {
+  const { variablesIn, expandVariables } = require('../lib/syntax');
+  const values = { PASSWORD: 'a"b\\c d', who: 'Ada' };
+
+  it('fills in {{ NAME }}, padded or not, escaped only in double quotes', () => {
+    assert.deepEqual(variablesIn('fill #pw "{{ PASSWORD }}" {{who}} {{ PASSWORD }}'), ['PASSWORD', 'who']);
+    assert.equal(expandVariables('fill #pw "{{ PASSWORD }}"', values), 'fill #pw "a\\"b\\\\c d"');
+    assert.equal(expandVariables("fill '#pw' {{PASSWORD}}", values), 'fill \'#pw\' a"b\\c d');
+    assert.equal(expandVariables("eval '{{ who }}'", values), "eval 'Ada'", 'single quotes escape nothing');
+    assert.throws(() => expandVariables("fill '#pw' '{{ PASSWORD }}'", { PASSWORD: "it's" }), /^Error: \{\{ PASSWORD \}\} holds a ', which single quotes cannot hold: put it in double quotes$/);
+  });
+
+  it('leaves alone what is not a name in braces, and refuses one with no value', () => {
+    assert.equal(expandVariables('eval `${who}` + "{{ a.b }}" + {{}}', values), 'eval `${who}` + "{{ a.b }}" + {{}}');
+    assert.deepEqual(variablesIn('eval `${who}` {{ a.b }}'), []);
+    assert.throws(() => expandVariables('fill #x "{{ NOPE }}"', values), /\{\{ NOPE \}\} has no value/);
+  });
+});
+
 describe('step labels', () => {
   it('name the command and what it acts on, its selector without the quotes it needed, and never a value', () => {
     const { stepLabel } = require('../lib/record');

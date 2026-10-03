@@ -563,13 +563,13 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
-  it('saves what was watched as commands that send --file runs again, values and all, but no password', async () => {
+  it('saves what was watched as commands that send --file runs again, values and all, a password as a variable', async () => {
     const { spawn } = require('child_process');
     const path = require('path');
     const os = require('os');
     // Not spawnSync: the test site is served from this process, and the file's goto needs it.
-    const sendFile = name => new Promise(resolve => {
-      const child = spawn(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, '--file', name], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const sendFile = (name, env = {}, flags = []) => new Promise(resolve => {
+      const child = spawn(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, '--file', name, ...flags], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } });
       let output = '';
       child.stdout.on('data', d => { output += d; });
       child.stderr.on('data', d => { output += d; });
@@ -602,7 +602,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.match(steps, /type textbox "Name" "-Ada  "/, 'what was typed, shown');
       assert.match(steps, /type textbox "Password" \(a password: not recorded\)/);
       assert.doesNotMatch(steps, /hunter|424242/, 'no secret, even once shown as text');
-      assert.match(await ok(`watch save ${file}`), /^Saved \d+ steps to \S+flow\.txt; 5 could not be written as commands/);
+      assert.match(await ok(`watch save ${file}`), /^Saved \d+ steps to \S+flow\.txt; 2 could not be written as commands[\s\S]*\{\{ PW_PASSWORD \}\}, \{\{ PW_CODE \}\}\.\nPW_PASSWORD=\.\.\. PW_CODE=\.\.\. pw-repl send --file/);
       const saved = fs.readFileSync(file, 'utf8');
       assert.equal(fs.statSync(file).mode & 0o777, 0o600, 'only the user reads what they typed');
       assert.doesNotMatch(saved, /hunter|424242/);
@@ -615,15 +615,18 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
         `press 'input[name="who"]' Enter`,
         `select '#area' "Shipping"`,
         `check '#gift'`,
+        `fill '#pw' "{{ PW_PASSWORD }}"`,
         `click '#show'`,
+        `fill '#pw' "{{ PW_PASSWORD }}"`,
+        `fill '#otp' "{{ PW_CODE }}"`,
         `fill 'body > x-card:nth-of-type(2) #qty' "3"`,
         `select '#plan' "pro-yearly"`,
         `click '#route'`,
         `click '#next'`,
         'wait load',
       ]);
-      assert.match(saved, /^# type textbox "Password": a password, not recorded: fill '#pw' "<password>" types it$/m);
-      assert.match(saved, /^# type textbox "Code": a password, not recorded/m, 'a one-time code is one too');
+      assert.match(saved, /^# PW_PASSWORD=\.\.\. PW_CODE=\.\.\. pw-repl send --file flow\.txt runs it/m);
+      assert.match(saved, /^# It needs PW_PASSWORD, PW_CODE set in the environment: what was typed into password fields/m, 'a one-time code is one too');
       assert.match(saved, /^# fill textbox "Note": what was typed has a line break/m);
       assert.match(saved, /^# select combobox "Plan" "Pro, billed yearly, [^"]*"\n/m, 'the label, for the reader');
       assert.match(saved, /^# click i "\+": no selector finds it alone/m, 'its place in its shadow root matches one in the host\'s children too');
@@ -634,14 +637,29 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       const lines = saved.split('\n');
       const beforeLeaving = path.join(dir, 'stay.txt');
       fs.writeFileSync(beforeLeaving, lines.slice(0, lines.findIndex(l => l === "click '#next'")).join('\n'));
-      const run = await sendFile(beforeLeaving);
+      const unset = await sendFile(beforeLeaving);
+      assert.equal(unset.status, 1);
+      assert.match(unset.output, /stopped at line \d+ of \S+stay\.txt \(fill '#pw' "\{\{ PW_PASSWORD \}\}"\): PW_PASSWORD is not set/);
+      await ok(`goto ${site.url}/flow`);
+      // Escaped as double quotes read it, and shown nowhere: the REPL shows the line as written.
+      const secret = 'pa"ss\\word 9';
+      const shown = repl.stdout.length;
+      const run = await sendFile(beforeLeaving, { PW_PASSWORD: secret, PW_CODE: '555111' });
       assert.equal(run.status, 0, run.output);
+      assert.match(repl.stdout.slice(shown), /fill '#pw' "\{\{ PW_PASSWORD \}\}"/);
+      assert.doesNotMatch(repl.stdout.slice(shown) + run.output, /pa"ss|555111/);
+      assert.equal(await ok('eval JSON.stringify([pw.value, otp.value])'), JSON.stringify([secret, '555111']));
+      const literal = path.join(dir, 'literal.txt');
+      fs.writeFileSync(literal, 'eval "{{ PW_PASSWORD }}" === pw.value\neval "{{ NOPE }}".length\n');
+      assert.match((await sendFile(literal, { PW_PASSWORD: secret })).output, /stopped at line 2 of \S+ \(eval "\{\{ NOPE \}\}"\.length\): NOPE is not set/);
+      assert.match((await sendFile(literal, { PW_PASSWORD: secret, NOPE: 'x' })).output, /^true$\n[\s\S]*^1$/m, 'a variable in a JS string');
+      assert.match((await sendFile(literal, {}, ['--no-vars'])).output, /^false$\n[\s\S]*^10$/m, '--no-vars sends it as written');
       assert.equal(await ok('eval JSON.stringify(out.textContent)'), '"Hose,Trowel|entered:-Ada  "', 'the spaces typed too');
       assert.equal(await ok('eval [area.value, gift.checked, document.querySelectorAll("x-card")[1].shadowRoot.querySelector("#qty").value, plan.value, location.pathname].join()'), 'Shipping,true,3,pro-yearly,/flow/routed');
-      const all = await sendFile(file);
+      const all = await sendFile(file, { PW_PASSWORD: secret, PW_CODE: '555111' });
       assert.equal(all.status, 0, all.output);
       assert.match(await ok('info'), /\/other/);
-      // --no-values: the step, not what was typed.
+      // --no-values: the step, and a variable for what was typed.
       await ok('watch off');
       await ok(`goto ${site.url}/flow`);
       await ok('watch on --no-values');
@@ -649,7 +667,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await waitFor(async () => /type textbox "Name"/.test(await ok('watch')), 'the typing');
       assert.doesNotMatch(await ok('watch'), /Grace/);
       await ok(`watch save ${path.join(dir, 'none.txt')}`);
-      assert.match(fs.readFileSync(path.join(dir, 'none.txt'), 'utf8'), /^# type textbox "Name": what was typed was not recorded \(--no-values\)/m);
+      const none = fs.readFileSync(path.join(dir, 'none.txt'), 'utf8');
+      assert.match(none, /^fill 'input\[name="who"\]' "\{\{ PW_NAME \}\}"$/m);
+      assert.match(none, /^# It needs PW_NAME set in the environment: what was typed into fields \(watch on --no-values\)/m);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

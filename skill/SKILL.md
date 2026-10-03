@@ -129,7 +129,10 @@ REPL), or why neither is reachable, without running anything.
 `send --file take.txt` runs a file of commands, one per line, as typed at the prompt (no shell quoting;
 files relative to your folder, as on `send`'s command line; `#` comments), and stops at the first that
 fails, saying which line. It is the way to record a video without gaps (`help record`), and to keep a
-repro to run again.
+repro to run again. A `{{ NAME }}` in a line is the variable NAME from `send`'s environment, best in
+double quotes (`fill '#password' "{{ PASSWORD }}"`): the REPL fills it in as it runs the line, and its
+pane and log show the line as written, so a secret stays out of both the file and the log. One that is
+not set stops the file; `--no-vars` sends it as written.
 
 `send` takes one command; chain several in your shell. Use `&&` when a step only makes sense if the one
 before it worked: it stops at any exit status but 0, a failure and an outcome not confirmed included.
@@ -157,7 +160,9 @@ adds what each step changed on the page); `watch` reads it back, and `watch new`
 shown yet. For a tab they have not opened yet, `watch on --next-tab [url-part]` waits for it and
 watches it from its first page. `watch save <file>` writes the steps as commands that `send --file`
 runs again, a repro to keep. What is typed is recorded, except in password fields; `watch on
---no-values` leaves it out.
+--no-values` leaves it out. The file has a `{{ PW_PASSWORD }}` variable where a password was typed,
+which `send --file` fills in from its environment (`PW_PASSWORD=... pw-repl send --file login.txt`), so
+the file can be shared without it.
 
 When watching someone:
 
