@@ -48,6 +48,16 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     return result.output;
   };
   const fetchStatus = 'eval fetch("/api/data").then(r => r.status, e => String(e))';
+  // send --file in a process of its own, not spawnSync: the test site is served from this process, and a
+  // file's goto needs it.
+  const sendFile = (name, env = {}, flags = []) => new Promise(resolve => {
+    const { spawn } = require('child_process');
+    const child = spawn(process.execPath, [require('path').join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, '--file', name, ...flags], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } });
+    let output = '';
+    child.stdout.on('data', d => { output += d; });
+    child.stderr.on('data', d => { output += d; });
+    child.on('close', status => resolve({ status, output }));
+  });
 
   it('clicks the first match that can be clicked, and says which, or why none can', async () => {
     await ok(`tab new ${site.url}/pick`);
@@ -564,17 +574,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   });
 
   it('saves what was watched as commands that send --file runs again, values and all, a password as a variable', async () => {
-    const { spawn } = require('child_process');
     const path = require('path');
     const os = require('os');
-    // Not spawnSync: the test site is served from this process, and the file's goto needs it.
-    const sendFile = (name, env = {}, flags = []) => new Promise(resolve => {
-      const child = spawn(process.execPath, [path.join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, '--file', name, ...flags], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } });
-      let output = '';
-      child.stdout.on('data', d => { output += d; });
-      child.stderr.on('data', d => { output += d; });
-      child.on('close', status => resolve({ status, output }));
-    });
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-repl-flow-'));
     const file = path.join(dir, 'flow.txt');
     try {
@@ -670,6 +671,61 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       const none = fs.readFileSync(path.join(dir, 'none.txt'), 'utf8');
       assert.match(none, /^fill 'input\[name="who"\]' "\{\{ PW_NAME \}\}"$/m);
       assert.match(none, /^# It needs PW_NAME set in the environment: what was typed into fields \(watch on --no-values\)/m);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('names each field\'s variable once, apart from another field\'s, the shell\'s and pw-repl\'s own', async () => {
+    const path = require('path');
+    const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pw-repl-vars-'));
+    const file = path.join(dir, 'vars.txt');
+    // Two fields labelled Password, in a form, one labelled as a pw-repl setting is named, one as a shell
+    // variable is, one with a label in Spanish, and one with no label, id or name.
+    const fields = `<form onsubmit="event.preventDefault(); document.title = 'sent'"><label>Password <input type="password" id="p1"></label><label>Password <input type="password" id="p2"></label><button>Go</button></form>
+<label>Socket <input id="sock"></label><label>User <input id="user"></label><label>Contraseña <input id="es"></label><div><input></div>`;
+    try {
+      await ok(`goto ${site.url}/other`);
+      await ok(`eval document.body.innerHTML = ${JSON.stringify(fields)}; 0`);
+      await ok('watch on --no-values');
+      await ok('fill #p1 one');
+      await ok('fill #p2 two');
+      await ok('fill #p1 one');
+      await ok('fill #sock three');
+      await ok('fill #user four');
+      await ok('fill #es five');
+      await ok('fill "div > input" six');
+      // The form's submit is the Enter's: the click on Go the browser sends for it is not a step.
+      await ok('press #p2 Enter');
+      await waitFor(async () => /press textbox "Password" Enter/.test(await ok('watch')), 'the Enter');
+      assert.equal(await ok('eval document.title'), 'sent');
+      assert.equal((await ok('watch')).match(/type textbox/g).length, 7);
+      assert.doesNotMatch(await ok('watch'), /click button "Go"/);
+      assert.match(await ok(`watch save ${file}`), /\{\{ PW_PASSWORD \}\}, \{\{ PW_PASSWORD_2 \}\}, \{\{ PW_SOCKET_2 \}\}, \{\{ PW_USER \}\}, \{\{ PW_CONTRASE_A \}\}, \{\{ PW_TEXT \}\}\./);
+      const saved = fs.readFileSync(file, 'utf8');
+      assert.deepEqual(saved.split('\n').filter(l => l.startsWith('fill')), [
+        `fill '#p1' "{{ PW_PASSWORD }}"`,
+        `fill '#p2' "{{ PW_PASSWORD_2 }}"`,
+        `fill '#p1' "{{ PW_PASSWORD }}"`,
+        `fill '#sock' "{{ PW_SOCKET_2 }}"`,
+        `fill '#user' "{{ PW_USER }}"`,
+        `fill '#es' "{{ PW_CONTRASE_A }}"`,
+        `fill 'body > div > input' "{{ PW_TEXT }}"`,
+      ], 'the same field again keeps its name; another field with the same one is numbered');
+      assert.match(saved, /^press '#p2' Enter$/m);
+      assert.doesNotMatch(saved, /^click/m);
+      assert.match(saved, /^# It needs PW_PASSWORD, PW_PASSWORD_2, PW_SOCKET_2, PW_USER, PW_CONTRASE_A, PW_TEXT set/m);
+      await ok('watch off');
+      // Run on the page as it was, with decoys for the names a field must not take: the shell's USER, and
+      // pw-repl's own PW_SOCKET (send has -e, so it is not used to find the REPL).
+      const lines = saved.split('\n').filter(l => !l.startsWith('goto'));
+      const replay = path.join(dir, 'replay.txt');
+      fs.writeFileSync(replay, lines.join('\n'));
+      await ok(`eval document.body.innerHTML = ${JSON.stringify(fields)}; 0`);
+      const values = { PW_PASSWORD: 'v1', PW_PASSWORD_2: 'v2', PW_SOCKET_2: 'v3', PW_USER: 'v4', PW_CONTRASE_A: 'v5', PW_TEXT: 'v6' };
+      const run = await sendFile(replay, { ...values, USER: 'shell-user', PW_SOCKET: '/nonexistent/decoy.sock' });
+      assert.equal(run.status, 0, run.output);
+      assert.equal(await ok('eval [...document.querySelectorAll("input")].map(i => i.value).join()'), 'v1,v2,v3,v4,v5,v6');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
