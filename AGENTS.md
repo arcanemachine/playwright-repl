@@ -25,7 +25,7 @@ If you hit a limitation or write a workaround, consider adding the capability to
   runs commands one at a time (`quit` and `dialog` skip its queue); `lib/server.js` is the command
   server; `lib/send.js` and `lib/client.js` are `send` and `where`; `lib/background.js` is
   `serve --background`, `attach` and `stop`; `lib/launch.js` is `--launch`; `lib/syntax.js` is how a
-  command line's words are read, shared with `send`; `lib/cli-names.js` maps playwright-cli's command
+  command line's words are read, shared with `send`, and its `{{ PW_NAME }}` variables; `lib/cli-names.js` maps playwright-cli's command
   names to these; `lib/state.js` holds the session state, with each client's selected tab;
   `lib/output.js` routes all output so the server can return it; `lib/skill.js` stamps the skill
   `pw-repl skill` prints, and gives `where` its hash.

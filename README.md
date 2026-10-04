@@ -179,6 +179,12 @@ Several agents can share one REPL: `pw-repl send -c <name>` (or `PW_CLIENT=<name
 selected tab of its own, shown in the pane as `[server:<name>]`. `modes` says which client turned each mode on,
 and `modes off --mine` turns off only the sender's own.
 
+A password stays out of the pane and the log as a variable: `PW_PASSWORD=... pw-repl send fill '#password'
+"{{ PW_PASSWORD }}"`, or the same line in a file run with `send --file`, as `watch save` writes it. `send`
+takes the value of `{{ PW_NAME }}` from its own environment and passes it along with the command; the REPL
+puts it in only as it runs the command, and shows the command as written. Only `PW_` names are variables
+(`pw-repl --help` has the rest).
+
 ### The HTTP protocol
 
 With `pw-repl serve`, the server speaks HTTP with JSON, for clients of your own:
@@ -188,11 +194,12 @@ curl --unix-socket /tmp/playwright-repl.sock -H 'Content-Type: application/json'
   -d '{"command": "info"}' http://localhost/run
 ```
 
-It returns `{"status": "ok" | "error", "output": "..."}`, plus `"unconfirmed": true` when the command may or
-may not have done what it was sent to do (it timed out, or the REPL quit while it ran and it was not
-read-only). While the REPL starts, `/run` answers 503 with `"starting": true`: retry. `GET /health` says
-`"status": "starting"` until it serves, then `"ok"`. `pw-repl serve <port>` serves TCP on 127.0.0.1
-instead; other addresses are refused.
+The body may also have `"client": "<name>"`, and `"vars": {"PW_NAME": "<value>"}` with the values of the
+`{{ PW_NAME }}` variables in the command. It returns `{"status": "ok" | "error", "output": "..."}`, plus
+`"unconfirmed": true` when the command may or may not have done what it was sent to do (it timed out, or
+the REPL quit while it ran and it was not read-only). While the REPL starts, `/run` answers 503 with
+`"starting": true`: retry. `GET /health` says `"status": "starting"` until it serves, then `"ok"`.
+`pw-repl serve <port>` serves TCP on 127.0.0.1 instead; other addresses are refused.
 
 ## Tests
 
