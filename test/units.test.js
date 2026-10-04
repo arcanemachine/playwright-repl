@@ -345,20 +345,21 @@ describe('key names', () => {
 
 describe('send --file variables', () => {
   const { variablesIn, expandVariables } = require('../lib/syntax');
-  const values = { PASSWORD: 'a"b\\c d', who: 'Ada' };
+  const values = { PW_PASSWORD: 'a"b\\c d', PW_WHO: 'Ada' };
 
-  it('fills in {{ NAME }}, padded or not, escaped only in double quotes', () => {
-    assert.deepEqual(variablesIn('fill #pw "{{ PASSWORD }}" {{who}} {{ PASSWORD }}'), ['PASSWORD', 'who']);
-    assert.equal(expandVariables('fill #pw "{{ PASSWORD }}"', values), 'fill #pw "a\\"b\\\\c d"');
-    assert.equal(expandVariables("fill '#pw' {{PASSWORD}}", values), 'fill \'#pw\' a"b\\c d');
-    assert.equal(expandVariables("eval '{{ who }}'", values), "eval 'Ada'", 'single quotes escape nothing');
-    assert.throws(() => expandVariables("fill '#pw' '{{ PASSWORD }}'", { PASSWORD: "it's" }), /^Error: \{\{ PASSWORD \}\} holds a ', which single quotes cannot hold: put it in double quotes$/);
+  it('fills in {{ PW_NAME }}, padded or not, escaped only in double quotes', () => {
+    assert.deepEqual(variablesIn('fill #pw "{{ PW_PASSWORD }}" {{PW_WHO}} {{ PW_PASSWORD }}'), ['PW_PASSWORD', 'PW_WHO']);
+    assert.equal(expandVariables('fill #pw "{{ PW_PASSWORD }}"', values), 'fill #pw "a\\"b\\\\c d"');
+    assert.equal(expandVariables("fill '#pw' {{PW_PASSWORD}}", values), 'fill \'#pw\' a"b\\c d');
+    assert.equal(expandVariables("eval '{{ PW_WHO }}'", values), "eval 'Ada'", 'single quotes escape nothing');
+    assert.throws(() => expandVariables("fill '#pw' '{{ PW_PASSWORD }}'", { PW_PASSWORD: "it's" }), /^Error: \{\{ PW_PASSWORD \}\} holds a ', which single quotes cannot hold: put it in double quotes$/);
   });
 
-  it('leaves alone what is not a name in braces, and refuses one with no value', () => {
-    assert.equal(expandVariables('eval `${who}` + "{{ a.b }}" + {{}}', values), 'eval `${who}` + "{{ a.b }}" + {{}}');
-    assert.deepEqual(variablesIn('eval `${who}` {{ a.b }}'), []);
-    assert.throws(() => expandVariables('fill #x "{{ NOPE }}"', values), /\{\{ NOPE \}\} has no value/);
+  it('leaves alone a template\'s own braces, and any other name, and refuses a PW_ one with no value', () => {
+    const page = 'fill #tpl "Hi {{ name }}, {{ GITHUB_TOKEN }} {{ pw_who }}" {{ a.b }} {{}} `${x}`';
+    assert.deepEqual(variablesIn(page), []);
+    assert.equal(expandVariables(page, { ...values, GITHUB_TOKEN: 'secret', name: 'x' }), page);
+    assert.throws(() => expandVariables('fill #x "{{ PW_NOPE }}"', values), /\{\{ PW_NOPE \}\} has no value/);
   });
 });
 

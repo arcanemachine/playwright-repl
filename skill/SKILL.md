@@ -129,10 +129,12 @@ REPL), or why neither is reachable, without running anything.
 `send --file take.txt` runs a file of commands, one per line, as typed at the prompt (no shell quoting;
 files relative to your folder, as on `send`'s command line; `#` comments), and stops at the first that
 fails, saying which line. It is the way to record a video without gaps (`help record`), and to keep a
-repro to run again. A `{{ NAME }}` in a line is the variable NAME from `send`'s environment, best in
-double quotes (`fill '#password' "{{ PASSWORD }}"`): the REPL fills it in as it runs the line, and its
-pane and log show the line as written, so a secret stays out of both the file and the log. One that is
-not set stops the file; `--no-vars` sends it as written.
+repro to run again. A `{{ PW_NAME }}` in a line is the variable PW_NAME from `send`'s environment, best
+in double quotes (`fill '#password' "{{ PW_PASSWORD }}"`): the REPL fills it in as it runs the line, and
+its pane and log show the line as written, so a secret stays out of both the file and the log. Only
+`PW_` names are variables; any other `{{ ... }}` (a page's template text) is sent as written. One that
+is not set stops the file; `--no-vars` sends it as written. A single `send` takes them too: to type a
+password, `PW_PASSWORD=... pw-repl send fill '#password' "{{ PW_PASSWORD }}"` keeps it out of the log.
 
 `send` takes one command; chain several in your shell. Use `&&` when a step only makes sense if the one
 before it worked: it stops at any exit status but 0, a failure and an outcome not confirmed included.

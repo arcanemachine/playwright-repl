@@ -50,14 +50,15 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
   const fetchStatus = 'eval fetch("/api/data").then(r => r.status, e => String(e))';
   // send --file in a process of its own, not spawnSync: the test site is served from this process, and a
   // file's goto needs it.
-  const sendFile = (name, env = {}, flags = []) => new Promise(resolve => {
+  const pwSend = (args, env = {}) => new Promise(resolve => {
     const { spawn } = require('child_process');
-    const child = spawn(process.execPath, [require('path').join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, '--file', name, ...flags], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } });
+    const child = spawn(process.execPath, [require('path').join(__dirname, '..', 'bin', 'pw-repl.js'), 'send', '-e', repl.socket, ...args], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } });
     let output = '';
     child.stdout.on('data', d => { output += d; });
     child.stderr.on('data', d => { output += d; });
     child.on('close', status => resolve({ status, output }));
   });
+  const sendFile = (name, env = {}, flags = []) => pwSend(['--file', name, ...flags], env);
 
   it('clicks the first match that can be clicked, and says which, or why none can', async () => {
     await ok(`tab new ${site.url}/pick`);
@@ -651,10 +652,10 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.doesNotMatch(repl.stdout.slice(shown) + run.output, /pa"ss|555111/);
       assert.equal(await ok('eval JSON.stringify([pw.value, otp.value])'), JSON.stringify([secret, '555111']));
       const literal = path.join(dir, 'literal.txt');
-      fs.writeFileSync(literal, 'eval "{{ PW_PASSWORD }}" === pw.value\neval "{{ NOPE }}".length\n');
-      assert.match((await sendFile(literal, { PW_PASSWORD: secret })).output, /stopped at line 2 of \S+ \(eval "\{\{ NOPE \}\}"\.length\): NOPE is not set/);
-      assert.match((await sendFile(literal, { PW_PASSWORD: secret, NOPE: 'x' })).output, /^true$\n[\s\S]*^1$/m, 'a variable in a JS string');
-      assert.match((await sendFile(literal, {}, ['--no-vars'])).output, /^false$\n[\s\S]*^10$/m, '--no-vars sends it as written');
+      fs.writeFileSync(literal, 'eval "{{ PW_PASSWORD }}" === pw.value\neval "{{ PW_NOPE }}".length\n');
+      assert.match((await sendFile(literal, { PW_PASSWORD: secret })).output, /stopped at line 2 of \S+ \(eval "\{\{ PW_NOPE \}\}"\.length\): PW_NOPE is not set/);
+      assert.match((await sendFile(literal, { PW_PASSWORD: secret, PW_NOPE: 'x' })).output, /^true$\n[\s\S]*^1$/m, 'a variable in a JS string');
+      assert.match((await sendFile(literal, {}, ['--no-vars'])).output, /^false$\n[\s\S]*^13$/m, '--no-vars sends it as written');
       assert.equal(await ok('eval JSON.stringify(out.textContent)'), '"Hose,Trowel|entered:-Ada  "', 'the spaces typed too');
       assert.equal(await ok('eval [area.value, gift.checked, document.querySelectorAll("x-card")[1].shadowRoot.querySelector("#qty").value, plan.value, location.pathname].join()'), 'Shipping,true,3,pro-yearly,/flow/routed');
       const all = await sendFile(file, { PW_PASSWORD: secret, PW_CODE: '555111' });
@@ -726,6 +727,23 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       const run = await sendFile(replay, { ...values, USER: 'shell-user', PW_SOCKET: '/nonexistent/decoy.sock' });
       assert.equal(run.status, 0, run.output);
       assert.equal(await ok('eval [...document.querySelectorAll("input")].map(i => i.value).join()'), 'v1,v2,v3,v4,v5,v6');
+      // One command takes them too, quoted as the shell would leave it, and shown as written.
+      const secret = 'it\'s "q" \\b x';
+      const shown = repl.stdout.length;
+      const one = await pwSend(['fill', '#p1', '{{ PW_PASSWORD }}'], { PW_PASSWORD: secret });
+      assert.equal(one.status, 0, one.output);
+      assert.match(repl.stdout.slice(shown), /fill #p1 "\{\{ PW_PASSWORD \}\}"/);
+      assert.doesNotMatch(repl.stdout.slice(shown) + one.output, /it's/);
+      assert.equal(await ok('eval p1.value'), secret);
+      const unset = await pwSend(['fill', '#p1', '{{ PW_NOPE }}']);
+      assert.equal(unset.status, 64);
+      assert.match(unset.output, /PW_NOPE is not set/);
+      assert.equal(await ok('eval p1.value'), secret, 'nothing was sent');
+      assert.match((await pwSend(['--no-vars', 'eval', '"{{ PW_NOPE }}".length'])).output, /^13$/m);
+      // A page's own braces, and a name not PW_'s, are typed as written: HOME is set, and stays out.
+      const template = await pwSend(['fill', '#p1', 'Hi {{ name }}, {{ HOME }}'], { PW_PASSWORD: secret });
+      assert.equal(template.status, 0, template.output);
+      assert.equal(await ok('eval p1.value'), 'Hi {{ name }}, {{ HOME }}');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

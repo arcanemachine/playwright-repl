@@ -17,7 +17,7 @@ const USAGE = `Usage:
   pw-repl stop [-e endpoint]
       stop a background REPL, and say what became of each recording it ended
 
-  pw-repl send [-e endpoint | -s session] [-c client] [-t seconds] <command...> | --file <file> [--no-vars]
+  pw-repl send [-e endpoint | -s session] [-c client] [-t seconds] [--no-vars] <command...> | --file <file>
       run one command in a running REPL and print its output; --file runs a file of them, one per line
 
   pw-repl where [-e endpoint | -s session]
@@ -45,13 +45,15 @@ folder, as on send's command line, and # comments and blank lines skipped. It st
 command that fails, saying its line, with its exit status. -t is each command's own limit. Other
 clients' commands can run between its lines, on their own tabs.
 
-A {{ NAME }} in a line of the file is the variable NAME from send's environment, e.g. a password kept
-out of the file: PASSWORD=... pw-repl send --file login.txt, for fill '#password' "{{ PASSWORD }}".
-Put it in double quotes: there its value is escaped as they read it (in single quotes, which escape
-nothing, a value with a ' is refused). The REPL fills it in as it runs
-the line, and its pane and log show the line as written. A variable that is not set stops the file at
-that line, before it is sent. --no-vars sends {{ NAME }} as it is. Variables need the command server
-(pw-repl serve), not the tmux pane.
+A {{ PW_NAME }} in a command, or in a line of the file, is the variable PW_NAME from send's environment,
+e.g. a password kept out of the file and the REPL's log. In a file: fill '#password' "{{ PW_PASSWORD }}",
+run with PW_PASSWORD=... pw-repl send --file login.txt; or one command: PW_PASSWORD=... pw-repl send
+fill '#password' "{{ PW_PASSWORD }}". Only names starting PW_ are variables: any other {{ ... }}, as in a
+page's template text, is sent as written. In a file, put it in double quotes: there its value is
+escaped as they read it (in single quotes, which escape nothing, a value with a ' is refused). The REPL
+fills it in as it runs the command, and its pane and log show the command as written. A variable that
+is not set stops the command, or the file at that line, before it is sent. --no-vars sends
+{{ PW_NAME }} as it is. Variables need the command server (pw-repl serve), not the tmux pane.
 
 The browser must be running with --remote-debugging-port (default http://localhost:9222; set $PW_CDP_URL).
 
@@ -121,7 +123,6 @@ function parseSendArgs(args, allowCommand) {
   const words = args.slice(i);
   if (!allowCommand && (words.length || options.file)) usage();
   if (options.file && words.length) usage();
-  if (options.noVars && !options.file) usage();
   options.command = require('../lib/send').commandLine(words);
   return options;
 }
