@@ -42,8 +42,8 @@ own lists them all.
 
   tab [<index>|<url-part>|new [url]|close [url-part]]  list tabs (* is selected); select, open or close one
       Arguments:
-        (none)              lists the tabs: * marks the selected one, (in front) the one the browser shows,
-                            and each says who opened it with tab new.
+        (none)              lists the tabs: * marks the selected one, (visible) the one the browser shows, and
+                            each says who opened it with tab new.
         <index>             selects by the number in your latest listing (each client has its own); numbers
                             change when tabs open or close.
         <url-part>          selects the one tab whose URL contains it; refused if none or several do.
@@ -54,12 +54,12 @@ own lists them all.
       Closing the selected tab goes back to the previous tab if tab new opened it; otherwise no tab is
       selected, and commands that need one refuse until one is.
 
-      In front: (in front) marks the tab the browser shows in its window, the one the user sees; (in front,
+      Visible: (visible) marks the tab the browser shows in its window, the one the user sees; (visible,
       focused) when its window has the keyboard too, and it is not in the address bar. A tab a client has
       selected or opened is never marked: pw-repl tells it that it is in front, so that it keeps drawing and
       clicks in it work while it is behind another, and so cannot ask it. The user's other tabs are told
-      nothing, and say truly whether they are seen. Each window has a tab in front, so with several windows
-      (an incognito one, say) several tabs are marked; focused is the one with the keyboard.
+      nothing, and say truly whether they are seen. Each window shows a tab, so with several windows (an
+      incognito one, say) several tabs are marked; focused is the one with the keyboard.
 
   goto <url>                                           navigate the selected tab
       Arguments:

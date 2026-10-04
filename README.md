@@ -88,7 +88,7 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 
 | I want to…                           | Commands                                                                              |
 | ------------------------------------ | ------------------------------------------------------------------------------------- |
-| see where I am                       | `tab` (it marks the tab you are looking at `(in front)`), `info`                      |
+| see where I am                       | `tab` (it marks the tab you are looking at `(visible)`), `info`                       |
 | see what is on the page              | `snapshot`, `screenshot`                                                              |
 | do something on it                   | `click`, `fill`, `press`                                                              |
 | wait for a page or element           | `wait load`, `wait <selector>`, `wait <selector> --gone`                              |

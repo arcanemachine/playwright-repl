@@ -573,7 +573,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await a.goto(`${site.url}/?user-a`);
       const b = await user.contexts()[0].newPage();
       await b.goto(`${site.url}/?user-b`);
-      const marked = async () => (await ok('tab')).split('\n').filter(l => /\(in front/.test(l)).map(l => (/\?user-[\w-]+/.exec(l) || [l.trim()])[0]);
+      const marked = async () => (await ok('tab')).split('\n').filter(l => /\(visible/.test(l)).map(l => (/\?user-[\w-]+/.exec(l) || [l.trim()])[0]);
       await a.bringToFront();
       assert.deepEqual(await marked(), ['?user-a']);
       await b.bringToFront();
