@@ -73,7 +73,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.equal(none.unconfirmed, undefined, 'nothing was done');
       assert.match(none.output, /^Error: None of the 2 matches for text=Covered could be acted on after 5s, so nothing was done:\n  <button> Covered: covered by <div>\n  <button> Covered: covered by <div>\n/);
       assert.equal(await ok(log), 'free free ');
-      assert.equal(await ok('click text=Far'), 'Clicked: text=Far', 'the first in page order, out of view or not');
+      assert.equal(await ok('click text=Far'), 'Clicked: text=Far (the first of 2 matches: <button> Far)', 'the first in page order, out of view or not, named');
       assert.equal(await ok(log), 'free free far-first ');
       await ok('eval scrollTo(0, 0)');
       for (let i = 0; i < 5; i += 1) {
@@ -305,6 +305,37 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(part, /^- region "Results" \[ref=\S+\]:\n  - alert/);
     assert.doesNotMatch(part, /button "Go"/);
     assert.equal(await ok(`text ${go}`), 'Go', 'a ref outside that element still works');
+  });
+
+  it('leaves a password field\'s value out of snapshot, html and attrs, and no other field\'s', async () => {
+    await ok('fill #pw hunter2');
+    await ok('fill #name Ada');
+    await ok('eval document.body.insertAdjacentHTML("beforeend", "<input id=otp aria-label=Code autocomplete=one-time-code><input id=cvc type=number aria-label=CVC autocomplete=cc-csc>"); 0');
+    await ok('fill #otp 424242');
+    await ok('fill #cvc 987');
+    const snap = await ok('snapshot');
+    assert.match(snap, /textbox "Password" \[ref=(e\d+)\]: \(a password: not shown\)/);
+    assert.match(snap, /textbox "Code"[^\n]*: \(a password: not shown\)/, 'nor a one-time code');
+    assert.match(snap, /spinbutton "CVC"[^\n]*: \(a password: not shown\)/, 'nor a card\'s code, a number field');
+    assert.match(snap, /textbox "Name"[^\n]*: Ada/);
+    const ref = /textbox "Password" \[ref=(e\d+)\]/.exec(snap)[1];
+    for (const view of ['snapshot --full', `snapshot ${ref}`, 'snapshot #pw', 'snapshot --grep Password']) {
+      const shown = await ok(view);
+      assert.match(shown, /\(a password: not shown\)/, view);
+      assert.doesNotMatch(shown, /hunter2|424242|987/, view);
+    }
+    // As a page that keeps the value attribute in step with the field does (React).
+    await ok('eval pw.setAttribute("value", pw.value); document.querySelector("#name").setAttribute("value", "Ada"); 0');
+    assert.match(await ok('attrs #pw'), /"value": "\(a password: not shown\)"/);
+    assert.match(await ok('attrs #name'), /"value": "Ada"/);
+    const html = await ok('html body');
+    assert.match(html, /<input id="pw" type="password" aria-label="Password" value="\(a password: not shown\)">/);
+    assert.match(html, /value="Ada"/);
+    assert.doesNotMatch(html, /hunter2/);
+    // Copied where the page's code does not run: no custom element is made again.
+    await ok('eval customElements.define("x-made", class extends HTMLElement { constructor() { super(); window.made = (window.made || 0) + 1; } }); document.body.append(document.createElement("x-made")); 0');
+    await ok('html body');
+    assert.equal(await ok('eval window.made'), '1');
   });
 
   it('watches alongside another Playwright client without throwing errors into the page', async () => {
