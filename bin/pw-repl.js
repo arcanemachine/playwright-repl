@@ -47,7 +47,7 @@ clients' commands can run between its lines, on their own tabs.
 
 A {{ PW_NAME }} in a command, or in a line of the file, is a variable: send takes its value from its own
 environment (PW_NAME) and passes it along with the command, not in it, e.g. a password kept out of the
-file and the REPL's log. In a file: fill '#password' "{{ PW_PASSWORD }}",
+file and out of the command as the REPL logs it. In a file: fill '#password' "{{ PW_PASSWORD }}",
 run with PW_PASSWORD=... pw-repl send --file login.txt; or one command: PW_PASSWORD=... pw-repl send
 fill '#password' "{{ PW_PASSWORD }}". Only names starting PW_ are variables: any other {{ ... }}, as in a
 page's template text, is sent as written. In a file, put it in double quotes: there its value is

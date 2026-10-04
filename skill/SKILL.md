@@ -132,10 +132,12 @@ fails, saying which line. It is the way to record a video without gaps (`help re
 repro to run again. A `{{ PW_NAME }}` in a line is a variable, best in double quotes (`fill '#password'
 "{{ PW_PASSWORD }}"`): `send` takes its value from its own environment and passes it along with the
 line, not in it; the REPL puts it in only as it runs the line, and its pane and log show the line as
-written, so a secret stays out of both the file and the log. Only
-`PW_` names are variables; any other `{{ ... }}` (a page's template text) is sent as written. One that
-is not set stops the file; `--no-vars` sends it as written. A single `send` takes them too: to type a
-password, `PW_PASSWORD=... pw-repl send fill '#password' "{{ PW_PASSWORD }}"` keeps it out of the log.
+written, so neither the file nor the line as logged holds the secret. Only `PW_` names are variables;
+any other `{{ ... }}` (a page's template text) is sent as written. One that is not set stops the file;
+`--no-vars` sends it as written. A single `send` takes them too: `PW_PASSWORD=... pw-repl send fill
+'#password' "{{ PW_PASSWORD }}"` types a password without it in the command. What reads it back can
+still show it: `snapshot`, `html` and `attrs` hide a password field's value, `eval` on the field does
+not.
 
 `send` takes one command; chain several in your shell. Use `&&` when a step only makes sense if the one
 before it worked: it stops at any exit status but 0, a failure and an outcome not confirmed included.
