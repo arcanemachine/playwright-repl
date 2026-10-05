@@ -224,6 +224,10 @@ pw-repl send -c <name> close                        # your modes off; tab close 
   `tab <index>`. Closing a tab the REPL opened goes back to the tab before it, if the REPL opened that
   one too; otherwise no tab is selected. Tab numbers change when tabs open or close; `tab <url-part>`
   and `tab close <url-part>` pick a tab by its URL and refuse if it is ambiguous.
+- A login form in the user's browser may be filled by its password manager, which can keep what it
+  filled from the page until someone clicks in the field or picks from its dropdown: a field that looks
+  filled can read as empty. Check a password field by its length (`eval` on its `value.length`), never
+  read or print it; if it stays empty, ask the user to fill it.
 - You can answer any dialog yourself, one you opened included: `dialog` shows it, and `dialog accept` or
   `dialog dismiss` answers it. Nothing answers one on its own, and while one is open its page and the
   commands that read it wait. One answered in the browser is gone from `dialog` too.
