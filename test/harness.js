@@ -97,6 +97,37 @@ customElements.define('x-pair', class extends HTMLElement { constructor() { supe
 document.querySelector('[name=who]').addEventListener('keydown', e => { if (e.key === 'Enter') out.textContent += '|entered:' + e.target.value; });
 </script>`;
 
+// A single-page app to watch: its routing calls the history API as vue-router does (the current URL
+// replaced, then the new one pushed; or pushed, then replaced with more), a date field, and labels
+// wrapping a native checkbox and a button that is a checkbox, as Radix draws one.
+const APP_PAGE = `<!doctype html><title>App</title>
+<input type="date" id="day" aria-label="Day">
+<button id="search" onclick="history.replaceState(history.state, '', location.href); history.pushState({}, '', '/app/search')">Search</button>
+<button id="filter" onclick="history.pushState({}, '', '/app/search?f=1'); history.replaceState({}, '', '/app/search?f=1&amp;page=1')">Filter</button>
+<label><input type="checkbox" id="native"> <span>Native</span></label>
+<label><button role="checkbox" aria-checked="false" id="four" onclick="this.setAttribute('aria-checked', this.getAttribute('aria-checked') === 'false')"></button> <span>Four</span> <span>stars</span></label>`;
+
+// Elements a role and a piece of their name find, as watch save writes them: options with ids a framework
+// made up, and named from two lines of text (aria-labelledby names nothing); checkboxes named from labels
+// with a count in them; links with an image and text, and one piece the other's holds too; a name with
+// quotes; a button whose name an input button's value holds too; and an element with a made-up id and no
+// name.
+const PICKER_PAGE = `<!doctype html><title>Picker</title>
+<input role="combobox" placeholder="Where to?" oninput="log('typed')">
+<div role="listbox">
+  <div role="option" id="radix-vue-combobox-option-v-0-17-4" aria-labelledby="radix-vue-combobox-item-v-0-17-3" onclick="log('cancun')"><div>Cancún</div><div>Quintana Roo, Mexico</div></div>
+  <div role="option" id="radix-vue-combobox-option-v-0-17-6" aria-labelledby="radix-vue-combobox-item-v-0-17-5" onclick="log('paradisus')"><div>Paradisus Cancún</div><div>Cancún, Mexico</div></div>
+</div>
+<label><div><button role="checkbox" onclick="log('4 stars')"></button></div><span>4 Stars</span><span>21</span></label>
+<label><div><button role="checkbox" onclick="log('5 stars')"></button></div><span>5 Stars</span><span>4</span></label>
+<a href="#one" onclick="log('one')"><img alt="Photo"><span>15% off</span><h3>Hotel Plaza</h3><p>From $171</p></a>
+<a href="#two" onclick="log('two')"><img alt="Photo"><h3>Hotel Plaza Caribe</h3></a>
+<button onclick="log('quotes')">Don't say "hi"</button>
+<button onclick="log('go')">Go</button> <input type="submit" value="Go there" onclick="log('go there')">
+<span id="ember1234" tabindex="0" style="display: inline-block; width: 20px; height: 20px" onclick="log('made-up')"></span>
+<p id="out"></p>
+<script>function log(what) { out.textContent += what + ';'; }</script>`;
+
 async function startSite() {
   const server = http.createServer((req, res) => {
     req.url = new URL(req.url, 'http://fixture').pathname;
@@ -127,6 +158,8 @@ redraw();
 pad.addEventListener('wheel', e => { e.preventDefault(); log.textContent += 'wheel:' + e.deltaY + '@' + e.clientX + ',' + e.clientY + ' '; });
 </script>`);
     }
+    if (req.url === '/picker') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(PICKER_PAGE); }
+    if (req.url === '/app') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(APP_PAGE); }
     if (req.url === '/flow') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(FLOW_PAGE); }
     if (req.url === '/other') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><title>Other</title><h1>Other</h1>'); }
     // Loads for a moment, for wait load.

@@ -644,8 +644,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
         `goto ${site.url}/flow`,
         "click 'body > div:nth-of-type(2) > button'",
         "click 'body > div:nth-of-type(1) > button'",
-        `fill 'input[name="who"]' "-Ada  "`,
-        `press 'input[name="who"]' Enter`,
+        `fill 'role=textbox[name*="Name"]' "-Ada  "`,
+        `press 'role=textbox[name*="Name"]' Enter`,
         `select '#area' "Shipping"`,
         `check '#gift'`,
         `fill '#pw' "{{ PW_PASSWORD }}"`,
@@ -655,6 +655,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
         `fill 'body > x-card:nth-of-type(2) #qty' "3"`,
         `select '#plan' "pro-yearly"`,
         `click '#route'`,
+        `wait '#next' 30`,
         `click '#next'`,
         'wait load',
       ]);
@@ -701,8 +702,94 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.doesNotMatch(await ok('watch'), /Grace/);
       await ok(`watch save ${path.join(dir, 'none.txt')}`);
       const none = fs.readFileSync(path.join(dir, 'none.txt'), 'utf8');
-      assert.match(none, /^fill 'input\[name="who"\]' "\{\{ PW_NAME \}\}"$/m);
+      assert.match(none, /^fill 'role=textbox\[name\*="Name"\]' "\{\{ PW_NAME \}\}"$/m);
       assert.match(none, /^# It needs PW_NAME set in the environment: what was typed into fields \(watch on --no-values\)/m);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('saves an app\'s own routing as comments, a field changed again as one fill, and a click on a label once', async () => {
+    const path = require('path');
+    const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pw-repl-app-'));
+    const file = path.join(dir, 'app.txt');
+    try {
+      await ok(`goto ${site.url}/app`);
+      await ok('watch on');
+      // A date picker stepping through days, the app changing its URL between two of them.
+      await ok('fill #day 2026-10-19');
+      await ok('eval history.replaceState(null, "", "/app?day=19"); 0');
+      await ok('fill #day 2026-10-20');
+      await ok('fill #day 2026-10-21');
+      await ok('click #search');
+      await ok('click #filter');
+      // Each label passes the click on to its control.
+      await ok('click "text=Native"');
+      await ok('click "text=Four"');
+      await waitFor(async () => /click checkbox "Four stars"/.test(await ok('watch')), 'the last click');
+      assert.match(await ok('watch'), /click label "Native"|check checkbox "Native"/);
+      await ok(`watch save ${file}`);
+      const saved = fs.readFileSync(file, 'utf8');
+      assert.deepEqual(saved.split('\n').filter(l => l && !l.startsWith('#')), [
+        `goto ${site.url}/app`,
+        `wait '#day' 30`,
+        `fill '#day' "2026-10-21"`,
+        `click '#search'`,
+        `wait '#filter' 30`,
+        `click '#filter'`,
+        `wait '#native' 30`,
+        `check '#native'`,
+        `click '#four'`,
+      ]);
+      assert.equal(saved.match(/^# type /gm).length, 1, 'no comment for a value changed again');
+      assert.match(saved, /^# the app went to \S+\/app\/search\?f=1&page=1 without loading a page$/m);
+      // Run again, it ends where the watched steps did: the filter applied once, each box checked once.
+      await ok('watch off');
+      await ok(`goto ${site.url}/other`);
+      const run = await sendFile(file);
+      assert.equal(run.status, 0, run.output);
+      assert.equal(await ok('eval [day.value, location.pathname + location.search, native.checked, four.getAttribute("aria-checked")].join()'),
+        '2026-10-21,/app/search?f=1&page=1,true,true');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('saves an element by its role and a piece of its name that finds it alone, and a made-up id last', async () => {
+    const path = require('path');
+    const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pw-repl-picker-'));
+    const file = path.join(dir, 'picker.txt');
+    try {
+      await ok(`goto ${site.url}/picker`);
+      await ok('watch on');
+      await ok('fill role=combobox Cancun');
+      await ok('click "#radix-vue-combobox-option-v-0-17-4"');
+      await ok('click "label:has-text(\'4 Stars\') button"');
+      await ok('click "a[href=\'#one\']"');
+      await ok('click "a[href=\'#two\']"');
+      await ok('click "button >> nth=2"');
+      await ok('click "button >> nth=3"');
+      await ok('click #ember1234');
+      await waitFor(async () => /click span/.test(await ok('watch')), 'the last click');
+      await ok(`watch save ${file}`);
+      const saved = fs.readFileSync(file, 'utf8');
+      assert.deepEqual(saved.split('\n').filter(l => l && !l.startsWith('#') && !l.startsWith('wait ')), [
+        `goto ${site.url}/picker`,
+        `fill 'role=combobox[name*="Where to?"]' "Cancun"`,
+        `click 'role=option[name*="Quintana Roo, Mexico"]'`,
+        `click 'role=checkbox[name*="4 Stars"]'`,
+        `click 'role=link[name*="From $171"]'`,
+        `click 'role=link[name*="Hotel Plaza Caribe"]'`,
+        `click "role=button[name*=\\"Don't say \\\\\\"hi\\\\\\"\\"]"`,
+        `click 'button:text-is("Go")'`,
+        `click '#ember1234'`,
+      ]);
+      // Run again, each finds what was clicked.
+      await ok('watch off');
+      await ok(`goto ${site.url}/picker`);
+      const run = await sendFile(file);
+      assert.equal(run.status, 0, run.output);
+      assert.equal(await ok('eval out.textContent'), 'typed;cancun;4 stars;one;two;quotes;go;made-up;');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
