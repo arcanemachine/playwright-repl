@@ -1476,12 +1476,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
-  it('paces a recording: still page before and after, and a pause after each action', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
+  it('paces a recording: still page before and after, and a pause after each action and highlight', { skip: FFMPEG ? false : 'no ffmpeg found: npx playwright-core install ffmpeg' }, async () => {
     const dir = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'pw-repl-pace-'));
     try {
       await ok(`record on ${dir}/clip.webm --steps`);
       await ok('click #go');
       await ok('click #go');
+      await ok('highlight #go');
+      await ok('highlight off');
       const saved = await ok('record off');
       // On the video's own clock: a busy machine only makes these longer.
       const length = Number(/\((\d+\.\d)s, /.exec(saved)[1]);
@@ -1489,6 +1491,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.ok(steps[0][0] >= 0.95, `the lead: first action at ${steps[0][0]}s`);
       assert.ok(steps[1][0] - steps[0][1] >= 0.7, `the pause: ${steps[0][1]}s to ${steps[1][0]}s`);
       assert.ok(length - steps[1][1] >= 1.6, `the pause and the tail: last action ended at ${steps[1][1]}s of ${length}s`);
+      const boxes = fs.readFileSync(`${dir}/clip.steps.txt`, 'utf8').split('\n').filter(l => / highlight$/.test(l)).map(l => l.split(' ').map(Number));
+      assert.ok(boxes[1][0] - boxes[0][1] >= 0.7, `the box shown before highlight off: ${boxes[0][1]}s to ${boxes[1][0]}s`);
       assert.match(await ok(`record on ${dir}/two.webm --pause=0 --tail=250`), /, --pause=0 --tail=250; /, 'only what differs from the defaults');
       assert.match(await ok('record'), /, --pause=0 --tail=250; /);
       assert.match((await repl.run('record off --lead=0')).output, /--lead goes on record on/);

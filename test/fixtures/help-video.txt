@@ -21,11 +21,12 @@ on.
     record off
 
 3. While it records, pw-repl paces it for a viewer (help record): type types at a readable pace (use it,
-not fill, for text the viewer should see typed), each action is followed by a pause, an element out of
-view is scrolled to smoothly, and the video starts and ends on a still page. highlight <selector> draws
-a box to point at something, and toast <text> a line of text saying what is happening, up for as long as
-the viewer needs to read it. After a step that loads a page, wait for text only the result shows (wait
-text ...), not a heading the page always has, and not wait load: a single-page app loads nothing.
+not fill, for text the viewer should see typed), each action and each highlight is followed by a pause,
+an element out of view is scrolled to smoothly, and the video starts and ends on a still page. highlight
+<selector> draws a box to point at something, and toast <text> a line of text saying what is happening,
+up for as long as the viewer needs to read it. After a step that loads a page, wait for text only the
+result shows (wait text ...), not a heading the page always has, and not wait load: a single-page app
+loads nothing.
 
 record on --steps also saves when and where each step ran, in the video's seconds and pixels, for
 editing it afterwards.
