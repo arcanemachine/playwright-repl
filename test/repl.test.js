@@ -646,17 +646,17 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
         "click 'body > div:nth-of-type(1) > button'",
         `fill 'role=textbox[name*="Name"]' "-Ada  "`,
         `press 'role=textbox[name*="Name"]' Enter`,
-        `select '#area' "Shipping"`,
-        `check '#gift'`,
-        `fill '#pw' "{{ PW_PASSWORD }}"`,
-        `click '#show'`,
-        `fill '#pw' "{{ PW_PASSWORD }}"`,
-        `fill '#otp' "{{ PW_CODE }}"`,
+        `select 'role=combobox[name*="Area"]' "Shipping"`,
+        `check 'role=checkbox[name*="Gift"]'`,
+        `fill 'role=textbox[name*="Password"]' "{{ PW_PASSWORD }}"`,
+        `click 'role=button[name*="Show"]'`,
+        `fill 'role=textbox[name*="Password"]' "{{ PW_PASSWORD }}"`,
+        `fill 'role=textbox[name*="Code"]' "{{ PW_CODE }}"`,
         `fill 'body > x-card:nth-of-type(2) #qty' "3"`,
-        `select '#plan' "pro-yearly"`,
-        `click '#route'`,
-        `wait '#next' 30`,
-        `click '#next'`,
+        `select 'role=combobox[name*="Plan"]' "pro-yearly"`,
+        `click 'role=button[name*="Route"]'`,
+        `wait 'role=link[name*="Next"]' 30`,
+        `click 'role=link[name*="Next"]'`,
         'wait load',
       ]);
       assert.match(saved, /^# PW_PASSWORD=\.\.\. PW_CODE=\.\.\. pw-repl send --file flow\.txt runs it/m);
@@ -670,17 +670,17 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await ok(`goto ${site.url}/flow`);
       const lines = saved.split('\n');
       const beforeLeaving = path.join(dir, 'stay.txt');
-      fs.writeFileSync(beforeLeaving, lines.slice(0, lines.findIndex(l => l === "click '#next'")).join('\n'));
+      fs.writeFileSync(beforeLeaving, lines.slice(0, lines.findIndex(l => l === `wait 'role=link[name*="Next"]' 30`)).join('\n'));
       const unset = await sendFile(beforeLeaving);
       assert.equal(unset.status, 1);
-      assert.match(unset.output, /stopped at line \d+ of \S+stay\.txt \(fill '#pw' "\{\{ PW_PASSWORD \}\}"\): PW_PASSWORD is not set/);
+      assert.match(unset.output, /stopped at line \d+ of \S+stay\.txt \(fill 'role=textbox\[name\*="Password"\]' "\{\{ PW_PASSWORD \}\}"\): PW_PASSWORD is not set/);
       await ok(`goto ${site.url}/flow`);
       // Escaped as double quotes read it, and shown nowhere: the REPL shows the line as written.
       const secret = 'pa"ss\\word 9';
       const shown = repl.stdout.length;
       const run = await sendFile(beforeLeaving, { PW_PASSWORD: secret, PW_CODE: '555111' });
       assert.equal(run.status, 0, run.output);
-      assert.match(repl.stdout.slice(shown), /fill '#pw' "\{\{ PW_PASSWORD \}\}"/);
+      assert.match(repl.stdout.slice(shown), /fill 'role=textbox\[name\*="Password"\]' "\{\{ PW_PASSWORD \}\}"/);
       assert.doesNotMatch(repl.stdout.slice(shown) + run.output, /pa"ss|555111/);
       assert.equal(await ok('eval JSON.stringify([pw.value, otp.value])'), JSON.stringify([secret, '555111']));
       const literal = path.join(dir, 'literal.txt');
@@ -732,14 +732,14 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       const saved = fs.readFileSync(file, 'utf8');
       assert.deepEqual(saved.split('\n').filter(l => l && !l.startsWith('#')), [
         `goto ${site.url}/app`,
-        `wait '#day' 30`,
-        `fill '#day' "2026-10-21"`,
-        `click '#search'`,
-        `wait '#filter' 30`,
-        `click '#filter'`,
-        `wait '#native' 30`,
-        `check '#native'`,
-        `click '#four'`,
+        `wait 'role=textbox[name*="Day"]' 30`,
+        `fill 'role=textbox[name*="Day"]' "2026-10-21"`,
+        `click 'role=button[name*="Search"]'`,
+        `wait 'role=button[name*="Filter"]' 30`,
+        `click 'role=button[name*="Filter"]'`,
+        `wait 'role=checkbox[name*="Native"]' 30`,
+        `check 'role=checkbox[name*="Native"]'`,
+        `click 'role=checkbox[name*="stars"]'`,
       ]);
       assert.equal(saved.match(/^# type /gm).length, 1, 'no comment for a value changed again');
       assert.match(saved, /^# the app went to \S+\/app\/search\?f=1&page=1 without loading a page$/m);
@@ -826,9 +826,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
         `fill '#p1' "{{ PW_PASSWORD }}"`,
         `fill '#p2' "{{ PW_PASSWORD_2 }}"`,
         `fill '#p1' "{{ PW_PASSWORD }}"`,
-        `fill '#sock' "{{ PW_SOCKET_2 }}"`,
-        `fill '#user' "{{ PW_USER }}"`,
-        `fill '#es' "{{ PW_CONTRASE_A }}"`,
+        `fill 'role=textbox[name*="Socket"]' "{{ PW_SOCKET_2 }}"`,
+        `fill 'role=textbox[name*="User"]' "{{ PW_USER }}"`,
+        `fill 'role=textbox[name*="Contraseña"]' "{{ PW_CONTRASE_A }}"`,
         `fill 'body > div > input' "{{ PW_TEXT }}"`,
       ], 'the same field again keeps its name; another field with the same one is numbered');
       assert.match(saved, /^press '#p2' Enter$/m);
