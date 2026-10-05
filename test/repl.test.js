@@ -1498,6 +1498,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.ok(length - steps[1][1] >= 1.6, `the pause and the tail: last action ended at ${steps[1][1]}s of ${length}s`);
       const boxes = fs.readFileSync(`${dir}/clip.steps.txt`, 'utf8').split('\n').filter(l => / highlight$/.test(l)).map(l => l.split(' ').map(Number));
       assert.ok(boxes[1][0] - boxes[0][1] >= 0.7, `the box shown before highlight off: ${boxes[0][1]}s to ${boxes[1][0]}s`);
+      assert.ok(boxes[0].slice(2, 6).every(n => Number.isInteger(n)) && boxes[0][4] > 0, `where the box is: ${boxes[0]}`);
+      assert.ok(boxes[1].slice(2, 6).every(Number.isNaN), 'highlight off has none');
       assert.match(await ok(`record on ${dir}/two.webm --pause=0 --tail=250`), /, --pause=0 --tail=250; /, 'only what differs from the defaults');
       assert.match(await ok('record'), /, --pause=0 --tail=250; /);
       assert.match((await repl.run('record off --lead=0')).output, /--lead goes on record on/);
