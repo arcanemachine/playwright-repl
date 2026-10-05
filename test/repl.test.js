@@ -1487,7 +1487,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await ok(`record on ${dir}/clip.webm --steps`);
       await ok('click #go');
       await ok('click #go');
-      await ok('highlight #go');
+      await ok('highlight #go --style="outline: 2px solid red"');
       await ok('highlight off');
       const saved = await ok('record off');
       // On the video's own clock: a busy machine only makes these longer.
@@ -1496,7 +1496,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       assert.ok(steps[0][0] >= 0.95, `the lead: first action at ${steps[0][0]}s`);
       assert.ok(steps[1][0] - steps[0][1] >= 0.7, `the pause: ${steps[0][1]}s to ${steps[1][0]}s`);
       assert.ok(length - steps[1][1] >= 1.6, `the pause and the tail: last action ended at ${steps[1][1]}s of ${length}s`);
-      const boxes = fs.readFileSync(`${dir}/clip.steps.txt`, 'utf8').split('\n').filter(l => / highlight$/.test(l)).map(l => l.split(' ').map(Number));
+      const boxLines = fs.readFileSync(`${dir}/clip.steps.txt`, 'utf8').split('\n').filter(l => / highlight /.test(l));
+      assert.deepEqual(boxLines.map(l => l.split(' ').slice(6).join(' ')), ['highlight #go', 'highlight off'], 'which box, and when it went, without its style');
+      const boxes = boxLines.map(l => l.split(' ').map(Number));
       assert.ok(boxes[1][0] - boxes[0][1] >= 0.7, `the box shown before highlight off: ${boxes[0][1]}s to ${boxes[1][0]}s`);
       assert.ok(boxes[0].slice(2, 6).every(n => Number.isInteger(n)) && boxes[0][4] > 0, `where the box is: ${boxes[0]}`);
       assert.ok(boxes[1].slice(2, 6).every(Number.isNaN), 'highlight off has none');
