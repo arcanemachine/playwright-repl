@@ -252,7 +252,9 @@ Output is capped; --all right after the command, or at the end, shows everything
       after the field, e.g. fill '#password' "{{ PW_PASSWORD }}": run it with PW_PASSWORD=... pw-repl send
       --file login.txt, and send passes the value along for the REPL to put in, which shows the line as
       written. A step that cannot be a command (a value with a line break, an element in a frame, or one no
-      selector finds alone) stays a comment saying why, and the save says how many there are.
+      selector finds alone) stays a comment saying why, and the save says how many there are. The file ends
+      with the last step, not with what it brought: to end on a result that comes later (search results
+      loading), add a wait for it at the end (wait text ...).
 
       Shared: every client sees the same steps, and watch new's place is shared.
 
