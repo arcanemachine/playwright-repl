@@ -381,7 +381,8 @@ Output is capped; --all right after the command, or at the end, shows everything
   wait [text|request] <what> [--gone] [secs]           wait for an element, text, a response or a load (10s)
       Arguments:
         <selector>          for a matching element to be visible.
-        text <text>         for text to be visible: any part of an element's text, any case.
+        text <text>         for text to be visible: any part of an element's text, any case. Quote text that
+                            ends in a number, or the number is taken as the seconds: wait text "Showing 1".
         request <part>      for a matching response (a URL part or a glob), counting one that finished since
                             the previous command began, or is still under way: click, then wait request, does
                             not miss it.
