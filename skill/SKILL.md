@@ -109,8 +109,8 @@ pw-repl send -t 90 'screenshot -d 60'   # wait longer than the 20s default
 
 Always send commands with `pw-repl send`; don't type into the pane yourself, except `quit` at the prompt
 of a REPL of your own, which `send` refuses. The words after `send` are the command. For `fill`, `type`,
-`select`, `press` and `upload`, a word quoted in your shell stays one word
-(`pw-repl send fill "text=Your name" Ada`); other commands get the words as they are, joined by
+`select`, `press`, `upload` and `wait`, a word quoted in your shell stays one word
+(`pw-repl send fill "text=Your name" Ada`, `pw-repl send wait text "Showing 1"`); other commands get the words as they are, joined by
 spaces (`pw-repl send eval "document.title + ' x'"`). A command that takes only a selector takes the
 whole line, spaces and all: `pw-repl send click "text=Your name"`. It works however the REPL was
 started:
