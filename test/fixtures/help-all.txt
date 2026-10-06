@@ -296,10 +296,12 @@ Output is capped; --all right after the command, or at the end, shows everything
   visible <selector>                                   whether the first match is visible
   links [--all]                                        links on the page (text and href)
   inputs [--all]                                       form controls, native and ARIA; values are omitted
-      Each with its label and, for a checkbox, radio or switch, whether it is checked: true, false or "mixed".
-      An ARIA control is an element with role checkbox, radio, switch, combobox, listbox, textbox, searchbox,
-      slider or spinbutton, as Radix and the like draw them (a button that is a radio); its role says what it
-      is, and type is a native control's own. What a field holds is never shown.
+      Each control as JSON: tag, role, type, name, id, label, placeholder, disabled (by its own attribute, a
+      disabled fieldset around it, or aria-disabled), readonly, checked for a checkbox, radio or switch (true,
+      false or "mixed"), and autocomplete. An ARIA control is an element with role checkbox, radio, switch,
+      combobox, listbox, textbox, searchbox, slider or spinbutton, as Radix and the like draw them (a button
+      that is a radio); its role says what it is, and type is a native control's own. What a field holds is
+      never shown.
 
   screenshot [<ref>] [--full] [-d <secs>] [name]       save a PNG of the viewport, --full page or an element
       Arguments:

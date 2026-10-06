@@ -165,6 +165,8 @@ const CONTROLS_PAGE = `<!doctype html><title>Controls</title>
 <div role="checkbox" aria-checked="mixed" aria-disabled="true" aria-label="All rooms"></div>
 <div role="switch" aria-checked="false" aria-label="Dark mode"></div>
 <div role="textbox" contenteditable="true" aria-label="Notes">typed note</div>
+<fieldset disabled><label>Locked <input id="locked"></label></fieldset>
+<label>Code <input id="code" readonly></label>
 <button>Not a field</button>
 <script>partial.indeterminate = true;</script>`;
 

@@ -1392,7 +1392,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await ok(`goto ${site.url}/controls`);
     const text = await ok('inputs');
     assert.doesNotMatch(text, /typed-secret|typed note|written-note|Billing-option/, 'no values, not even through a label around the field');
-    const entries = JSON.parse(text).map(({ tag, role, type, label, disabled, checked }) => ({ tag, role, type, label, disabled, checked }));
+    const entries = JSON.parse(text).map(({ tag, role, type, label, disabled, readonly, checked }) => ({ tag, role, type, label, disabled, ...(readonly ? { readonly } : {}), checked }));
     assert.deepEqual(entries, [
       { tag: 'input', role: '', type: 'text', label: 'Name', disabled: false, checked: undefined },
       { tag: 'input', role: '', type: 'checkbox', label: 'Newsletter', disabled: false, checked: true },
@@ -1405,6 +1405,8 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       { tag: 'div', role: 'checkbox', type: '', label: 'All rooms', disabled: true, checked: 'mixed' },
       { tag: 'div', role: 'switch', type: '', label: 'Dark mode', disabled: false, checked: false },
       { tag: 'div', role: 'textbox', type: '', label: 'Notes', disabled: false, checked: undefined },
+      { tag: 'input', role: '', type: 'text', label: 'Locked', disabled: true, checked: undefined },
+      { tag: 'input', role: '', type: 'text', label: 'Code', disabled: false, readonly: true, checked: undefined },
     ], 'a button that is a radio is not type submit; one without aria-checked is not checked');
   });
 
