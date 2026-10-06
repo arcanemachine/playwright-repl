@@ -1379,7 +1379,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(closed.output, /^Closed \S+shared-part=b, the one you opened; 2 other tabs match "shared-part"/);
     const none = await as('tc-c', 'tab close shared-part');
     assert.equal(none.status, 'error');
-    assert.match(none.output, /2 tabs match "shared-part"; use a longer part/);
+    assert.match(none.output, /2 tabs match "shared-part"; use a longer part, or tab <index> from tab's listing, then tab close:/);
     assert.doesNotMatch(none.output, /opened by you/);
     const two = await as('tc-a', 'tab close shared-part');
     assert.equal(two.status, 'error', 'two of them are yours');
