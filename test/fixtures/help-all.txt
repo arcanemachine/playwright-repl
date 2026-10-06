@@ -233,7 +233,8 @@ Output is capped; --all right after the command, or at the end, shows everything
       navigation, described by role and name as in snapshot, with up to 5 of the requests it caused under it,
       each with its status as in requests (body <#> for one), leaving out scripts and what requests hides. The
       REPL's own fill shows as type. A double-click shows as two clicks; hovering and moving the mouse are not
-      recorded.
+      recorded. When other elements are described alike (cards that repeat their buttons), the step says which
+      one: (under "<its nearest heading>"), with n of N where the heading does not settle it.
 
       Privacy: what is typed is recorded, and watch and watch save show it, except in a password field: one
       that was ever type=password, or whose autocomplete is for a password, a one-time code or a card number.
@@ -273,8 +274,10 @@ Output is capped; --all right after the command, or at the end, shows everything
 
       watch save: a submit is left out, since the click or Enter that caused it is there. So is a URL the app
       changed without loading a page (history.pushState or replaceState), as a comment: the step before it
-      changes it again. A click on a label is the click it passes on to its control, and saved as that. In an
-      open shadow root, an element's selector is its host's, then its own; a closed one is out of reach.
+      changes it again. A click on a label that holds its control is the control's click, as it passes it on;
+      one on a label that names its control with for= is the label's, since that can be a control anywhere
+      (the first of a page's repeated ids), and a for= label on a checkbox toggles it rather than checks it.
+      In an open shadow root, an element's selector is its host's, then its own; a closed one is out of reach.
 
   text [--all] <selector>                              visible text of the first match
   html [--all] <selector>                              outer HTML of the first match; no password values

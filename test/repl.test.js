@@ -795,6 +795,43 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('records a click on a label that names its control as the label, and says which of the elements alike it was', async () => {
+    const path = require('path');
+    const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pw-repl-cards-'));
+    const file = path.join(dir, 'cards.txt');
+    try {
+      await ok(`goto ${site.url}/cards`);
+      await ok('watch on');
+      // The third card's label checks the first card's radio: its for= names the first id of the page's three.
+      await ok('click "section:nth-of-type(3) label >> text=Bed and Breakfast"');
+      await ok('click "section:nth-of-type(2) [aria-label=\'Half Board\']"');
+      await ok('click "section:nth-of-type(3) [aria-label=\'More information\']"');
+      await ok('click "text=Sea view"');
+      const done = 'Bed and Breakfast 1;Half Board 2;info 3;sea true;';
+      assert.equal(await ok('eval out.textContent'), done);
+      await waitFor(async () => /click label "Sea view"/.test(await ok('watch')), 'the last click');
+      const steps = (await ok('watch')).split('\n').filter(l => / click /.test(l)).map(l => l.replace(/^\S+ /, ''));
+      assert.deepEqual(steps, [
+        'click label "Bed and Breakfast -$60" (under "Deluxe Room")',
+        'click radio "Half Board" (under "Premium Room", 2 of 2)',
+        'click button "More information" (under "Deluxe Room")',
+        'click label "Sea view"',
+      ], 'the label clicked, not the radio it checked; a button in a label is its own');
+      await ok(`watch save ${file}`);
+      const saved = fs.readFileSync(file, 'utf8');
+      assert.match(saved, /^# click radio "Half Board" \(under "Premium Room", 2 of 2\)$/m);
+      assert.doesNotMatch(saved, /^check /m, 'the label\'s click, not the check it caused too');
+      // Run again, the third card's label checks the first card's radio, as it did.
+      await ok('watch off');
+      await ok(`goto ${site.url}/cards`);
+      const run = await sendFile(file);
+      assert.equal(run.status, 0, run.output);
+      assert.equal(await ok('eval out.textContent'), done);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('names each field\'s variable once, apart from another field\'s, the shell\'s and pw-repl\'s own', async () => {
     const path = require('path');
     const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pw-repl-vars-'));
@@ -816,7 +853,7 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
       await ok('fill "div > input" six');
       // The form's submit is the Enter's: the click on Go the browser sends for it is not a step.
       await ok('press #p2 Enter');
-      await waitFor(async () => /press textbox "Password" Enter/.test(await ok('watch')), 'the Enter');
+      await waitFor(async () => /press textbox "Password" \(2 of 2\) Enter/.test(await ok('watch')), 'the Enter, on the second of two fields named alike');
       assert.equal(await ok('eval document.title'), 'sent');
       assert.equal((await ok('watch')).match(/type textbox/g).length, 7);
       assert.doesNotMatch(await ok('watch'), /click button "Go"/);

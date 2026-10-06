@@ -128,6 +128,26 @@ const PICKER_PAGE = `<!doctype html><title>Picker</title>
 <p id="out"></p>
 <script>function log(what) { out.textContent += what + ';'; }</script>`;
 
+// Room cards whose radios repeat their ids, as a page with that bug has them: each label's for= names the
+// first card's radio, so a click on another card's label checks the first card's. Two cards share a
+// heading, and one label holds a button of its own; and a checkbox with a label of its own beside it.
+const CARD = (room, n) => `<section><h3>${room}</h3><div role="radiogroup">
+<div><button role="radio" id="radio-BB" aria-label="Bed and Breakfast" aria-checked="false" onclick="pick(this)"></button><label for="radio-BB"><div><div>Bed and Breakfast</div><span>-$60</span></div></label></div>
+<div><button role="radio" id="radio-HB" aria-label="Half Board" aria-checked="false" onclick="pick(this)"></button><label for="radio-HB"><div>Half Board</div><button aria-label="More information" onclick="log('info ${n}')">i</button></label></div>
+</div></section>`;
+const CARDS_PAGE = `<!doctype html><title>Rooms</title>
+${CARD('Premium Room', 1)}${CARD('Premium Room', 2)}${CARD('Deluxe Room', 3)}
+<input type="checkbox" id="sea" onchange="log('sea ' + this.checked)"> <label for="sea">Sea view</label>
+<p id="out"></p>
+<script>
+function log(what) { out.textContent += what + ';'; }
+function pick(radio) {
+  const card = [...document.querySelectorAll('section')].indexOf(radio.closest('section')) + 1;
+  for (const r of radio.closest('[role=radiogroup]').querySelectorAll('[role=radio]')) r.setAttribute('aria-checked', r === radio);
+  log(radio.getAttribute('aria-label') + ' ' + card);
+}
+</script>`;
+
 async function startSite() {
   const server = http.createServer((req, res) => {
     req.url = new URL(req.url, 'http://fixture').pathname;
@@ -158,6 +178,7 @@ redraw();
 pad.addEventListener('wheel', e => { e.preventDefault(); log.textContent += 'wheel:' + e.deltaY + '@' + e.clientX + ',' + e.clientY + ' '; });
 </script>`);
     }
+    if (req.url === '/cards') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(CARDS_PAGE); }
     if (req.url === '/picker') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(PICKER_PAGE); }
     if (req.url === '/app') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(APP_PAGE); }
     if (req.url === '/flow') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(FLOW_PAGE); }
