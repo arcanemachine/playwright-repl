@@ -49,7 +49,8 @@ own lists them all.
         <url-part>          selects the one tab whose URL contains it; refused if none or several do.
         new [url]           opens a tab behind the one in front, so it does not take the window from whoever
                             is using it, and selects it. The URL is read as goto reads it.
-        close [url-part]    closes the selected tab, or the one matching url-part.
+        close [url-part]    closes the selected tab, or the one matching url-part; of several, the one you
+                            opened, if one is.
 
       Closing the selected tab goes back to the previous tab if tab new opened it; otherwise no tab is
       selected, and commands that need one refuse until one is.

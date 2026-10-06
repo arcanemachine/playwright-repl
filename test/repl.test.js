@@ -1369,6 +1369,25 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     assert.match(await ok('eval matchMedia("(prefers-color-scheme: dark)").matches'), /false/);
   });
 
+  it('closes the one tab you opened of several a URL part matches, and refuses when that is not one', async () => {
+    const as = (client, command) => repl.runAs(client, command);
+    await as('tc-a', `tab new ${site.url}/?shared-part=a1`);
+    await as('tc-a', `tab new ${site.url}/?shared-part=a2`);
+    await as('tc-b', `tab new ${site.url}/?shared-part=b`);
+    const closed = await as('tc-b', 'tab close shared-part');
+    assert.equal(closed.status, 'ok', closed.output);
+    assert.match(closed.output, /^Closed \S+shared-part=b, the one you opened; 2 other tabs match "shared-part"/);
+    const none = await as('tc-c', 'tab close shared-part');
+    assert.equal(none.status, 'error');
+    assert.match(none.output, /2 tabs match "shared-part"; use a longer part/);
+    assert.doesNotMatch(none.output, /opened by you/);
+    const two = await as('tc-a', 'tab close shared-part');
+    assert.equal(two.status, 'error', 'two of them are yours');
+    assert.equal(two.output.match(/shared-part=a\d {2}\(opened by you\)/g).length, 2);
+    await as('tc-a', 'tab close shared-part=a1');
+    await as('tc-a', 'tab close shared-part=a2');
+  });
+
   it('selects and closes tabs by a part of their URL', async () => {
     await ok(`tab new ${site.url}/?tab-test=one`);
     await ok('tab 1');
