@@ -207,7 +207,8 @@ Output is capped; --all right after the command, or at the end, shows everything
       Passwords: a password field's value is shown as (a password: not shown), --full too, as is that of a
       field whose autocomplete is for a password, a one-time code or a card number; html and attrs show its
       value attribute so too. A field a Show password button made plain text, with no such autocomplete, shows
-      its value.
+      its value. Every other field shows what it holds (textbox "Name": Ada), and a select its chosen option:
+      inputs lists the fields without what they hold.
 
       Output over 60 lines ends with a line count.
 
