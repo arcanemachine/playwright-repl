@@ -1388,6 +1388,26 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     await as('tc-a', 'tab close shared-part=a2');
   });
 
+  it('lists native and ARIA form controls with their label and checked state, and no values', async () => {
+    await ok(`goto ${site.url}/controls`);
+    const text = await ok('inputs');
+    assert.doesNotMatch(text, /typed-secret|typed note|written-note|Billing-option/, 'no values, not even through a label around the field');
+    const entries = JSON.parse(text).map(({ tag, role, type, label, disabled, checked }) => ({ tag, role, type, label, disabled, checked }));
+    assert.deepEqual(entries, [
+      { tag: 'input', role: '', type: 'text', label: 'Name', disabled: false, checked: undefined },
+      { tag: 'input', role: '', type: 'checkbox', label: 'Newsletter', disabled: false, checked: true },
+      { tag: 'input', role: '', type: 'checkbox', label: 'Some rooms', disabled: false, checked: 'mixed' },
+      { tag: 'button', role: 'radio', type: '', label: 'Meal plan Bed and Breakfast', disabled: false, checked: true },
+      { tag: 'button', role: 'radio', type: '', label: 'Half Board', disabled: false, checked: false },
+      { tag: 'button', role: 'radio', type: '', label: 'Full Board', disabled: true, checked: false },
+      { tag: 'textarea', role: '', type: 'textarea', label: 'Notes', disabled: false, checked: undefined },
+      { tag: 'select', role: '', type: 'select-one', label: 'Area', disabled: false, checked: undefined },
+      { tag: 'div', role: 'checkbox', type: '', label: 'All rooms', disabled: true, checked: 'mixed' },
+      { tag: 'div', role: 'switch', type: '', label: 'Dark mode', disabled: false, checked: false },
+      { tag: 'div', role: 'textbox', type: '', label: 'Notes', disabled: false, checked: undefined },
+    ], 'a button that is a radio is not type submit; one without aria-checked is not checked');
+  });
+
   it('selects and closes tabs by a part of their URL', async () => {
     await ok(`tab new ${site.url}/?tab-test=one`);
     await ok('tab 1');

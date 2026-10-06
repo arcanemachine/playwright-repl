@@ -148,6 +148,26 @@ function pick(radio) {
 }
 </script>`;
 
+// Form controls for inputs: native ones, and ARIA ones as Radix draws them (a button that is a radio, with
+// no type of its own), named by a label, aria-labelledby, aria-label or title, in every checked state.
+const CONTROLS_PAGE = `<!doctype html><title>Controls</title>
+<label>Name <input id="who" name="who" value="typed-secret"></label>
+<input type="checkbox" id="news" aria-label="Newsletter" checked>
+<input type="checkbox" id="partial" title="Some rooms">
+<span id="plan">Meal plan</span>
+<div role="radiogroup">
+  <button role="radio" aria-checked="true" aria-labelledby="plan bb"></button><span id="bb">Bed and Breakfast</span>
+  <button role="radio" aria-label="Half Board"></button>
+  <button role="radio" aria-label="Full Board" disabled></button>
+</div>
+<label>Notes <textarea>written-note</textarea></label>
+<label>Area <select id="area"><option>Billing-option</option></select></label>
+<div role="checkbox" aria-checked="mixed" aria-disabled="true" aria-label="All rooms"></div>
+<div role="switch" aria-checked="false" aria-label="Dark mode"></div>
+<div role="textbox" contenteditable="true" aria-label="Notes">typed note</div>
+<button>Not a field</button>
+<script>partial.indeterminate = true;</script>`;
+
 async function startSite() {
   const server = http.createServer((req, res) => {
     req.url = new URL(req.url, 'http://fixture').pathname;
@@ -178,6 +198,7 @@ redraw();
 pad.addEventListener('wheel', e => { e.preventDefault(); log.textContent += 'wheel:' + e.deltaY + '@' + e.clientX + ',' + e.clientY + ' '; });
 </script>`);
     }
+    if (req.url === '/controls') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(CONTROLS_PAGE); }
     if (req.url === '/cards') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(CARDS_PAGE); }
     if (req.url === '/picker') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(PICKER_PAGE); }
     if (req.url === '/app') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(APP_PAGE); }
