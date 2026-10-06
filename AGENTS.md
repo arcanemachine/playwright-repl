@@ -4,6 +4,9 @@ How to use the REPL is in the skill `bin/pw-repl.js skill` prints (from `skill/S
 its version and hash). Read it first. In this clone, `pw-repl` there means `bin/pw-repl.js` (from the
 folder this file is in) when it is not installed globally.
 
+If there is a local agent file (e.g. `AGENTS.LOCAL.md`) next to this file, read it too.
+They add to the rules in this file, and where the two differ, the local file wins.
+
 ## Contributing
 
 If you hit a limitation or write a workaround, consider adding the capability to the REPL instead.
