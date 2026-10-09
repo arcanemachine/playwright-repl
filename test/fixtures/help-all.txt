@@ -1,5 +1,5 @@
-playwright-repl drives Chromium over CDP. Commands act on the selected tab (`tab` shows which). The
-browser may be a shared session, with other users' tabs open in it.
+pw-repl drives Chromium over CDP. Commands act on the selected tab (`tab` shows which). The browser may
+be a shared session, with other users' tabs open in it.
 
 Common tasks:
   where am I?                       tab, info
@@ -712,8 +712,7 @@ Completion: @<id> <command> makes the REPL print [[pw-done:<id>:ok|error]] when 
 Unknown outcome: a command that timed out after it began acting on the page may or may not have done it.
 It says so (pw-repl send exits 2), and the REPL carries on.
 
-Server: pw-repl serve also takes commands on /tmp/playwright-repl.sock; they show here as [server]
-lines.
+Server: pw-repl serve also takes commands on /tmp/pw-repl.sock; they show here as [server] lines.
 
 Clients: pw-repl send -c <name> (or $PW_CLIENT) sends as a client of its own. It has a selected tab of
 its own, so clients do not move each other's; its commands show as [server:<name>] lines. modes and tab

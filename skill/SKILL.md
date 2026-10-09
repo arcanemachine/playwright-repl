@@ -1,6 +1,6 @@
 ---
 name: pw-repl
-description: Inspect and drive a Chromium browser, possibly one the user is using, through the pw-repl (playwright-repl) REPL - tabs, page snapshots, clicks and typing, the mouse at a point (moves, buttons, wheel), requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, recording what the user does, and recording a video of a tab, with a pointer and on-screen captions. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
+description: Inspect and drive a Chromium browser, possibly one the user is using, through the pw-repl REPL - tabs, page snapshots, clicks and typing, the mouse at a point (moves, buttons, wheel), requests and their bodies, console messages, waiting for pages and elements, choosing files, faking, patching or delaying responses, cutting or slowing the network, emulating a phone, dark mode, a locale or a timezone, recording what the user does, and recording a video of a tab, with a pointer and on-screen captions. Use when asked to look at, debug or test something in a web page, in an existing Chromium with remote debugging or in one it starts itself.
 allowed-tools: Bash(pw-repl:*) Bash(npx pw-repl@latest:*)
 ---
 
@@ -8,8 +8,8 @@ allowed-tools: Bash(pw-repl:*) Bash(npx pw-repl@latest:*)
 
 <!-- pw-repl skill stamp -->
 
-pw-repl (playwright-repl) is a REPL that drives a running Chromium over CDP. The browser may be a
-shared session: the user can have their own tabs open in it and be using it while you work.
+pw-repl is a REPL that drives a running Chromium over CDP. The browser may be a shared session: the
+user can have their own tabs open in it and be using it while you work.
 
 `pw-repl` below is the command the `pw-repl` npm package installs. Without a global install, use
 `npx pw-repl@latest` in its place, in that same form for every command, so each one runs the same
@@ -45,10 +45,10 @@ when none is running). Right after you start one, for a moment before its proces
 say none is there: retry for a few seconds before taking that as a failed start. There are three ways to
 run one; each takes an optional start URL, which opens in a new tab.
 
-- `pw-repl serve --background` runs it detached, with a command server on `/tmp/playwright-repl.sock`
-  (owner-only) and its output in `/tmp/playwright-repl.log`. `pw-repl attach` shows everything it does
-  and takes commands; `pw-repl stop` stops it. It returns once the REPL serves; Ctrl-C before then gives
-  up on the start, stops the REPL, exits 130, and says so in the log.
+- `pw-repl serve --background` runs it detached, with a command server on `/tmp/pw-repl.sock`
+  (owner-only) and its output in `/tmp/pw-repl.log`. `pw-repl attach` shows everything it does and
+  takes commands; `pw-repl stop` stops it. It returns once the REPL serves; Ctrl-C before then gives up
+  on the start, stops the REPL, exits 130, and says so in the log.
 - `pw-repl serve` runs the same in a terminal, where the pane shows every command. Its prompt is
   `pw[serve]>`. It stops at that prompt (`quit`, or Ctrl-C); `pw-repl stop` is for a background one.
 - Add `--launch` to `run` or `serve` (with or without `--background`) to have it start a Chromium of its
@@ -61,11 +61,11 @@ run one; each takes an optional start URL, which opens in a new tab.
   attached, so `requests` and `console` have only what came after, often nothing: `reload` for a full
   record.
 - `pw-repl run` runs it in a terminal with no server; `send` then reaches it through tmux, if it runs in
-  the tmux session `playwright-repl`:
+  the tmux session `pw-repl`:
 
   ```bash
-  tmux send-keys -t playwright-repl -l 'pw-repl run'
-  tmux send-keys -t playwright-repl Enter
+  tmux send-keys -t pw-repl -l 'pw-repl run'
+  tmux send-keys -t pw-repl Enter
   ```
 
 A REPL of your own goes on a socket of its own, named with `-e` on every command, `serve` included:
@@ -257,7 +257,7 @@ pw-repl send -c <name> close                        # your modes off; tab close 
   prints each file's path; other REPLs may save theirs in the same place. Remove only your own, and keep
   those too if they are needed, e.g. as evidence or as something to hand over.
 - `PW_ENDPOINT` / `PW_TMUX_SESSION` — defaults for `send -e` / `-s`. `PW_SOCKET` — the socket `serve`
-  serves on and `send` looks for when neither is given (default `/tmp/playwright-repl.sock`).
+  serves on and `send` looks for when neither is given (default `/tmp/pw-repl.sock`).
 
 ## Custom rules
 

@@ -8,7 +8,7 @@ const USAGE = `Usage:
       connect to the browser and open the prompt
 
   pw-repl serve [--background] [--launch [--headed]] [[-e] endpoint] [start-url] [-- <chromium flags>]
-      the same, plus a command server (socket, port, or 127.0.0.1:port; default /tmp/playwright-repl.sock);
+      the same, plus a command server (socket, port, or 127.0.0.1:port; default /tmp/pw-repl.sock);
       --background runs it detached, with its output in a log next to the socket
 
   pw-repl attach [-e endpoint]
@@ -29,10 +29,10 @@ const USAGE = `Usage:
   pw-repl skill
       print an agent skill (SKILL.md) that teaches an agent to use the REPL
 
-send uses the server when -e, $PW_ENDPOINT, or the socket ($PW_SOCKET, default /tmp/playwright-repl.sock)
-is there, and the tmux session (-s, $PW_TMUX_SESSION, default playwright-repl) otherwise. If the socket
-exists but nothing answers, send fails rather than fall back. serve without an endpoint serves on that
-same one: $PW_ENDPOINT, then $PW_SOCKET, then the default.
+send uses the server when -e, $PW_ENDPOINT, or the socket ($PW_SOCKET, default /tmp/pw-repl.sock) is
+there, and the tmux session (-s, $PW_TMUX_SESSION, default pw-repl) otherwise. If the socket exists but
+nothing answers, send fails rather than fall back. serve without an endpoint serves on that same one:
+$PW_ENDPOINT, then $PW_SOCKET, then the default.
 
 send -c <client> (or $PW_CLIENT) sends as a client of the REPL's with a selected tab of its own, so
 several agents can share one REPL; pw-repl help session has the rest.
@@ -64,7 +64,7 @@ and stops it with the REPL (Ctrl-C while it starts too); stop returns once that 
 Flags after -- go to it; a --user-data-dir=<dir> among them is used instead of the temporary profile, and
 kept. PW_CHROME picks which one. To set a browser up your own way, start it yourself and use PW_CDP_URL.
 
-In a tmux session named playwright-repl, pw-repl send reaches pw-repl run without the server.`;
+In a tmux session named pw-repl, pw-repl send reaches pw-repl run without the server.`;
 
 const REPL_HELP = `The REPL's own commands: help at the pw> prompt, or pw-repl send help here (no REPL needed).
 

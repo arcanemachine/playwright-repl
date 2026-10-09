@@ -1,4 +1,4 @@
-# playwright-repl
+# pw-repl
 
 A command REPL for a Chromium you are already using, shared by you and your agents. It connects over CDP
 through Playwright; users click in the browser and type at the prompt, agents send the same commands,
@@ -72,11 +72,11 @@ the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 
 | Command                      | What you get                                                                                  |
 | ---------------------------- | --------------------------------------------------------------------------------------------- |
-| `pw-repl run`                | a prompt in this terminal; `send` reaches it only through a tmux session named `playwright-repl` |
-| `pw-repl serve`              | a prompt (`pw[serve]>`), plus a command server on `/tmp/playwright-repl.sock`; `send` needs no tmux |
-| `pw-repl serve --background` | no terminal: `attach` to use it, `stop` to stop it, `where` to find it; output in `/tmp/playwright-repl.log` |
+| `pw-repl run`                | a prompt in this terminal; `send` reaches it only through a tmux session named `pw-repl` |
+| `pw-repl serve`              | a prompt (`pw[serve]>`), plus a command server on `/tmp/pw-repl.sock`; `send` needs no tmux |
+| `pw-repl serve --background` | no terminal: `attach` to use it, `stop` to stop it, `where` to find it; output in `/tmp/pw-repl.log` |
 
-- For `send` to reach `run`, start it in tmux: `tmux new -s playwright-repl`, then `pw-repl run` there.
+- For `send` to reach `run`, start it in tmux: `tmux new -s pw-repl`, then `pw-repl run` there.
 - A URL after the command opens in a new tab: `pw-repl run http://localhost:3000`.
 - `--launch` works with each of them; flags after `--` go to that Chromium.
 - A socket of its own: `-e /tmp/mine.sock` on every command, `serve` included (`pw-repl serve --background
@@ -172,7 +172,7 @@ pw-repl where           # which REPL send would reach
 ```
 
 `pw-repl send` sends one command and prints its result, through the server when it is running and through the
-`playwright-repl` tmux session otherwise. Chain several in the shell: `&&` stops at the first that fails or
+`pw-repl` tmux session otherwise. Chain several in the shell: `&&` stops at the first that fails or
 is not confirmed (exit 1 or 2), `;` runs on.
 
 Several agents can share one REPL: `pw-repl send -c <name>` (or `PW_CLIENT=<name>`) sends as a client with a
@@ -192,7 +192,7 @@ text that repeats it do not. Only `PW_` names are variables (`pw-repl --help` ha
 With `pw-repl serve`, the server speaks HTTP with JSON, for clients of your own:
 
 ```bash
-curl --unix-socket /tmp/playwright-repl.sock -H 'Content-Type: application/json' \
+curl --unix-socket /tmp/pw-repl.sock -H 'Content-Type: application/json' \
   -d '{"command": "info"}' http://localhost/run
 ```
 

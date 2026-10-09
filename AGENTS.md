@@ -1,4 +1,4 @@
-# Agent Instructions — playwright-repl
+# Agent Instructions — pw-repl
 
 How to use the REPL is in the skill `bin/pw-repl.js skill` prints (from `skill/SKILL.md`, stamped with
 its version and hash). Read it first. In this clone, `pw-repl` there means `bin/pw-repl.js` (from the
