@@ -102,7 +102,10 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `fe
 1.0, a change that breaks how the REPL is used is a minor bump (0.2.0 to 0.3.0), anything else a patch.
 
 1. `npm test` passes and the working tree is clean.
-2. `npm outdated` and `npm audit` show nothing that needs doing first.
+2. `npm outdated` and `npm audit` show nothing that needs doing first. The lockfile holds playwright-core
+   at 1.63: on 1.64, a click on a link to a 204 waits out its timeout instead of returning (the test
+   "waits for the page to load, counting a navigation that just began" fails). Update it once a version
+   passes `npm test`.
 3. `npm version <patch|minor|major> -m "chore: release %s"` sets the version in `package.json` and
    `package-lock.json`, commits it as `chore: release X.Y.Z`, and tags that commit `vX.Y.Z`.
 4. `git push --follow-tags` pushes the commits and the tag.
