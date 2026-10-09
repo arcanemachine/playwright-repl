@@ -178,6 +178,26 @@ describe('quitting at the prompt while a sent command runs', { skip: SKIP }, () 
   });
 });
 
+describe('a REPL whose browser goes away', { skip: SKIP }, () => {
+  let chrome, repl;
+
+  before(async () => {
+    chrome = await startChrome();
+    repl = await startRepl(chrome.cdpUrl);
+  });
+
+  after(async () => {
+    await repl?.stop();
+    await chrome?.stop();
+  });
+
+  it('exits, saying how to start it again', async () => {
+    await chrome.stop();
+    await waitFor(() => repl.exited, 'the REPL to exit');
+    assert.match(repl.stdout, new RegExp(`Chromium connection lost; queued commands will not run\\. Start the REPL again to carry on: pw-repl serve ${repl.socket}`));
+  });
+});
+
 describe('closing the terminal of a serving REPL', { skip: SKIP }, () => {
   let chrome, repl;
 
