@@ -125,29 +125,30 @@ example the Docker bridge gateway, `ip route | awk '/default/ {print $3}'`).
 
 ## Common tasks
 
-| I want to…                           | Commands                                                                             |
-| ------------------------------------ | ------------------------------------------------------------------------------------ |
-| see where I am                       | `tab` (it marks the tab you are looking at `(visible)`), `info`                      |
-| see what is on the page              | `snapshot`, `screenshot`                                                             |
-| do something on it                   | `click`, `fill`, `type`, `press`                                                     |
-| run some JavaScript in the page      | `eval document.title`                                                                |
-| wait for a page or element           | `wait load`, `wait <selector>`, `wait <selector> --gone`, `wait text <text>`         |
-| choose a file in a file input        | `upload <selector> <file>`                                                           |
-| see it as a phone, or in dark mode   | `emulate mobile`, `emulate dark` (also `emulate locale`, `emulate timezone`)         |
-| see what the page requested          | `requests`, then `body <#>` for what one got back                                    |
-| see console messages and errors      | `console`                                                                            |
-| show an agent what I do              | `watch on`, click around in the browser, then `watch`                                |
-| see each step as I click             | `watch on --live`                                                                    |
-| replay what I clicked through        | `watch on`, click around, `watch save flow.txt`, then `pw-repl send --file flow.txt` |
-| record requests and console together | `capture on`, then `capture off`                                                     |
-| fake a backend response              | `route <glob> <status> <json>`, `route <glob> abort`                                 |
-| change or slow an API response       | `route <glob> patch <json>`, `route <glob> delay <secs>`                             |
-| cut or slow the whole network        | `network off`, `network slow`, then `network on`                                     |
-| record a video of the page           | `record on`, then `record off` (`help video` for a take with a pointer)              |
-| show a pointer where the agent acts  | `cursor on`, then `cursor off` (in screenshots and videos)                           |
-| say what is happening on screen      | `toast <text>`, then `toast off` (`--duration=3s` hides it by itself)                |
-| point something out on the page      | `highlight <ref>` draws a box; `highlight off` hides it                              |
-| clean up                             | `modes off`                                                                          |
+| I want to…                            | Commands                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------ |
+| see where I am                        | `tab` (it marks the tab you are looking at `(visible)`), `info`                      |
+| see what is on the page               | `snapshot`, `screenshot`                                                             |
+| do something on it                    | `click`, `fill`, `type`, `press`                                                     |
+| click what has no selector (a canvas) | `mouseclick <x> <y>`                                                                 |
+| run some JavaScript in the page       | `eval document.title`                                                                |
+| wait for a page or element            | `wait load`, `wait <selector>`, `wait <selector> --gone`, `wait text <text>`         |
+| choose a file in a file input         | `upload <selector> <file>`                                                           |
+| see it as a phone, or in dark mode    | `emulate mobile`, `emulate dark` (also `emulate locale`, `emulate timezone`)         |
+| see what the page requested           | `requests`, then `body <#>` for what one got back                                    |
+| see console messages and errors       | `console`                                                                            |
+| show an agent what I do               | `watch on`, click around in the browser, then `watch`                                |
+| see each step as I click              | `watch on --live`                                                                    |
+| replay what I clicked through         | `watch on`, click around, `watch save flow.txt`, then `pw-repl send --file flow.txt` |
+| record requests and console together  | `capture on`, then `capture off`                                                     |
+| fake a backend response               | `route <glob> <status> <json>`, `route <glob> abort`                                 |
+| change or slow an API response        | `route <glob> patch <json>`, `route <glob> delay <secs>`                             |
+| cut or slow the whole network         | `network off`, `network slow`, then `network on`                                     |
+| record a video of the page            | `record on`, then `record off` (`help video` for a take with a pointer)              |
+| show a pointer where the agent acts   | `cursor on`, then `cursor off` (in screenshots and videos)                           |
+| say what is happening on screen       | `toast <text>`, then `toast off` (`--duration=3s` hides it by itself)                |
+| point something out on the page       | `highlight <ref>` draws a box; `highlight off` hides it                              |
+| clean up                              | `modes off`                                                                          |
 
 `help <topic>` lists the rest, and `help <command>` has usage and caveats.
 

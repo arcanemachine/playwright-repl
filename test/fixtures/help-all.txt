@@ -179,8 +179,9 @@ selectors with spaces. mousemove and the other mouse commands act at a point ins
                             mouse.click delay. Default: 0.
 
       For what has no selector, such as a marker drawn on a canvas; anything a selector finds is better
-      clicked with click, which waits for it. The mouse stays at the point, for a mousewheel or mousedown
-      after it. The cursor (help cursor) moves there first and shows a ring at the press.
+      clicked with click, which waits for it. help mousemove shows how to find a point. The mouse stays at the
+      point, for a mousewheel or mousedown after it. The cursor (help cursor) moves there first and shows a
+      ring at the press.
 
   mousedown [button]                    press a mouse button where the mouse is (left, right or middle)
   mouseup [button]                      release a mouse button where the mouse is
