@@ -504,10 +504,11 @@ clean browser of its own (here, its video-start is record on).
       renamed with the video.
 
       ffmpeg: $PW_FFMPEG, and only it when it is set (the REPL's, not send's); otherwise Playwright's own (npx
-      playwright-core install ffmpeg, in $PLAYWRIGHT_BROWSERS_PATH or ~/.cache/ms-playwright), then one on the
-      PATH. Playwright's writes only WebM; an MP4 needs a system ffmpeg with H.264. Without one that can write
-      the format, record on fails at once, recording nothing. WebM plays in browsers, GitHub, GitLab and
-      Slack; MP4 everywhere. About 15 MB a minute.
+      playwright-core install ffmpeg, in $PLAYWRIGHT_BROWSERS_PATH, or ~/.cache/ms-playwright on Linux and
+      ~/Library/Caches/ms-playwright on macOS), then one on the PATH. Playwright's writes only WebM; an MP4
+      needs a system ffmpeg with H.264. Without one that can write the format, record on fails at once,
+      recording nothing. WebM plays in browsers, GitHub, GitLab and Slack; MP4 everywhere. About 15 MB a
+      minute.
 
       An ffmpeg that exits mid-recording ends the recording then; the pane says what was saved, and the next
       record off fails with it. ffmpeg writes in blocks, so what it has not written yet is lost: the last

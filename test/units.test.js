@@ -115,6 +115,16 @@ describe('modules', () => {
   });
 });
 
+describe('playwrightBrowsersDir', () => {
+  // Agreeing with playwright-core on whichever platform the tests run on is what finds its ffmpeg and
+  // Chromium there: ~/Library/Caches on macOS, ~/.cache on Linux.
+  it('is where playwright-core installs its browsers', () => {
+    const { playwrightBrowsersDir } = require('../lib/util');
+    const dir = playwrightBrowsersDir();
+    assert.ok(require('playwright-core').chromium.executablePath().startsWith(dir + path.sep), dir);
+  });
+});
+
 describe('record', () => {
   it('refuses without an ffmpeg, and says how to get one', () => {
     const { findFfmpeg } = require('../lib/record');

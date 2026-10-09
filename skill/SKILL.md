@@ -249,7 +249,8 @@ pw-repl send -c <name> close                        # your modes off; tab close 
 - `PW_FFMPEG` — the ffmpeg `record` uses, and no other, read by the REPL, not by `send` (default:
   Playwright's own, then one on the `PATH`).
 - Playwright's own Chromium and ffmpeg are found where Playwright installs them:
-  `PLAYWRIGHT_BROWSERS_PATH`, or `~/.cache/ms-playwright`.
+  `PLAYWRIGHT_BROWSERS_PATH`, or `~/.cache/ms-playwright` on Linux and `~/Library/Caches/ms-playwright`
+  on macOS.
 - `PW_CDP_URL` — CDP endpoint (default `http://localhost:9222`).
 - `PW_SCREENSHOT_DIR` — where the REPL saves screenshots (a folder that exists), read when it starts,
   not by `send`. Without it, a REPL on a socket of its own saves them next to its socket, and any other
