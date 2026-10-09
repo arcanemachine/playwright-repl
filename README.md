@@ -8,6 +8,11 @@ in one it starts itself. You type commands at a `pw>` prompt. Agents send the sa
 with `pw-repl send`. Every command shows in the REPL, whoever sent it, so you always see what an agent
 is doing in your browser, and the agent can see what you did.
 
+[![pw-repl demo, recorded by pw-repl](docs/pw-repl-demo.png)](docs/pw-repl-demo.webm)
+
+A 90-second demo (click to play), recorded by pw-repl itself from one script of commands. The command
+panel on the right is part of the demo page, showing what the agent sends.
+
 ```text
 pw> tab new http://localhost:3000/cart
 pw> snapshot                            # the page by role and name, with [ref=eN] labels
