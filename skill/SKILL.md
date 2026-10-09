@@ -187,10 +187,9 @@ blindly retry a change), `64` usage or the REPL is not reachable. `pw-repl --hel
 ## Learn the commands
 
 Run `pw-repl send help`. It lists seven topics; `help <topic>` lists their commands, `help <command>`
-gives usage and caveats, and `help --all` prints everything at once. pw-repl answers it itself: it needs
-no running REPL, and never reaches one. The
-help is the command reference; this file does not repeat it. If you know playwright-cli, its command
-names work too (`help playwright-cli` lists them).
+gives usage and caveats: read it before you use a command, since this file does not repeat them. `help
+--all` prints everything at once. pw-repl answers help itself: it needs no running REPL, and never
+reaches one. If you know playwright-cli, its command names work too (`help playwright-cli` lists them).
 
 ### Coming from playwright-cli
 
@@ -252,10 +251,10 @@ pw-repl send -c <name> close                        # your modes off; tab close 
 - Playwright's own Chromium and ffmpeg are found where Playwright installs them:
   `PLAYWRIGHT_BROWSERS_PATH`, or `~/.cache/ms-playwright`.
 - `PW_CDP_URL` — CDP endpoint (default `http://localhost:9222`).
-- `PW_SCREENSHOT_DIR` — where the REPL saves screenshots, read when it starts, not by `send`. Without
-  it, a REPL on a socket of its own saves them next to its socket, and any other in `/tmp`. `screenshot`
-  prints each file's path; other REPLs may save theirs in the same place. Remove only your own, and keep
-  those too if they are needed, e.g. as evidence or as something to hand over.
+- `PW_SCREENSHOT_DIR` — where the REPL saves screenshots (a folder that exists), read when it starts,
+  not by `send`. Without it, a REPL on a socket of its own saves them next to its socket, and any other
+  in `/tmp`. `screenshot` prints each file's path; other REPLs may save theirs in the same place. Remove
+  only your own, and keep those too if they are needed, e.g. as evidence or as something to hand over.
 - `PW_ENDPOINT` / `PW_TMUX_SESSION` — defaults for `send -e` / `-s`. `PW_SOCKET` — the socket `serve`
   serves on and `send` looks for when neither is given (default `/tmp/pw-repl.sock`).
 

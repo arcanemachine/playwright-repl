@@ -15,7 +15,8 @@ const USAGE = `Usage:
       see everything a background REPL does, and type commands to it; Ctrl-C leaves it running
 
   pw-repl stop [-e endpoint]
-      stop a background REPL, and say what became of each recording it ended
+      stop a background REPL, and say what became of each recording it ended; its socket is removed, its
+      log stays
 
   pw-repl send [-e endpoint | -s session] [-c client] [-t seconds] [--no-vars] <command...> | --file <file>
       run one command in a running REPL and print its output; --file runs a file of them, one per line
