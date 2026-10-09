@@ -86,6 +86,26 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
     }
   });
 
+  it('clicks at a point, with a button and a held press', async () => {
+    await ok(`tab new ${site.url}/pick`);
+    try {
+      await ok('eval window.held = []; addEventListener("mousedown", e => held.push(e.timeStamp)); addEventListener("mouseup", e => held.push(e.timeStamp))');
+      assert.equal(await ok('mouseclick 50 350'), 'Clicked the left button at 50, 350');
+      assert.equal(await ok('mouseclick 60 340 right'), 'Clicked the right button at 60, 340');
+      await ok('eval held.length = 0');
+      assert.equal(await ok('mouseclick 50 350 --delay=300'), 'Clicked the left button at 50, 350');
+      assert.equal(await ok('eval log.textContent.trim()'), 'mousedown:0@50,350 mouseup:0@50,350 click:0@50,350 mousedown:2@60,340 mouseup:2@60,340 mousedown:0@50,350 mouseup:0@50,350 click:0@50,350');
+      // Measured by the page's own event times, not the command's.
+      assert.equal(await ok('eval held[1] - held[0] >= 290'), 'true');
+      assert.match((await repl.run('mouseclick 50')).output, /Usage: mouseclick <x> <y>/);
+      assert.match((await repl.run('mouseclick 50 350 sideways')).output, /Usage: mouseclick <x> <y> \[left\|right\|middle\]/);
+      assert.match((await repl.run('mouseclick 50 350 --delay=soon')).output, /Usage: mouseclick .*--delay=<ms>/);
+      assert.match(await ok('help mouse'), /part of help interact[\s\S]*mouseclick <x> <y>[\s\S]*mousewheel/);
+    } finally {
+      await ok('tab close');
+    }
+  });
+
   it('moves the mouse, presses its buttons and turns its wheel at a point', async () => {
     await ok(`tab new ${site.url}/pick`);
     try {

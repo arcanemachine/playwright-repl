@@ -167,8 +167,20 @@ selectors with spaces. mousemove and the other mouse commands act at a point ins
       eval (r => [r.x + r.width / 2, r.y + r.height / 2])(document.querySelector("#map")
         .getBoundingClientRect())
 
-      A click at a point: mousemove <x> <y>, mousedown, mouseup. A drag: mousedown, then mousemove to another
-      point, then mouseup.
+      A click at a point: mouseclick <x> <y>. A drag: mousedown, then mousemove to another point, then
+      mouseup.
+
+  mouseclick <x> <y> [button]           click at a point in the viewport
+      Arguments:
+        <x> <y>             CSS pixels from the top left of the tab's viewport, as for mousemove.
+        [button]            left, right or middle. Default: left.
+      Options:
+        --delay=<ms>        holds the button down this long between press and release, as Playwright's
+                            mouse.click delay. Default: 0.
+
+      For what has no selector, such as a marker drawn on a canvas; anything a selector finds is better
+      clicked with click, which waits for it. The mouse stays at the point, for a mousewheel or mousedown
+      after it. The cursor (help cursor) moves there first and shows a ring at the press.
 
   mousedown [button]                    press a mouse button where the mouse is (left, right or middle)
   mouseup [button]                      release a mouse button where the mouse is
@@ -530,9 +542,9 @@ clean browser of its own (here, its video-start is record on).
       The REPL's clicks and typing don't move a pointer on screen, so a recording shows things happening with
       nothing pointing at them. With the cursor on, these commands move it smoothly to their element or point
       before they act: click, dblclick, hover, fill, type <selector>, press <selector>, select, check,
-      uncheck, upload and mousemove. Each move takes 150 to 600ms by distance (300 to 1000ms while the tab
-      records), and the command waits for it. Clicks (click, dblclick, check, uncheck, mousedown, and upload
-      when it clicks a button) show a ring where they land.
+      uncheck, upload, mousemove and mouseclick. Each move takes 150 to 600ms by distance (300 to 1000ms while
+      the tab records), and the command waits for it. Clicks (click, dblclick, check, uncheck, mouseclick,
+      mousedown, and upload when it clicks a button) show a ring where they land.
 
       Only the drawing moves: no mouse events are sent along the way, so the page gets the same input as with
       the cursor off. It shows only the REPL's input, from every client, never the user's own mouse. fill,
