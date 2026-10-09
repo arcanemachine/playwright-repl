@@ -1746,6 +1746,10 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
           const files = fs.readdirSync(dir).filter(file => file.startsWith(`${width}-${name}-`) && file.endsWith('.png')).sort();
           assert.ok(files.length, `${name}: no decoded frames`);
           let gridFrames = 0;
+          // Under load, a new page can send one frame drawn at the window's width before the emulated
+          // viewport applies to it (stripes 82px wide at 640, from the 800px window), scaled to fit. One
+          // such frame is let through; a recording that stays at the wrong scale still fails.
+          const offScale = [];
           let lastRuns = [];
           let lastImage = null;
           for (const file of files) {
@@ -1769,8 +1773,9 @@ describe('REPL against a real browser', { skip: SKIP }, () => {
             lastImage = image;
             if (runs.length < 2) continue;
             gridFrames += 1;
-            assert.ok(runs.slice(0, 2).every(run => Math.abs(run.width - 100) <= 4), `${file}: ${JSON.stringify(runs.slice(0, 4))}`);
+            if (!runs.slice(0, 2).every(run => Math.abs(run.width - 100) <= 4)) offScale.push(`${file}: ${JSON.stringify(runs.slice(0, 4))}`);
           }
+          assert.ok(offScale.length <= 1 && !offScale.some(f => f.startsWith(`${files.at(-1)}:`)), offScale.join('\n'));
           assert.ok(gridFrames, `${name}: the grid never appeared`);
           assert.equal(lastRuns[0]?.colour, lastColour, `${name}: the final page content was not captured`);
           checkFrame?.(lastImage, files.at(-1));
